@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="memmock.cpp" />
+    <ClCompile Include="test.cpp" />
+    <ClCompile Include="..\libyb\async\serial_port.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\stream.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\timer.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="test.h" />
+    <ClInclude Include="memmock.h" />
+    <ClInclude Include="..\libyb\async\task.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\task_base.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\task_result.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\parallel_composition_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\sequential_composition_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\task_fwd.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\task_impl.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\task_result.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\value_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\win32_handle_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\sync_runner.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\win32_wait_context.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\stream.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\serial_port.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\timer.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="libyb">
+      <UniqueIdentifier>{47d0c650-d8e8-4bd3-a6e5-94e0b1215153}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\async">
+      <UniqueIdentifier>{5c2dab80-1495-4879-9981-952305eef37c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\async\detail">
+      <UniqueIdentifier>{58c17c9d-5d1e-4578-939c-18b49dcfbd82}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
