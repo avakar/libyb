@@ -35,6 +35,8 @@ public:
 	size_t size() const { return static_cast<size_t>(last - first); }
 	bool empty() const { return first == last; }
 
+	T const & operator[](size_t i) const { return first[i]; }
+
 private:
 	T const * first;
 	T const * last;
