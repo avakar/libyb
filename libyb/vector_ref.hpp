@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <string>
+#include <vector>
 
 namespace yb {
 
@@ -67,6 +68,11 @@ public:
 	string_ref(std::string const & str)
 		: vector_ref<char>(str.data(), str.size())
 	{
+	}
+
+	operator std::string() const
+	{
+		return std::string(this->data(), this->size());
 	}
 };
 
