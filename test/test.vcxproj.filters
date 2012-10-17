@@ -13,6 +13,12 @@
     <ClCompile Include="..\libyb\async\timer.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\descriptor.cpp">
+      <Filter>libyb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\stream_parser.cpp">
+      <Filter>libyb</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test.h" />
@@ -61,6 +67,21 @@
     </ClInclude>
     <ClInclude Include="..\libyb\async\timer.hpp">
       <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\descriptor.hpp">
+      <Filter>libyb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\packet.hpp">
+      <Filter>libyb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\tunnel.hpp">
+      <Filter>libyb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\vector_ref.hpp">
+      <Filter>libyb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\stream_parser.hpp">
+      <Filter>libyb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

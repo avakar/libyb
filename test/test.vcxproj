@@ -79,6 +79,8 @@
     <ClCompile Include="..\libyb\async\serial_port.cpp" />
     <ClCompile Include="..\libyb\async\stream.cpp" />
     <ClCompile Include="..\libyb\async\timer.cpp" />
+    <ClCompile Include="..\libyb\descriptor.cpp" />
+    <ClCompile Include="..\libyb\stream_parser.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="memmock.cpp" />
     <ClCompile Include="test.cpp" />
@@ -99,6 +101,11 @@
     <ClInclude Include="..\libyb\async\task_base.hpp" />
     <ClInclude Include="..\libyb\async\task_result.hpp" />
     <ClInclude Include="..\libyb\async\timer.hpp" />
+    <ClInclude Include="..\libyb\descriptor.hpp" />
+    <ClInclude Include="..\libyb\packet.hpp" />
+    <ClInclude Include="..\libyb\stream_parser.hpp" />
+    <ClInclude Include="..\libyb\tunnel.hpp" />
+    <ClInclude Include="..\libyb\vector_ref.hpp" />
     <ClInclude Include="memmock.h" />
     <ClInclude Include="test.h" />
   </ItemGroup>
