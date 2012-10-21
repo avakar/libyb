@@ -7,7 +7,7 @@ stream_parser::stream_parser()
 {
 }
 
-void stream_parser::parse(std::vector<packet> & out, buffer_ref const & buffer)
+void stream_parser::parse(packet_handler & h, buffer_ref const & buffer)
 {
 	size_t r = buffer.size();
 
@@ -33,7 +33,7 @@ void stream_parser::parse(std::vector<packet> & out, buffer_ref const & buffer)
 
 			if (m_partial_packet.size() == 1)
 			{
-				out.push_back(std::move(m_partial_packet));
+				h.handle_packet(std::move(m_partial_packet));
 				m_partial_packet.clear();
 				m_packet_pos = 0;
 				break;
@@ -49,7 +49,7 @@ void stream_parser::parse(std::vector<packet> & out, buffer_ref const & buffer)
 
 				if (m_packet_pos == m_partial_packet.size())
 				{
-					out.push_back(std::move(m_partial_packet));
+					h.handle_packet(std::move(m_partial_packet));
 					m_partial_packet.clear();
 					m_packet_pos = 0;
 					break;
@@ -61,3 +61,26 @@ void stream_parser::parse(std::vector<packet> & out, buffer_ref const & buffer)
 	}
 }
 
+void stream_parser::parse(std::vector<packet> & out, buffer_ref const & buffer)
+{
+	class handler
+		: public packet_handler
+	{
+	public:
+		handler(std::vector<packet> & out)
+			: m_out(out)
+		{
+		}
+
+		void handle_packet(packet const & p)
+		{
+			m_out.push_back(p);
+		}
+
+	private:
+		std::vector<packet> & m_out;
+	};
+
+	handler h(out);
+	this->parse(h, buffer);
+}
