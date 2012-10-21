@@ -16,3 +16,4 @@ struct test_registrar
 	void name()
 
 void run_tests();
+void run_tests(int argc, char const * const * argv);
