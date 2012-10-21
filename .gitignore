@@ -1,3 +1,6 @@
 **.suo
 **.vcxproj.user
 test/Debug
+test/ipch
+**.opensdf
+**.sdf
