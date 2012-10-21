@@ -5,6 +5,7 @@
 #include <libyb/async/task.hpp>
 #include <libyb/async/sync_runner.hpp>
 #include <libyb/async/timer.hpp>
+#include <libyb/async/signal.hpp>
 
 TEST_CASE(ValueTaskTest, "value_task")
 {
@@ -53,55 +54,17 @@ TEST_CASE(TimerTask, "timer_task")
 	}
 }
 
-#if 0 //def WIN32
-
-#include <libyb/async/task_win32.hpp>
-#include <libyb/async/sync_runner.hpp>
-
-TEST_CASE(HandleTask, "win32_handle_task")
+TEST_CASE(SignalTask, "signal_task")
 {
-	HANDLE hEvent = CreateWaitableTimer(0, TRUE, 0);
+	yb::timer tmr;
+	yb::signal sig;
 
-	alloc_mocker m;
-	while (m.next())
-	{
-		yb::task<int> t = yb::make_win32_handle_task(hEvent, []{ return false; }).then([]{
-			return yb::make_value_task(42);
-		});
-
-		LARGE_INTEGER li;
-		li.QuadPart = -1*1000*1000*10;
-		SetWaitableTimer(hEvent, &li, 0, 0, 0, FALSE);
-
-		try
-		{
-			int res = yb::run(std::move(t));
-			assert(res == 42);
-		}
-		catch (...)
-		{
-		}
-	}
-
-	CloseHandle(hEvent);
+	yb::task<void> t = wait_for(sig);
+	t |= tmr.wait_ms(1).then([&sig] { sig.fire(); });
+	yb::run(std::move(t));
 }
 
-#include <libyb/async/serial_port.hpp>
-
-TEST_CASE(SerialPortOpenTest, "serial_port")
+int main(int argc, char * argv[])
 {
-	yb::serial_port sp;
-	uint8_t buf[256];
-	yb::task<size_t> t = sp.open("COM9").then([&sp, &buf]() {
-		return sp.read(buf, sizeof buf);
-	});
-	t.cancel();
-	yb::task_result<size_t> r = yb::try_run(std::move(t));
-}
-
-#endif
-
-int main()
-{
-	run_tests();
+	run_tests(argc, argv);
 }

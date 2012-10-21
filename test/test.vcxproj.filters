@@ -19,6 +19,24 @@
     <ClCompile Include="..\libyb\stream_parser.cpp">
       <Filter>libyb</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\async\stream_device.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\signal.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\device.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\parallel_composition_task.cpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\task_impl.cpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\win32_wait_context.cpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="test.h" />
@@ -82,6 +100,27 @@
     </ClInclude>
     <ClInclude Include="..\libyb\stream_parser.hpp">
       <Filter>libyb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\device.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\stream_device.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\signal.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\packet_handler.hpp">
+      <Filter>libyb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\loop_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\canceller_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\wait_context.hpp">
+      <Filter>libyb\async\detail</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
