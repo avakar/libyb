@@ -10,34 +10,43 @@ namespace yb {
 template <typename T>
 task_result<T> try_run(task<T> && t)
 {
-	task_wait_preparation_context wait_ctx;
-
-	assert(!t.empty());
-	while (!t.has_result())
+	try
 	{
-		wait_ctx.clear();
-		t.prepare_wait(wait_ctx);
+		task_wait_preparation_context wait_ctx;
+		task_wait_preparation_context_impl & wait_ctx_impl = *wait_ctx.get();
 
-		if (wait_ctx.m_finished_tasks)
+		assert(!t.empty());
+		while (!t.has_result())
 		{
-			task_wait_finalization_context finish_ctx;
-			finish_ctx.m_handle_finished_tasks = true;
-			t.finish_wait(finish_ctx);
-		}
-		else
-		{
-			assert(!wait_ctx.m_handles.empty());
+			wait_ctx.clear();
+			t.prepare_wait(wait_ctx);
 
-			DWORD dwRes = WaitForMultipleObjects(wait_ctx.m_handles.size(), wait_ctx.m_handles.data(), FALSE, INFINITE);
-			assert(dwRes >= WAIT_OBJECT_0 && dwRes < WAIT_OBJECT_0 + wait_ctx.m_handles.size());
+			if (wait_ctx_impl.m_finished_tasks)
+			{
+				task_wait_finalization_context finish_ctx;
+				finish_ctx.finished_tasks = wait_ctx_impl.m_finished_tasks;
+				t.finish_wait(finish_ctx);
+			}
+			else
+			{
+				assert(!wait_ctx_impl.m_handles.empty());
 
-			task_wait_finalization_context finish_ctx;
-			finish_ctx.m_selected_handle = dwRes - WAIT_OBJECT_0;
-			t.finish_wait(finish_ctx);
+				DWORD dwRes = WaitForMultipleObjects(wait_ctx_impl.m_handles.size(), wait_ctx_impl.m_handles.data(), FALSE, INFINITE);
+				assert(dwRes >= WAIT_OBJECT_0 && dwRes < WAIT_OBJECT_0 + wait_ctx_impl.m_handles.size());
+
+				task_wait_finalization_context finish_ctx;
+				finish_ctx.finished_tasks = false;
+				finish_ctx.selected_poll_item = dwRes - WAIT_OBJECT_0;
+				t.finish_wait(finish_ctx);
+			}
 		}
+
+		return t.get_result();
 	}
-
-	return t.get_result();
+	catch (...)
+	{
+		return std::current_exception();
+	}
 }
 
 template <typename T>

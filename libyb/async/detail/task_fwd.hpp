@@ -5,18 +5,57 @@
 #include <memory> // unique_ptr
 #include <exception> // exception_ptr, exception
 
+#include <type_traits> // conditional
+
 namespace yb {
 
+template <typename R>
+class task;
+
 namespace detail {
+
+template <typename T>
+struct is_task
+	: std::false_type
+{
+};
+
+template <typename T>
+struct is_task<task<T>>
+	: std::true_type
+{
+};
+
+template <typename T>
+struct unwrap_task
+{
+	typedef T type;
+};
+
+template <typename T>
+struct unwrap_task<task<T>>
+{
+	typedef T type;
+};
 
 template <typename R, typename F>
 struct task_then_type
 {
-	typedef decltype((*(F*)0)(*(R*)0)) type;
+	typedef decltype((*(F*)0)(*(R*)0)) result_type;
+	typedef typename unwrap_task<result_type>::type unwrapped_type;
+	typedef task<unwrapped_type> type;
 };
 
 template <typename F>
 struct task_then_type<void, F>
+{
+	typedef decltype((*(F*)0)()) result_type;
+	typedef typename unwrap_task<result_type>::type unwrapped_type;
+	typedef task<unwrapped_type> type;
+};
+
+template <typename F>
+struct task_protect_type
 {
 	typedef decltype((*(F*)0)()) type;
 };
@@ -125,6 +164,16 @@ template <typename R>
 task<R> make_value_task(std::exception_ptr e);
 
 task<void> operator|(task<void> && lhs, task<void> && rhs);
+task<void> & operator|=(task<void> & lhs, task<void> && rhs);
+
+template <typename F>
+typename detail::task_protect_type<F>::type protect(F f);
+
+template <typename F>
+task<void> loop(F f);
+
+template <typename S, typename F>
+task<void> loop(task<S> && t, F f);
 
 } // namespace yb
 

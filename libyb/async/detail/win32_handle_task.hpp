@@ -49,9 +49,9 @@ template <typename Canceller>
 void win32_handle_task<Canceller>::prepare_wait(task_wait_preparation_context & ctx)
 {
 	if (m_handle)
-		ctx.m_handles.push_back(m_handle);
+		ctx.get()->m_handles.push_back(m_handle);
 	else
-		++ctx.m_finished_tasks;
+		++ctx.get()->m_finished_tasks;
 }
 
 template <typename Canceller>

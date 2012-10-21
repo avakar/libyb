@@ -3,6 +3,8 @@
 
 #include "value_task.hpp"
 #include "sequential_composition_task.hpp"
+#include "loop_task.hpp"
+#include <type_traits>
 
 namespace yb {
 
@@ -174,7 +176,8 @@ template <typename R>
 void task<R>::prepare_wait(task_wait_preparation_context & ctx)
 {
 	assert(m_kind == k_task);
-	this->as_task()->prepare_wait(ctx);
+	task_base_ptr p = this->as_task();
+	p->prepare_wait(ctx);
 }
 
 template <typename R>
@@ -242,22 +245,70 @@ auto task<R>::continue_with(F f) -> decltype(f(*(task_result<R>*)0))
 	}
 }
 
-template <typename R>
-template <typename F>
-typename detail::task_then_type<R, F>::type task<R>::then(F f)
+namespace detail {
+
+template <typename R, typename S, typename F, typename X>
+task<R> then_impl(task<S> && t, F const & f, std::true_type, X)
 {
-	return this->continue_with([f](task_result<R> r) {
+	return t.continue_with([f](task_result<S> r) {
 		return f(r.get());
 	});
 }
 
-template <>
-template <typename F>
-typename detail::task_then_type<void, F>::type task<void>::then(F f)
+template <typename R, typename S, typename F>
+task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 {
-	return this->continue_with([f](task_result<void> r) {
-		return r.rethrow(), f();
+	return t.continue_with([f](task_result<S> r) {
+		f(r.get());
+		return make_value_task();
 	});
+}
+
+template <typename R, typename S, typename F>
+task<R> then_impl(task<S> && t, F const & f, std::false_type, std::false_type)
+{
+	return t.continue_with([f](task_result<S> r) {
+		return make_value_task(f(r.get()));
+	});
+}
+
+template <typename R, typename F, typename X>
+task<R> then_impl(task<void> && t, F const & f, std::true_type, X)
+{
+	return t.continue_with([f](task_result<void> r) -> task<R> {
+		r.rethrow();
+		return f();
+	});
+}
+
+template <typename R, typename F>
+task<R> then_impl(task<void> && t, F const & f, std::false_type, std::true_type)
+{
+	return t.continue_with([f](task_result<void> r) -> task<R> {
+		r.rethrow();
+		f();
+		return make_value_task();
+	});
+}
+
+template <typename R, typename F>
+task<R> then_impl(task<void> && t, F const & f, std::false_type, std::false_type)
+{
+	return t.continue_with([f](task_result<void> r) -> task<R> {
+		r.rethrow();
+		return make_value_task(f());
+	});
+}
+
+}
+
+template <typename R>
+template <typename F>
+typename detail::task_then_type<R, F>::type task<R>::then(F f)
+{
+	typedef typename detail::task_then_type<R, F>::result_type f_result_type;
+	typedef typename detail::task_then_type<R, F>::unwrapped_type unwrapped_type;
+	return detail::then_impl<unwrapped_type>(std::move(*this), f, detail::is_task<f_result_type>(), std::is_void<unwrapped_type>());
 }
 
 inline task<void> make_value_task()
@@ -297,7 +348,34 @@ task<R> make_value_task(std::exception_ptr e)
 	return task<R>(e);
 }
 
-task<void> operator|(task<void> && lhs, task<void> && rhs);
+template <typename F>
+typename detail::task_protect_type<F>::type protect(F f)
+{
+	try
+	{
+		return f();
+	}
+	catch (...)
+	{
+		return detail::task_protect_type<F>::type(std::current_exception());
+	}
+}
+
+template <typename F>
+task<void> loop(F f)
+{
+	return protect([&f] {
+		return task<void>(new detail::loop_task<void, F>(make_value_task(), f));
+	});
+}
+
+template <typename S, typename F>
+task<void> loop(task<S> && t, F f)
+{
+	return protect([&t, &f] {
+		return task<void>(new detail::loop_task<S, F>(std::move(t), f));
+	});
+}
 
 } // namespace yb
 
