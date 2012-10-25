@@ -1,26 +1,23 @@
 #ifndef LIBYB_ASYNC_SIGNAL_HPP
 #define LIBYB_ASYNC_SIGNAL_HPP
 
-#include "task.hpp"
+#include "channel.hpp"
 
 namespace yb {
 
 class signal
+	: public channel<void>
 {
 public:
-	signal();
-	signal(signal const & o);
-	signal(signal && o);
-	~signal();
+	void fire()
+	{
+		this->send();
+	}
 
-	void fire();
-
-	friend task<void> wait_for(signal & sig);
-
-private:
-	struct signal_task;
-	struct impl;
-	impl * m_pimpl;
+	friend task<void> wait_for(signal & sig)
+	{
+		return sig.receive();
+	}
 };
 
 } // namespace yb

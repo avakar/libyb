@@ -6,6 +6,7 @@
 #include <libyb/async/sync_runner.hpp>
 #include <libyb/async/timer.hpp>
 #include <libyb/async/signal.hpp>
+#include <libyb/async/channel.hpp>
 
 TEST_CASE(ValueTaskTest, "value_task")
 {
@@ -52,6 +53,24 @@ TEST_CASE(TimerTask, "timer_task")
 		assert(!m.good() || !r.has_exception());
 		assert(m.good() || r.has_exception());
 	}
+}
+
+TEST_CASE(ChannelTask, "channel_task")
+{
+	yb::timer tmr;
+	yb::channel<int> sig;
+
+	int res = 0;
+	yb::task<void> t = sig.receive().then([&res](int value) -> yb::task<void> {
+		res = value;
+		return yb::async::value();
+	});
+
+	t |= tmr.wait_ms(1).then([&sig] { sig.send(42); });
+
+	yb::run(std::move(t));
+
+	assert(res == 42);
 }
 
 TEST_CASE(SignalTask, "signal_task")
