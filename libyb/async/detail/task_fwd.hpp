@@ -175,6 +175,33 @@ task<void> loop(F f);
 template <typename S, typename F>
 task<void> loop(task<S> && t, F f);
 
+namespace async {
+
+template <typename R>
+task<R> value(R && v)
+{
+	return ::yb::make_value_task(std::forward<R>(v));
+}
+
+inline task<void> value()
+{
+	return ::yb::make_value_task();
+}
+
+template <typename R>
+task<R> raise(std::exception_ptr e)
+{
+	return make_value_task(std::move(e));
+}
+
+template <typename R, typename E>
+task<R> raise(E && e)
+{
+	return make_value_task<R>(std::copy_exception(std::forward<E>(e)));
+}
+
+} // namespace async
+
 } // namespace yb
 
 #endif // LIBYB_ASYNC_DETAIL_TASK_FWD_HPP
