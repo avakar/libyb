@@ -128,6 +128,9 @@ public:
 	template <typename F>
 	typename detail::task_then_type<R, F>::type then(F f);
 
+	template <typename F>
+	task<R> follow_with(F f);
+
 private:
 	typedef task_base<R> * task_base_ptr;
 
@@ -191,13 +194,19 @@ inline task<void> value()
 template <typename R>
 task<R> raise(std::exception_ptr e)
 {
-	return make_value_task(std::move(e));
+	return make_value_task<R>(std::move(e));
 }
 
 template <typename R, typename E>
 task<R> raise(E && e)
 {
 	return make_value_task<R>(std::copy_exception(std::forward<E>(e)));
+}
+
+template <typename R>
+task<R> raise()
+{
+	return make_value_task<R>(std::current_exception());
 }
 
 } // namespace async

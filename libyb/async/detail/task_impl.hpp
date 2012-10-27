@@ -258,7 +258,7 @@ task<R> then_impl(task<S> && t, F const & f, std::true_type, X)
 template <typename R, typename S, typename F>
 task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 {
-	return t.continue_with([f](task_result<S> r) {
+	return t.continue_with([f](task_result<S> r) -> task<R> {
 		f(r.get());
 		return make_value_task();
 	});
@@ -276,7 +276,8 @@ template <typename R, typename F, typename X>
 task<R> then_impl(task<void> && t, F const & f, std::true_type, X)
 {
 	return t.continue_with([f](task_result<void> r) -> task<R> {
-		r.rethrow();
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
 		return f();
 	});
 }
@@ -285,7 +286,8 @@ template <typename R, typename F>
 task<R> then_impl(task<void> && t, F const & f, std::false_type, std::true_type)
 {
 	return t.continue_with([f](task_result<void> r) -> task<R> {
-		r.rethrow();
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
 		f();
 		return make_value_task();
 	});
@@ -300,6 +302,14 @@ task<R> then_impl(task<void> && t, F const & f, std::false_type, std::false_type
 	});
 }
 
+template <typename R, typename F>
+typename detail::task_then_type<R, F>::type then_impl2(task<R> && t, F const & f, std::false_type)
+{
+	typedef typename detail::task_then_type<R, F>::result_type f_result_type;
+	typedef typename detail::task_then_type<R, F>::unwrapped_type unwrapped_type;
+	return detail::then_impl<unwrapped_type>(std::move(t), f, detail::is_task<f_result_type>(), std::is_void<unwrapped_type>());
+}
+
 }
 
 template <typename R>
@@ -309,6 +319,19 @@ typename detail::task_then_type<R, F>::type task<R>::then(F f)
 	typedef typename detail::task_then_type<R, F>::result_type f_result_type;
 	typedef typename detail::task_then_type<R, F>::unwrapped_type unwrapped_type;
 	return detail::then_impl<unwrapped_type>(std::move(*this), f, detail::is_task<f_result_type>(), std::is_void<unwrapped_type>());
+}
+
+template <typename R>
+template <typename F>
+task<R> task<R>::follow_with(F f)
+{
+	return this->continue_with([f](task_result<R> r) -> task<R> {
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
+		R v(r.get());
+		f(v);
+		return async::value(std::move(v));
+	});
 }
 
 inline task<void> make_value_task()
