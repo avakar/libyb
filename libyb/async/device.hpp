@@ -16,11 +16,11 @@ public:
 	virtual ~device() {}
 	virtual void write_packet(packet const & p) = 0;
 
-	receiver_registration register_receiver(packet_handler * r);
+	receiver_registration register_receiver(packet_handler & r);
 	void unregister_receiver(receiver_registration reg);
 
 protected:
-	void handle_packet(packet const & p) const;
+	void handle_packet(packet const & p);
 
 private:
 	std::list<packet_handler *> m_receivers;
