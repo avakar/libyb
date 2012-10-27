@@ -46,7 +46,7 @@ void serial_port::close()
 struct open_thread_params
 {
 	explicit open_thread_params()
-		: m_hFile(INVALID_HANDLE_VALUE), m_state(st_running)
+		: m_dcb(), m_hFile(INVALID_HANDLE_VALUE), m_state(st_running)
 	{
 		InitializeCriticalSection(&cs);
 	}
@@ -58,6 +58,7 @@ struct open_thread_params
 
 	CRITICAL_SECTION cs;
 	std::string m_name;
+	DCB m_dcb;
 
 	HANDLE m_hFile;
 	DWORD dwError;
@@ -74,7 +75,15 @@ static DWORD CALLBACK open_thread(void * param)
 	open_thread_params * params = (open_thread_params *)param;
 
 	HANDLE hFile = CreateFileA(params->m_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0);
-	
+
+	SetCommState(hFile, &params->m_dcb);
+
+	COMMTIMEOUTS ct = {};
+	ct.ReadIntervalTimeout = MAXDWORD;
+	ct.ReadTotalTimeoutConstant = MAXDWORD - 1;
+	ct.ReadTotalTimeoutMultiplier = MAXDWORD;
+	SetCommTimeouts(hFile, &ct);
+
 	bool delete_params = false;
 	EnterCriticalSection(&params->cs);
 	if (params->m_state == open_thread_params::st_cancelled)
@@ -97,12 +106,24 @@ static DWORD CALLBACK open_thread(void * param)
 	return 0;
 }
 
-task<void> serial_port::open(string_ref const & name)
+task<void> serial_port::open(string_ref const & name, int baudrate)
+{
+	settings s;
+	s.baudrate = baudrate;
+	return this->open(name, s);
+}
+
+task<void> serial_port::open(string_ref const & name, settings const & s)
 {
 	try
 	{
 		std::unique_ptr<open_thread_params> params(new open_thread_params());
 		params->m_name = name;
+
+		params->m_dcb.DCBlength = sizeof(DCB);
+		params->m_dcb.BaudRate = s.baudrate;
+		params->m_dcb.ByteSize = 8;
+		params->m_dcb.fBinary = TRUE;
 
 		DWORD dwThreadId;
 		HANDLE hThread = CreateThread(0, 0, &open_thread, params.get(), 0, &dwThreadId);

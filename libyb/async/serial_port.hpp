@@ -11,10 +11,16 @@ class serial_port
 	: public stream
 {
 public:
+	struct settings
+	{
+		int baudrate;
+	};
+
 	serial_port();
 	~serial_port();
 
-	task<void> open(yb::string_ref const & name);
+	task<void> open(yb::string_ref const & name, settings const & s);
+	task<void> open(yb::string_ref const & name, int baudrate);
 	void close();
 
 	task<size_t> read(uint8_t * buffer, size_t size);
