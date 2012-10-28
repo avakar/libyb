@@ -1,4 +1,5 @@
 #include "tunnel.hpp"
+#include "async/promise.hpp"
 using namespace yb;
 
 tunnel_handler::tunnel_handler()
@@ -33,10 +34,10 @@ task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
 {
 	try
 	{
-		channel<tunnel_list_t> ch = channel<tunnel_list_t>::create();
-		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.send(tl); });
+		promise<tunnel_list_t> ch = promise<tunnel_list_t>::create();
+		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.set_value(tl); });
 		this->request_tunnel_list();
-		return ch.receive();
+		return ch.get();
 	}
 	catch (...)
 	{
