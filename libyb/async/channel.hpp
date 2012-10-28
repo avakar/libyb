@@ -17,9 +17,9 @@ public:
 	channel_base(channel_base const & o);
 	channel_base & operator=(channel_base const & o);
 
-	task<T> receive();
-	task<void> send(task_result<T> && r);
-	task<void> send(task_result<T> const & r);
+	task<T> receive() const;
+	task<void> send(task_result<T> && r) const;
+	task<void> send(task_result<T> const & r) const;
 
 protected:
 	typedef shared_circular_buffer<task_result<T>, static_capacity> buffer_type;
@@ -36,8 +36,8 @@ class channel
 public:
 	static channel create();
 
-	task<void> send(T const & value);
-	task<void> send(T && value);
+	task<void> send(T const & value) const;
+	task<void> send(T && value) const;
 	using channel_base<T, Capacity>::send;
 
 private:
@@ -51,10 +51,10 @@ class channel<void, Capacity>
 public:
 	static channel create();
 
-	task<void> send();
+	task<void> send() const;
 	using channel_base<void, Capacity>::send;
 
-	task<void> fire();
+	task<void> fire() const;
 
 private:
 	explicit channel(buffer_type * buffer);
@@ -93,7 +93,7 @@ channel_base<T, Capacity> & channel_base<T, Capacity>::operator=(channel_base co
 }
 
 template <typename T, size_t Capacity>
-task<T> channel_base<T, Capacity>::receive()
+task<T> channel_base<T, Capacity>::receive() const
 {
 	try
 	{
@@ -109,7 +109,7 @@ task<T> channel_base<T, Capacity>::receive()
 }
 
 template <typename T, size_t Capacity>
-task<void> channel_base<T, Capacity>::send(task_result<T> && r)
+task<void> channel_base<T, Capacity>::send(task_result<T> && r) const
 {
 	try
 	{
@@ -130,7 +130,7 @@ task<void> channel_base<T, Capacity>::send(task_result<T> && r)
 }
 
 template <typename T, size_t Capacity>
-task<void> channel_base<T, Capacity>::send(task_result<T> const & r)
+task<void> channel_base<T, Capacity>::send(task_result<T> const & r) const
 {
 	return this->send(task_result<T>(r));
 }
@@ -148,13 +148,13 @@ channel<T, Capacity>::channel(buffer_type * buffer)
 }
 
 template <typename T, size_t Capacity>
-task<void> channel<T, Capacity>::send(T const & value)
+task<void> channel<T, Capacity>::send(T const & value) const
 {
 	return this->send(task_result<T>(value));
 }
 
 template <typename T, size_t Capacity>
-task<void> channel<T, Capacity>::send(T && value)
+task<void> channel<T, Capacity>::send(T && value) const
 {
 	return this->send(task_result<T>(std::move(value)));
 }
@@ -172,19 +172,19 @@ channel<void, Capacity>::channel(buffer_type * buffer)
 }
 
 template <size_t Capacity>
-task<void> channel<void, Capacity>::send()
+task<void> channel<void, Capacity>::send() const
 {
 	return this->send(task_result<void>());
 }
 
 template <size_t Capacity>
-task<void> channel<void, Capacity>::fire()
+task<void> channel<void, Capacity>::fire() const
 {
 	return this->send();
 }
 
 template <size_t Capacity>
-task<void> wait_for(channel<void, Capacity> & sig)
+task<void> wait_for(channel<void, Capacity> const & sig)
 {
 	return sig.receive();
 
