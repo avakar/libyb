@@ -11,6 +11,11 @@ template <typename T>
 class promise
 {
 public:
+	promise()
+		: m_buffer(new shared_circular_buffer<task_result<T>, 1>())
+	{
+	}
+
 	promise(promise const & o)
 		: m_buffer(o.m_buffer)
 	{
@@ -47,17 +52,7 @@ public:
 		});
 	}
 
-	static promise create()
-	{
-		return promise(new shared_circular_buffer<task_result<T>, 1>());
-	}
-
 private:
-	explicit promise(shared_circular_buffer<task_result<T>, 1> * buffer)
-		: m_buffer(buffer)
-	{
-	}
-
 	class task_impl
 		: public task_base<T>
 	{
