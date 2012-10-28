@@ -22,9 +22,6 @@
     <ClCompile Include="..\libyb\async\stream_device.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
-    <ClCompile Include="..\libyb\async\signal.cpp">
-      <Filter>libyb\async</Filter>
-    </ClCompile>
     <ClCompile Include="..\libyb\async\device.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
@@ -36,6 +33,12 @@
     </ClCompile>
     <ClCompile Include="..\libyb\async\detail\win32_wait_context.cpp">
       <Filter>libyb\async\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\descriptor_reader.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\mock_stream.cpp">
+      <Filter>libyb\async</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -122,6 +125,18 @@
     <ClInclude Include="..\libyb\async\detail\wait_context.hpp">
       <Filter>libyb\async\detail</Filter>
     </ClInclude>
+    <ClInclude Include="..\libyb\async\channel.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\descriptor_reader.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\noncopyable.hpp">
+      <Filter>libyb\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\mock_stream.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
@@ -132,6 +147,9 @@
     </Filter>
     <Filter Include="libyb\async\detail">
       <UniqueIdentifier>{58c17c9d-5d1e-4578-939c-18b49dcfbd82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\utils">
+      <UniqueIdentifier>{6196bca1-6e9a-4837-acec-357c10b12ddf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

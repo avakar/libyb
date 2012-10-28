@@ -47,9 +47,9 @@
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -76,12 +76,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\libyb\async\descriptor_reader.cpp" />
     <ClCompile Include="..\libyb\async\detail\parallel_composition_task.cpp" />
     <ClCompile Include="..\libyb\async\detail\task_impl.cpp" />
     <ClCompile Include="..\libyb\async\detail\win32_wait_context.cpp" />
     <ClCompile Include="..\libyb\async\device.cpp" />
+    <ClCompile Include="..\libyb\async\mock_stream.cpp" />
     <ClCompile Include="..\libyb\async\serial_port.cpp" />
-    <ClCompile Include="..\libyb\async\signal.cpp" />
     <ClCompile Include="..\libyb\async\stream.cpp" />
     <ClCompile Include="..\libyb\async\stream_device.cpp" />
     <ClCompile Include="..\libyb\async\timer.cpp" />
@@ -92,6 +93,8 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libyb\async\channel.hpp" />
+    <ClInclude Include="..\libyb\async\descriptor_reader.hpp" />
     <ClInclude Include="..\libyb\async\detail\canceller_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\loop_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\parallel_composition_task.hpp" />
@@ -104,6 +107,7 @@
     <ClInclude Include="..\libyb\async\detail\win32_handle_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\win32_wait_context.hpp" />
     <ClInclude Include="..\libyb\async\device.hpp" />
+    <ClInclude Include="..\libyb\async\mock_stream.hpp" />
     <ClInclude Include="..\libyb\async\serial_port.hpp" />
     <ClInclude Include="..\libyb\async\signal.hpp" />
     <ClInclude Include="..\libyb\async\stream.hpp" />
@@ -118,6 +122,7 @@
     <ClInclude Include="..\libyb\packet_handler.hpp" />
     <ClInclude Include="..\libyb\stream_parser.hpp" />
     <ClInclude Include="..\libyb\tunnel.hpp" />
+    <ClInclude Include="..\libyb\utils\noncopyable.hpp" />
     <ClInclude Include="..\libyb\vector_ref.hpp" />
     <ClInclude Include="memmock.h" />
     <ClInclude Include="test.h" />
