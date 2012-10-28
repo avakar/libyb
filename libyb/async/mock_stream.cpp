@@ -100,6 +100,6 @@ task<size_t> mock_stream::write(uint8_t const * buffer, size_t size)
 }
 
 mock_stream::action::action()
-	: ready(signal::create())
+	: ready(channel<void>::create())
 {
 }

@@ -2,8 +2,8 @@
 #define LIBYB_ASYNC_MOCK_STREAM_HPP
 
 #include "stream.hpp"
-#include "signal.hpp"
 #include "../vector_ref.hpp"
+#include "channel.hpp"
 #include <vector>
 
 namespace yb {
@@ -27,7 +27,7 @@ private:
 		enum { k_read, k_write } kind;
 		std::vector<uint8_t> data;
 		size_t max_chunk_size;
-		yb::signal ready;
+		yb::channel<void> ready;
 	};
 
 	std::vector<action> m_expected_actions;

@@ -3,7 +3,7 @@
 using namespace yb;
 
 stream_device::stream_device()
-	: m_start_write(signal::create())
+	: m_start_write(channel<void>::create())
 {
 }
 

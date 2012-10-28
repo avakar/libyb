@@ -4,7 +4,7 @@
 #include "device.hpp"
 #include "stream.hpp"
 #include "../stream_parser.hpp"
-#include "signal.hpp"
+#include "channel.hpp"
 #include <deque>
 
 namespace yb {
@@ -22,7 +22,7 @@ private:
 	uint8_t m_read_buffer[256];
 	stream_parser m_parser;
 
-	signal m_start_write;
+	channel<void> m_start_write;
 	std::vector<uint8_t> m_write_buffer;
 	std::vector<uint8_t> m_write_backlog;
 
