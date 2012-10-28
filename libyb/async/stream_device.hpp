@@ -13,6 +13,8 @@ class stream_device
 	: public device
 {
 public:
+	stream_device();
+
 	task<void> run(stream & s);
 	void write_packet(packet const & p);
 

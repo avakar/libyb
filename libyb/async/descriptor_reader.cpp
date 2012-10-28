@@ -10,7 +10,7 @@ struct handler
 	: packet_handler, noncopyable
 {
 	explicit handler(device & d)
-		: m_dev(d), m_registered(true)
+		: m_dev(d), m_out(channel<device_descriptor>::create()), m_registered(true)
 	{
 		m_reg = d.register_receiver(*this);
 	}

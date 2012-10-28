@@ -19,9 +19,11 @@ public:
 	task<size_t> read(uint8_t * buffer, size_t size);
 	task<size_t> write(uint8_t const * buffer, size_t size);
 
-public:
+private:
 	struct action
 	{
+		action();
+
 		enum { k_read, k_write } kind;
 		std::vector<uint8_t> data;
 		size_t max_chunk_size;

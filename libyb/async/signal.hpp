@@ -5,20 +5,7 @@
 
 namespace yb {
 
-class signal
-	: public channel<void>
-{
-public:
-	void fire()
-	{
-		this->send();
-	}
-
-	friend task<void> wait_for(signal & sig)
-	{
-		return sig.receive();
-	}
-};
+typedef channel<void> signal;
 
 } // namespace yb
 

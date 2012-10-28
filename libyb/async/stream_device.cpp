@@ -2,13 +2,20 @@
 #include "task.hpp"
 using namespace yb;
 
+stream_device::stream_device()
+	: m_start_write(signal::create())
+{
+}
+
 task<void> stream_device::write_loop(stream & s)
 {
-	return (m_write_buffer.empty()? wait_for(m_start_write): async::value()).then([this, &s] {
+	return wait_for(m_start_write).then([this, &s] {
 		return s.write_all(m_write_buffer.data(), m_write_buffer.size());
 	}).then([this]() -> task<void> {
 		m_write_buffer.swap(m_write_backlog);
 		m_write_backlog.clear();
+		if (!m_write_buffer.empty())
+			m_start_write.fire();
 		return async::value();
 	});
 }
@@ -50,7 +57,10 @@ void stream_device::write_packet(packet const & p)
 	if (m_write_buffer.empty())
 	{
 		append_packet(m_write_buffer, p);
-		m_start_write.fire();
+
+		task<void> t = m_start_write.fire();
+		assert(t.has_result());
+		(void)t;
 	}
 	else
 	{

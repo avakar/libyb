@@ -98,3 +98,8 @@ task<size_t> mock_stream::write(uint8_t const * buffer, size_t size)
 
 	return async::raise<size_t>(std::runtime_error("unexpected action found"));
 }
+
+mock_stream::action::action()
+	: ready(signal::create())
+{
+}
