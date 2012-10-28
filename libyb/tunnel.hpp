@@ -6,6 +6,7 @@
 #include "async/device.hpp"
 #include "async/channel.hpp"
 #include "descriptor.hpp"
+#include "utils/signal.hpp"
 
 namespace yb {
 
@@ -20,6 +21,14 @@ public:
 
 	bool attach(device & dev, device_descriptor const & desc);
 
+	void request_tunnel_list();
+
+	template <typename F>
+	void on_tunnel_list(F && f)
+	{
+		m_on_tunnel_list.add(std::forward<F>(f));
+	}
+
 	task<tunnel_list_t> list_tunnels();
 
 private:
@@ -30,7 +39,7 @@ private:
 	device::receiver_registration m_reg;
 	device_config m_config;
 
-	channel<tunnel_list_t> m_tunnel_list_channel;
+	signal<tunnel_list_t> m_on_tunnel_list;
 };
 
 } // namespace yb

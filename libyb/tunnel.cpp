@@ -2,7 +2,7 @@
 using namespace yb;
 
 tunnel_handler::tunnel_handler()
-	: m_dev(0), m_tunnel_list_channel(channel<tunnel_list_t>::create())
+	: m_dev(0)
 {
 }
 
@@ -24,10 +24,17 @@ bool tunnel_handler::attach(device & dev, device_descriptor const & desc)
 	return true;
 }
 
-task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
+void tunnel_handler::request_tunnel_list()
 {
 	m_dev->write_packet(make_packet(m_config.cmd) % 0 % 0);
-	return m_tunnel_list_channel.receive();
+}
+
+task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
+{
+	channel<tunnel_list_t> ch = channel<tunnel_list_t>::create();
+	m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.send(tl); });
+	this->request_tunnel_list();
+	return ch.receive();
 }
 
 void tunnel_handler::handle_packet(packet const & p)
@@ -37,8 +44,8 @@ void tunnel_handler::handle_packet(packet const & p)
 
 	if (p.size() >= 3 && p[1] == 0 && p[2] == 0)
 	{
-		m_tunnel_list_channel.send(tunnel_handler::parse_tunnel_list(p));
-		m_tunnel_list_channel = channel<tunnel_list_t>::create();
+		tunnel_list_t tl = tunnel_handler::parse_tunnel_list(p);
+		m_on_tunnel_list.broadcast(tl);
 	}
 }
 
