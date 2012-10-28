@@ -50,7 +50,7 @@ TEST_CASE(TimerTask, "timer_task")
 		yb::task_result<void> r;
 
 		{
-			yb::task<void> t = tmr.wait_ms(1000);
+			yb::task<void> t = tmr.wait_ms(1);
 			r = yb::try_run(std::move(t));
 		}
 

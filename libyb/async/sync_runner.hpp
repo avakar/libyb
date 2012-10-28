@@ -37,7 +37,7 @@ public:
 
 	void cancel_and_wait()
 	{
-		m_task.cancel_and_wait();
+		m_task = async::result(m_task.cancel_and_wait());
 	}
 
 	void set_task(task<T> && t)
@@ -74,34 +74,48 @@ template <typename T>
 class sync_future
 {
 public:
-	sync_future(sync_promise<T> * promise)
+	explicit sync_future(sync_promise<T> * promise)
 		: m_promise(promise)
 	{
+		assert(m_promise);
 		m_promise->addref();
 	}
 
-	sync_future(sync_future const & o)
-		: m_promise(o.m_promise)
+	explicit sync_future(std::exception_ptr exc)
+		: m_promise(0), m_exception(std::move(exc))
 	{
-		m_promise->addref();
+	}
+
+	sync_future(sync_future const & o)
+		: m_promise(o.m_promise), m_exception(o.m_exception)
+	{
+		if (m_promise)
+			m_promise->addref();
 	}
 
 	~sync_future()
 	{
-		m_promise->release();
+		if (m_promise)
+			m_promise->release();
 	}
 
 	sync_future & operator=(sync_future const & o)
 	{
-		o.m_promise->addref();
-		m_promise->release();
+		if (o.m_promise)
+			o.m_promise->addref();
+		if (m_promise)
+			m_promise->release();
 		m_promise = o.m_promise;
+		m_exception = o.m_exception;
 		return *this;
 	}
 
 	task_result<T> try_get()
 	{
-		return m_promise->get();
+		if (m_promise)
+			return m_promise->get();
+		else
+			return task_result<T>(m_exception);
 	}
 
 	T get()
@@ -111,11 +125,13 @@ public:
 
 	void cancel(cancel_level_t cl = cancel_level_hint)
 	{
-		m_promise->cancel(cl);
+		if (m_promise)
+			m_promise->cancel(cl);
 	}
 
 private:
 	sync_promise<T> * m_promise;
+	std::exception_ptr m_exception;
 
 	friend class sync_runner;
 };
@@ -130,12 +146,19 @@ public:
 	template <typename T>
 	sync_future<T> post(task<T> && t)
 	{
-		std::unique_ptr<sync_promise<T>> promise(new sync_promise<T>(this));
-		task<void> tt(new promise_task<T>(promise.get()));
-		sync_promise<T> * ppromise = promise.release();
-		m_parallel_tasks |= std::move(tt);
-		ppromise->set_task(std::move(t));
-		return sync_future<T>(ppromise);
+		try
+		{
+			std::unique_ptr<sync_promise<T>> promise(new sync_promise<T>(this));
+			task<void> tt(new promise_task<T>(promise.get()));
+			sync_promise<T> * ppromise = promise.release();
+			m_parallel_tasks |= std::move(tt);
+			ppromise->set_task(std::move(t));
+			return sync_future<T>(ppromise);
+		}
+		catch (...)
+		{
+			return sync_future<T>(std::current_exception());
+		}
 	}
 
 	template <typename T>
@@ -212,6 +235,8 @@ template <typename T>
 task_result<T> sync_runner::try_run(sync_future<T> const & f)
 {
 	sync_promise<T> * promise = f.m_promise;
+	if (!promise)
+		return task_result<T>(f.m_exception);
 
 	try
 	{
