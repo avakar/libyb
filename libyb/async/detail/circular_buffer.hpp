@@ -119,6 +119,108 @@ private:
 		>::type m_value;
 };
 
+template <typename T>
+class circular_buffer<T, 1>
+{
+public:
+	typedef T value_type;
+	static size_t const static_capacity = 1;
+
+	circular_buffer()
+		: m_has_value(false)
+	{
+	}
+
+	~circular_buffer()
+	{
+		this->clear();
+	}
+
+	bool empty() const
+	{
+		return !m_has_value;
+	}
+
+	bool full() const
+	{
+		return m_has_value;
+	}
+
+	size_t size() const
+	{
+		return m_has_value;
+	}
+
+	size_t capacity() const
+	{
+		return static_capacity;
+	}
+
+	void clear()
+	{
+		if (m_has_value)
+			this->pop_front();
+	}
+
+	value_type & front()
+	{
+		assert(m_has_value);
+		return *this->at();
+	}
+
+	value_type const & front() const
+	{
+		assert(m_has_value);
+		return *this->at();
+	}
+
+	void pop_front()
+	{
+		assert(m_has_value);
+		this->at()->~value_type();
+		m_has_value = false;
+	}
+
+	T pop_front_move()
+	{
+		T res(std::move(this->front()));
+		this->pop_front();
+		return std::move(res);
+	}
+
+	void push_back(value_type const & v)
+	{
+		assert(!m_has_value);
+		new(this->at()) T(v);
+		m_has_value = true;
+	}
+
+	void push_back(value_type && v)
+	{
+		assert(!m_has_value);
+		new(this->at()) T(std::move(v));
+		m_has_value = true;
+	}
+
+	template <typename U>
+	void emplace_back(U && v)
+	{
+		assert(!m_has_value);
+		new(this->at()) T(std::forward<U>(v));
+		m_has_value = true;
+	}
+
+private:
+	T * at() { return reinterpret_cast<T *>(&m_value); }
+	T const * at() const { return reinterpret_cast<T *>(&m_value); }
+
+	bool m_has_value;
+	typename std::aligned_storage<
+		sizeof(T),
+		std::alignment_of<T>::value
+		>::type m_value;
+};
+
 template <typename T, size_t Capacity>
 class shared_circular_buffer
 	: public circular_buffer<T, Capacity>
