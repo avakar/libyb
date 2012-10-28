@@ -31,10 +31,17 @@ void tunnel_handler::request_tunnel_list()
 
 task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
 {
-	channel<tunnel_list_t> ch = channel<tunnel_list_t>::create();
-	m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.send(tl); });
-	this->request_tunnel_list();
-	return ch.receive();
+	try
+	{
+		channel<tunnel_list_t> ch = channel<tunnel_list_t>::create();
+		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.send(tl); });
+		this->request_tunnel_list();
+		return ch.receive();
+	}
+	catch (...)
+	{
+		return async::raise<tunnel_list_t>();
+	}
 }
 
 void tunnel_handler::handle_packet(packet const & p)
