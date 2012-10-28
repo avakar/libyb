@@ -60,7 +60,7 @@ static void parse_group_config(
 		return;
 	}
 
-	size_t count = *first & 0x7f;
+	uint8_t count = *first & 0x7f;
 
 	if (*first & 0x80)
 	{
@@ -68,7 +68,7 @@ static void parse_group_config(
 		++first;
 
 		uint8_t next_base_cmd = base_cmd;
-		for (size_t i = 0; i < count; ++i)
+		for (uint8_t i = 0; i < count; ++i)
 		{
 			uint8_t or_base_cmd = base_cmd;
 			actseq.push_back(i);
@@ -82,7 +82,7 @@ static void parse_group_config(
 	{
 		// And
 		++first;
-		for (size_t i = 0; i < count; ++i)
+		for (uint8_t i = 0; i < count; ++i)
 		{
 			actseq.push_back(i);
 			parse_group_config(first, last, base_cmd, actseq, intf_map);

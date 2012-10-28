@@ -17,8 +17,8 @@ class sequential_composition_task
 public:
 	sequential_composition_task(task<S> && task, F next);
 
-	void cancel() throw();
-	task_result<R> wait() throw();
+	void cancel(cancel_level_t cl) throw();
+	task_result<R> cancel_and_wait() throw();
 
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<R> finish_wait(task_wait_finalization_context & ctx) throw();
@@ -44,20 +44,20 @@ sequential_composition_task<R, S, F>::sequential_composition_task(task<S> && tas
 }
 
 template <typename R, typename S, typename F>
-void sequential_composition_task<R, S, F>::cancel() throw()
+void sequential_composition_task<R, S, F>::cancel(cancel_level_t cl) throw()
 {
-	m_task.cancel();
+	m_task.cancel(cl);
 }
 
 template <typename R, typename S, typename F>
-task_result<R> sequential_composition_task<R, S, F>::wait() throw()
+task_result<R> sequential_composition_task<R, S, F>::cancel_and_wait() throw()
 {
-	task_result<S> s = m_task.wait();
+	task_result<S> s = m_task.cancel_and_wait();
 	try
 	{
 		task<R> r = m_next(s);
 		if (r.has_task())
-			return r.wait();
+			return r.cancel_and_wait();
 
 		assert(r.has_result());
 		return r.get_result();
@@ -89,7 +89,7 @@ task<R> sequential_composition_task<R, S, F>::finish_wait(task_wait_finalization
 		}
 		catch (...)
 		{
-			return make_value_task<R>(std::current_exception());
+			return async::raise<R>();
 		}
 	}
 

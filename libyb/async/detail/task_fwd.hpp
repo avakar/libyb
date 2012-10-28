@@ -83,6 +83,13 @@ struct nulltask_t
 
 static nulltask_t nulltask;
 
+enum cancel_level_t
+{
+	cancel_level_none,
+	cancel_level_hint,
+	cancel_level_hard
+};
+
 template <typename R>
 class task
 {
@@ -115,10 +122,10 @@ public:
 	void prepare_wait(task_wait_preparation_context & ctx);
 	void finish_wait(task_wait_finalization_context & ctx);
 
-	void cancel();
+	void cancel(cancel_level_t cl);
 
 	// task shall not be null; returns the result after a potential synchronous wait
-	task_result<result_type> wait();
+	task_result<result_type> cancel_and_wait();
 
 	std::unique_ptr<task_base<result_type> > release();
 
@@ -155,17 +162,6 @@ private:
 	task & operator=(task const &);
 };
 
-task<void> make_value_task();
-
-template <typename R>
-task<R> make_value_task(R const & v);
-
-template <typename R>
-task<R> make_value_task(R && v);
-
-template <typename R>
-task<R> make_value_task(std::exception_ptr e);
-
 task<void> operator|(task<void> && lhs, task<void> && rhs);
 task<void> & operator|=(task<void> & lhs, task<void> && rhs);
 
@@ -181,32 +177,53 @@ task<void> loop(task<S> && t, F f);
 namespace async {
 
 template <typename R>
-task<R> value(R && v)
+task<typename std::remove_reference<R>::type> value(R && v)
 {
-	return ::yb::make_value_task(std::forward<R>(v));
+	typedef typename std::remove_reference<R>::type result_type;
+
+	try
+	{
+		return task<result_type>(task_result<result_type>(std::forward<R>(v)));
+	}
+	catch (...)
+	{
+		return task<result_type>(std::current_exception());
+	}
+}
+
+template <typename R>
+task<R> result(task_result<R> && v)
+{
+	return task<R>(std::move(v));
+}
+
+template <typename R>
+task<R> result(task_result<R> const & v)
+{
+	return task<R>(v);
 }
 
 inline task<void> value()
 {
-	return ::yb::make_value_task();
+	return task<void>(task_result<void>());
 }
 
 template <typename R>
 task<R> raise(std::exception_ptr e)
 {
-	return make_value_task<R>(std::move(e));
+	return task<R>(std::move(e));
 }
 
 template <typename R, typename E>
 task<R> raise(E && e)
 {
-	return make_value_task<R>(std::copy_exception(std::forward<E>(e)));
+	return task<R>(std::copy_exception(std::forward<E>(e)));
 }
 
 template <typename R>
 task<R> raise()
 {
-	return make_value_task<R>(std::current_exception());
+	return task<R>(std::current_exception());
 }
 
 } // namespace async

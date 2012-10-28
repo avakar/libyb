@@ -132,7 +132,7 @@ task<void> serial_port::open(string_ref const & name, settings const & s)
 
 		open_thread_params * params2 = params.release();
 
-		task<void> t = make_win32_handle_task(hThread, [hThread, params2]() -> bool {
+		task<void> t = make_win32_handle_task(hThread, [hThread, params2](cancel_level_t) -> bool {
 			bool cancelled = false;
 			EnterCriticalSection(&params2->cs);
 			if (params2->m_state == open_thread_params::st_running)
@@ -159,8 +159,8 @@ task<void> serial_port::open(string_ref const & name, settings const & s)
 			delete params2;
 
 			if (m_pimpl->hFile == INVALID_HANDLE_VALUE)
-				return make_value_task<void>(std::copy_exception(std::runtime_error("error opening the device")));
-			return make_value_task();
+				return async::raise<void>(std::runtime_error("error opening the device"));
+			return async::value();
 		});
 
 		return std::move(t);
@@ -181,7 +181,7 @@ task<size_t> serial_port::read(uint8_t * buffer, size_t size)
 		DWORD dwError = GetLastError();
 		if (dwError == ERROR_IO_PENDING)
 		{
-			return make_win32_handle_task(m_pimpl->readOverlapped.hEvent, [this]() -> bool {
+			return make_win32_handle_task(m_pimpl->readOverlapped.hEvent, [this](cancel_level_t) -> bool {
 				if (HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll"))
 				{
 					typedef BOOL WINAPI CancelIoEx_t(HANDLE hFile, LPOVERLAPPED lpOverlapped);
@@ -199,15 +199,15 @@ task<size_t> serial_port::read(uint8_t * buffer, size_t size)
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(m_pimpl->hFile, &m_pimpl->readOverlapped, &dwTransferred, TRUE))
 					throw std::runtime_error("the read operation failed"); // XXX
-				return make_value_task<size_t>(dwTransferred);
+				return async::value((size_t)dwTransferred);
 			});
 		}
 		else
-			return make_value_task<size_t>(std::copy_exception(std::runtime_error("the read operation failed"))); // XXX
+			return async::raise<size_t>(std::runtime_error("the read operation failed")); // XXX
 	}
 	else
 	{
-		return make_value_task<size_t>(dwTransferred);
+		return async::value((size_t)dwTransferred);
 	}
 }
 
@@ -221,7 +221,7 @@ task<size_t> serial_port::write(uint8_t const * buffer, size_t size)
 		DWORD dwError = GetLastError();
 		if (dwError == ERROR_IO_PENDING)
 		{
-			return make_win32_handle_task(m_pimpl->writeOverlapped.hEvent, [this]() -> bool {
+			return make_win32_handle_task(m_pimpl->writeOverlapped.hEvent, [this](cancel_level_t) -> bool {
 				if (HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll"))
 				{
 					typedef BOOL WINAPI CancelIoEx_t(HANDLE hFile, LPOVERLAPPED lpOverlapped);
@@ -239,14 +239,14 @@ task<size_t> serial_port::write(uint8_t const * buffer, size_t size)
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(m_pimpl->hFile, &m_pimpl->writeOverlapped, &dwTransferred, TRUE))
 					throw std::runtime_error("the read operation failed"); // XXX
-				return make_value_task<size_t>(dwTransferred);
+				return async::value((size_t)dwTransferred);
 			});
 		}
 		else
-			return make_value_task<size_t>(std::copy_exception(std::runtime_error("the read operation failed"))); // XXX
+			return async::raise<size_t>(std::runtime_error("the read operation failed")); // XXX
 	}
 	else
 	{
-		return make_value_task<size_t>(dwTransferred);
+		return async::value((size_t)dwTransferred);
 	}
 }

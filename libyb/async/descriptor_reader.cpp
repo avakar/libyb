@@ -1,12 +1,13 @@
 #include "descriptor_reader.hpp"
 #include "channel.hpp"
+#include "../utils/noncopyable.hpp"
 
 namespace yb {
 
 namespace {
 
 struct handler
-	: packet_handler
+	: packet_handler, noncopyable
 {
 	explicit handler(device & d)
 		: m_dev(d), m_registered(true)
@@ -62,7 +63,7 @@ task<device_descriptor> read_device_descriptor(device & d)
 	{
 		std::shared_ptr<handler> h(new handler(d));
 		d.write_packet(yb::make_packet(0) % 0);
-		return h->m_out.receive().follow_with([h](device_descriptor const & d) {});
+		return h->m_out.receive().follow_with([h](device_descriptor const &) {});
 	}
 	catch (...)
 	{

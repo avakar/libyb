@@ -3,6 +3,7 @@
 
 #include "../task.hpp"
 #include "win32_wait_context.hpp"
+#include "../utils/noncopyable.hpp"
 #include <windows.h>
 
 namespace yb {
@@ -10,14 +11,14 @@ namespace yb {
 // The canceller must not throw an exception
 template <typename Canceller>
 class win32_handle_task
-	: task_base<void>
+	: task_base<void>, noncopyable
 {
 public:
 	win32_handle_task(HANDLE handle, Canceller const & canceller);
 	win32_handle_task(HANDLE handle, Canceller && canceller);
 
-	void cancel() throw();
-	task_result<void> wait() throw();
+	void cancel(cancel_level_t cl) throw();
+	task_result<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
 
@@ -55,14 +56,17 @@ void win32_handle_task<Canceller>::prepare_wait(task_wait_preparation_context & 
 }
 
 template <typename Canceller>
-task<void> win32_handle_task<Canceller>::finish_wait(task_wait_finalization_context & ctx) throw()
+task<void> win32_handle_task<Canceller>::finish_wait(task_wait_finalization_context &) throw()
 {
-	return m_handle? make_value_task(): make_value_task<void>(std::copy_exception(task_cancelled()));
+	return m_handle? async::value(): async::raise<void>(task_cancelled());
 }
 
 template <typename Canceller>
-task_result<void> win32_handle_task<Canceller>::wait() throw()
+task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 {
+	if (m_handle && !m_canceller(cancel_level_hard))
+		m_handle = 0;
+
 	if (m_handle)
 	{
 		WaitForSingleObject(m_handle, INFINITE);
@@ -75,9 +79,9 @@ task_result<void> win32_handle_task<Canceller>::wait() throw()
 }
 
 template <typename Canceller>
-void win32_handle_task<Canceller>::cancel() throw()
+void win32_handle_task<Canceller>::cancel(cancel_level_t cl) throw()
 {
-	if (!m_canceller())
+	if (!m_canceller(cl))
 		m_handle = 0;
 }
 
@@ -91,13 +95,13 @@ task<void> make_win32_handle_task(HANDLE handle, Canceller && canceller) throw()
 	}
 	catch (...)
 	{
-		if (canceller())
+		if (canceller(cancel_level_hard))
 		{
 			WaitForSingleObject(handle, INFINITE);
-			return make_value_task();
+			return async::value();
 		}
 
-		return make_value_task<void>(std::current_exception());
+		return async::raise<void>();
 	}
 }
 

@@ -7,7 +7,7 @@ task<void> stream::read_all(uint8_t * buffer, size_t size)
 		if (size == transferred)
 			return this->read_all(buffer + transferred, size - transferred);
 		else
-			return make_value_task();
+			return async::value();
 	});
 }
 
@@ -17,6 +17,6 @@ task<void> stream::write_all(uint8_t const * buffer, size_t size)
 		if (size != transferred)
 			return this->write_all(buffer + transferred, size - transferred);
 		else
-			return make_value_task();
+			return async::value();
 	});
 }

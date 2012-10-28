@@ -1,6 +1,7 @@
 #ifndef LIBYB_ASYNC_DETAIL_WAIT_CONTEX_HPP
 #define LIBYB_ASYNC_DETAIL_WAIT_CONTEX_HPP
 
+#include "../../utils/noncopyable.hpp"
 #include <memory> // unique_ptr
 
 namespace yb {
@@ -39,6 +40,7 @@ private:
 };
 
 class task_wait_memento_builder
+	: noncopyable
 {
 public:
 	task_wait_memento_builder(task_wait_preparation_context & ctx) throw()

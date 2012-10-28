@@ -10,16 +10,16 @@ parallel_composition_task::parallel_composition_task(task<void> && t, task<void>
 	m_tasks.back().t = std::move(u);
 }
 
-void parallel_composition_task::cancel() throw()
+void parallel_composition_task::cancel(cancel_level_t cl) throw()
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
-		it->t.cancel();
+		it->t.cancel(cl);
 }
 
-task_result<void> parallel_composition_task::wait() throw()
+task_result<void> parallel_composition_task::cancel_and_wait() throw()
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
-		it->t.wait(); // XXX: handle exc results
+		it->t.cancel_and_wait(); // XXX: handle exc results
 	m_tasks.clear();
 	return task_result<void>();
 }
@@ -54,7 +54,7 @@ task<void> parallel_composition_task::finish_wait(task_wait_finalization_context
 	switch (m_tasks.size())
 	{
 	case 0:
-		return make_value_task();
+		return async::value();
 	case 1:
 		return std::move(m_tasks.front().t);
 	default:

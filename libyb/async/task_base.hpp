@@ -13,7 +13,7 @@ class task_wait_finalization_context;
 struct task_base_common
 {
 	virtual ~task_base_common() throw();
-	virtual void cancel() throw() = 0;
+	virtual void cancel(cancel_level_t cl) throw() = 0;
 };
 
 template <typename R>
@@ -21,7 +21,9 @@ class task_base
 	: public task_base_common
 {
 public:
-	virtual task_result<R> wait() throw() = 0;
+	// Cancels the task with `cancel_level_hard`
+	// and synchronously waits for it to complete.
+	virtual task_result<R> cancel_and_wait() throw() = 0;
 
 	virtual void prepare_wait(task_wait_preparation_context & ctx) = 0;
 

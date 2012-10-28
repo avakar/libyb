@@ -87,8 +87,9 @@ public:
 		m_core->release();
 	}
 
-	void cancel() throw()
+	void cancel(cancel_level_t cl) throw()
 	{
+		assert(cl);
 		if (m_core)
 		{
 			m_core->release();
@@ -96,7 +97,7 @@ public:
 		}
 	}
 
-	task_result<T> wait() throw()
+	task_result<T> cancel_and_wait() throw()
 	{
 		assert(!m_core);
 		return std::copy_exception(std::runtime_error("cancelled"));
@@ -108,7 +109,7 @@ public:
 			ctx.set_finished();
 	}
 
-	task<T> finish_wait(task_wait_finalization_context & ctx) throw()
+	task<T> finish_wait(task_wait_finalization_context &) throw()
 	{
 		if (!m_core)
 		{
@@ -200,8 +201,11 @@ channel_base<T> & channel_base<T>::operator=(channel_base const & o)
 template <typename T>
 task<T> channel_base<T>::receive()
 {
-	return protect([this] {
-		return task<T>(new channel_receive_task<T>(m_core));
+	return protect([this]() -> task<T> {
+		if (m_core->empty())
+			return task<T>(new channel_receive_task<T>(m_core));
+		else
+			return async::result(m_core->get());
 	});
 }
 

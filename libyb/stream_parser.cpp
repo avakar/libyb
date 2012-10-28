@@ -1,4 +1,5 @@
 #include "stream_parser.hpp"
+#include "utils/noncopyable.hpp"
 #include <utility> // move
 using namespace yb;
 
@@ -64,7 +65,7 @@ void stream_parser::parse(packet_handler & h, buffer_ref const & buffer)
 void stream_parser::parse(std::vector<packet> & out, buffer_ref const & buffer)
 {
 	class handler
-		: public packet_handler
+		: public packet_handler, noncopyable
 	{
 	public:
 		handler(std::vector<packet> & out)

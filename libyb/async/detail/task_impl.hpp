@@ -86,8 +86,7 @@ void task<R>::clear() throw()
 	case k_task:
 		{
 			task_base_ptr p = this->as_task();
-			p->cancel();
-			p->wait();
+			p->cancel_and_wait();
 			delete p;
 		}
 		this->as_task().~task_base_ptr();
@@ -199,21 +198,24 @@ void task<R>::finish_wait(task_wait_finalization_context & ctx)
 }
 
 template <typename R>
-void task<R>::cancel()
+void task<R>::cancel(cancel_level_t cl)
 {
 	if (m_kind == k_task)
-		this->as_task()->cancel();
+	{
+		task_base_ptr p = this->as_task();
+		p->cancel(cl);
+	}
 }
 
 template <typename R>
-task_result<R> task<R>::wait()
+task_result<R> task<R>::cancel_and_wait()
 {
 	assert(!this->empty());
 
 	if (m_kind == k_task)
 	{
 		task_base_ptr p = this->as_task();
-		task_result<R> r = p->wait();
+		task_result<R> r = p->cancel_and_wait();
 		delete p;
 
 		this->as_task().~task_base_ptr();
@@ -260,7 +262,7 @@ task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 {
 	return t.continue_with([f](task_result<S> r) -> task<R> {
 		f(r.get());
-		return make_value_task();
+		return async::value();
 	});
 }
 
@@ -268,7 +270,7 @@ template <typename R, typename S, typename F>
 task<R> then_impl(task<S> && t, F const & f, std::false_type, std::false_type)
 {
 	return t.continue_with([f](task_result<S> r) {
-		return make_value_task(f(r.get()));
+		return async::value(f(r.get()));
 	});
 }
 
@@ -289,7 +291,7 @@ task<R> then_impl(task<void> && t, F const & f, std::false_type, std::true_type)
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		f();
-		return make_value_task();
+		return async::value();
 	});
 }
 
@@ -298,7 +300,7 @@ task<R> then_impl(task<void> && t, F const & f, std::false_type, std::false_type
 {
 	return t.continue_with([f](task_result<void> r) -> task<R> {
 		r.rethrow();
-		return make_value_task(f());
+		return async::value(f());
 	});
 }
 
@@ -334,43 +336,6 @@ task<R> task<R>::follow_with(F f)
 	});
 }
 
-inline task<void> make_value_task()
-{
-	return task<void>(task_result<void>());
-}
-
-template <typename R>
-task<R> make_value_task(R const & v)
-{
-	try
-	{
-		return task<R>(v);
-	}
-	catch (...)
-	{
-		return task<R>(std::current_exception());
-	}
-}
-
-template <typename R>
-task<R> make_value_task(R && v)
-{
-	try
-	{
-		return task<R>(std::move(v));
-	}
-	catch (...)
-	{
-		return task<R>(std::current_exception());
-	}
-}
-
-template <typename R>
-task<R> make_value_task(std::exception_ptr e)
-{
-	return task<R>(e);
-}
-
 template <typename F>
 typename detail::task_protect_type<F>::type protect(F f)
 {
@@ -388,7 +353,7 @@ template <typename F>
 task<void> loop(F f)
 {
 	return protect([&f] {
-		return task<void>(new detail::loop_task<void, F>(make_value_task(), f));
+		return task<void>(new detail::loop_task<void, F>(async::value(), f));
 	});
 }
 

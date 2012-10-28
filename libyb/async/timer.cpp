@@ -26,9 +26,9 @@ task<void> timer::wait_ms(int milliseconds)
 	LARGE_INTEGER tout;
 	tout.QuadPart = milliseconds * -10*1000ull;
 	if (!SetWaitableTimer(m_pimpl->hTimer, &tout, 0, 0, 0, FALSE))
-		return make_value_task<void>(std::copy_exception(std::runtime_error("couldn't set the timer")));
+		return async::raise<void>(std::runtime_error("couldn't set the timer"));
 
-	return make_win32_handle_task(m_pimpl->hTimer, [this]() -> bool {
+	return make_win32_handle_task(m_pimpl->hTimer, [this](cancel_level_t) -> bool {
 		CancelWaitableTimer(m_pimpl->hTimer);
 		return false;
 	});
