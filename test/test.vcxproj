@@ -108,6 +108,7 @@
     <ClInclude Include="..\libyb\async\detail\win32_wait_context.hpp" />
     <ClInclude Include="..\libyb\async\device.hpp" />
     <ClInclude Include="..\libyb\async\mock_stream.hpp" />
+    <ClInclude Include="..\libyb\async\promise.hpp" />
     <ClInclude Include="..\libyb\async\serial_port.hpp" />
     <ClInclude Include="..\libyb\async\signal.hpp" />
     <ClInclude Include="..\libyb\async\stream.hpp" />

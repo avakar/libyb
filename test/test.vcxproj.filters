@@ -137,6 +137,9 @@
     <ClInclude Include="..\libyb\async\mock_stream.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
+    <ClInclude Include="..\libyb\async\promise.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
