@@ -4,6 +4,8 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <stdint.h>
 
 namespace yb {
 
@@ -39,6 +41,37 @@ public:
 	bool empty() const { return first == last; }
 
 	T const & operator[](size_t i) const { return first[i]; }
+
+	friend bool operator==(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	{
+		return (lhs.last - lhs.first) == (rhs.last - rhs.first)
+			&& std::equal(lhs.first, lhs.last, rhs.first);
+	}
+
+	friend bool operator!=(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	{
+		return !(lhs == rhs);
+	}
+
+	friend bool operator<(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	{
+		return std::lexicographical_compare(lhs.first, lhs.last, rhs.first, rhs.last);
+	}
+
+	friend bool operator>(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	{
+		return rhs < lhs;
+	}
+
+	friend bool operator<=(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	{
+		return !(rhs < lhs);
+	}
+
+	friend bool operator>=(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	{
+		return !(lhs < rhs);
+	}
 
 private:
 	T const * first;
