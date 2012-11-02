@@ -5,7 +5,6 @@
 #include <libyb/async/task.hpp>
 #include <libyb/async/sync_runner.hpp>
 #include <libyb/async/timer.hpp>
-#include <libyb/async/signal.hpp>
 #include <libyb/async/channel.hpp>
 #include <libyb/async/serial_port.hpp>
 #include <libyb/async/stream_device.hpp>
@@ -62,7 +61,7 @@ TEST_CASE(TimerTask, "timer_task")
 TEST_CASE(ChannelTask, "channel_task")
 {
 	yb::timer tmr;
-	yb::channel<int> sig;
+	yb::channel<int> sig = yb::channel<int>::create();
 
 	int res = 0;
 	yb::task<void> t = sig.receive().then([&res](int value) -> yb::task<void> {
@@ -80,7 +79,7 @@ TEST_CASE(ChannelTask, "channel_task")
 TEST_CASE(SignalTask, "signal_task")
 {
 	yb::timer tmr;
-	yb::signal sig;
+	yb::channel<void> sig = yb::channel<void>::create();
 
 	yb::task<void> t = wait_for(sig);
 	t |= tmr.wait_ms(1).then([&sig] { sig.fire(); });

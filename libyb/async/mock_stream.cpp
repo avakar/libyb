@@ -13,7 +13,7 @@ void mock_stream::expect_read(yb::buffer_ref const & data, size_t max_chunk_size
 	act.data.assign(data.begin(), data.end());
 	act.max_chunk_size = max_chunk_size;
 	if (m_expected_actions.empty())
-		act.ready.fire();
+		act.ready.set_value();
 	m_expected_actions.push_back(act);
 }
 
@@ -24,7 +24,7 @@ void mock_stream::expect_write(yb::buffer_ref const & data, size_t max_chunk_siz
 	act.data.assign(data.begin(), data.end());
 	act.max_chunk_size = max_chunk_size;
 	if (m_expected_actions.empty())
-		act.ready.fire();
+		act.ready.set_value();
 	m_expected_actions.push_back(act);
 }
 
@@ -52,7 +52,7 @@ task<size_t> mock_stream::read(uint8_t * buffer, size_t size)
 			{
 				++m_current_action;
 				if (m_current_action < m_expected_actions.size())
-					m_expected_actions[m_current_action].ready.fire();
+					m_expected_actions[m_current_action].ready.set_value();
 				m_action_pos = 0;
 			}
 
@@ -88,7 +88,7 @@ task<size_t> mock_stream::write(uint8_t const * buffer, size_t size)
 			{
 				++m_current_action;
 				if (m_current_action < m_expected_actions.size())
-					m_expected_actions[m_current_action].ready.fire();
+					m_expected_actions[m_current_action].ready.set_value();
 				m_action_pos = 0;
 			}
 
@@ -97,9 +97,4 @@ task<size_t> mock_stream::write(uint8_t const * buffer, size_t size)
 	}
 
 	return async::raise<size_t>(std::runtime_error("unexpected action found"));
-}
-
-mock_stream::action::action()
-	: ready(channel<void>::create())
-{
 }
