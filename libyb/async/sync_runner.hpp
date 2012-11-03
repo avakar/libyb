@@ -15,7 +15,7 @@ class sync_promise
 {
 public:
 	explicit sync_promise(sync_runner * runner)
-		: m_runner(runner), m_refcount(1)
+		: m_runner(runner), m_refcount(0)
 	{
 	}
 
@@ -86,28 +86,38 @@ public:
 	{
 	}
 
-	sync_future(sync_future const & o)
-		: m_promise(o.m_promise), m_exception(o.m_exception)
+	sync_future(sync_future && o)
+		: m_promise(o.m_promise), m_exception(std::move(o.m_exception))
 	{
-		if (m_promise)
-			m_promise->addref();
+		o.m_promise = 0;
 	}
 
 	~sync_future()
 	{
 		if (m_promise)
+		{
+			m_promise->cancel_and_wait();
 			m_promise->release();
+		}
 	}
 
-	sync_future & operator=(sync_future const & o)
+	sync_future & operator=(sync_future && o)
 	{
-		if (o.m_promise)
-			o.m_promise->addref();
 		if (m_promise)
 			m_promise->release();
 		m_promise = o.m_promise;
-		m_exception = o.m_exception;
+		o.m_promise = 0;
+		m_exception = std::move(o.m_exception);
 		return *this;
+	}
+
+	void detach()
+	{
+		if (m_promise)
+		{
+			m_promise->release();
+			m_promise = 0;
+		}
 	}
 
 	task_result<T> try_get()
@@ -118,8 +128,10 @@ public:
 			return task_result<T>(m_exception);
 	}
 
-	T get()
+	T get(cancel_level_t cl = cancel_level_none)
 	{
+		if (cl != cancel_level_none)
+			this->cancel(cl);
 		return m_promise->get().get();
 	}
 
@@ -129,9 +141,17 @@ public:
 			m_promise->cancel(cl);
 	}
 
+	T wait(cancel_level_t cl = cancel_level_none)
+	{
+		return this->get(cl);
+	}
+
 private:
 	sync_promise<T> * m_promise;
 	std::exception_ptr m_exception;
+
+	sync_future(sync_future const &);
+	sync_future & operator=(sync_future const &);
 
 	friend class sync_runner;
 };
@@ -146,9 +166,17 @@ public:
 	template <typename T>
 	sync_future<T> post(task<T> && t)
 	{
+		assert(!t.empty());
+
 		try
 		{
 			std::unique_ptr<sync_promise<T>> promise(new sync_promise<T>(this));
+			if (t.has_result())
+			{
+				promise->set_task(std::move(t));
+				return sync_future<T>(promise.release());
+			}
+
 			task<void> tt(new promise_task<T>(promise.get()));
 			sync_promise<T> * ppromise = promise.release();
 			m_parallel_tasks |= std::move(tt);
@@ -159,6 +187,19 @@ public:
 		{
 			return sync_future<T>(std::current_exception());
 		}
+	}
+
+	template <typename T>
+	friend sync_future<T> operator|(sync_runner & r, task<T> && t)
+	{
+		return r.post(std::move(t));
+	}
+
+	template <typename T>
+	friend sync_runner & operator|=(sync_runner & r, task<T> && t)
+	{
+		r.post(std::move(t)).detach();
+		return *this;
 	}
 
 	template <typename T>
@@ -177,6 +218,12 @@ public:
 		return this->try_run(std::move(t)).get();
 	}
 
+	template <typename T>
+	friend T operator<<(sync_runner & r, task<T> && t)
+	{
+		return r.run(std::move(t));
+	}
+
 private:
 	template <typename T>
 	class promise_task
@@ -186,6 +233,7 @@ private:
 		promise_task(sync_promise<T> * promise)
 			: m_promise(promise)
 		{
+			m_promise->addref();
 		}
 
 		~promise_task()
