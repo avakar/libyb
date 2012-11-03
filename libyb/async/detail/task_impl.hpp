@@ -198,7 +198,7 @@ void task<R>::finish_wait(task_wait_finalization_context & ctx)
 }
 
 template <typename R>
-void task<R>::cancel(cancel_level_t cl)
+void task<R>::cancel(cancel_level cl)
 {
 	if (m_kind == k_task)
 	{

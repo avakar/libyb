@@ -17,7 +17,7 @@ class sequential_composition_task
 public:
 	sequential_composition_task(task<S> && task, F next);
 
-	void cancel(cancel_level_t cl) throw();
+	void cancel(cancel_level cl) throw();
 	task_result<R> cancel_and_wait() throw();
 
 	void prepare_wait(task_wait_preparation_context & ctx);
@@ -44,7 +44,7 @@ sequential_composition_task<R, S, F>::sequential_composition_task(task<S> && tas
 }
 
 template <typename R, typename S, typename F>
-void sequential_composition_task<R, S, F>::cancel(cancel_level_t cl) throw()
+void sequential_composition_task<R, S, F>::cancel(cancel_level cl) throw()
 {
 	m_task.cancel(cl);
 }

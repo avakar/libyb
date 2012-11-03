@@ -10,7 +10,7 @@ parallel_composition_task::parallel_composition_task(task<void> && t, task<void>
 	m_tasks.back().t = std::move(u);
 }
 
-void parallel_composition_task::cancel(cancel_level_t cl) throw()
+void parallel_composition_task::cancel(cancel_level cl) throw()
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
 		it->t.cancel(cl);

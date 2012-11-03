@@ -17,7 +17,7 @@ public:
 	win32_handle_task(HANDLE handle, Canceller const & canceller);
 	win32_handle_task(HANDLE handle, Canceller && canceller);
 
-	void cancel(cancel_level_t cl) throw();
+	void cancel(cancel_level cl) throw();
 	task_result<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
@@ -64,7 +64,7 @@ task<void> win32_handle_task<Canceller>::finish_wait(task_wait_finalization_cont
 template <typename Canceller>
 task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 {
-	if (m_handle && !m_canceller(cancel_level_hard))
+	if (m_handle && !m_canceller(cl_kill))
 		m_handle = 0;
 
 	if (m_handle)
@@ -79,7 +79,7 @@ task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 }
 
 template <typename Canceller>
-void win32_handle_task<Canceller>::cancel(cancel_level_t cl) throw()
+void win32_handle_task<Canceller>::cancel(cancel_level cl) throw()
 {
 	if (!m_canceller(cl))
 		m_handle = 0;
@@ -95,7 +95,7 @@ task<void> make_win32_handle_task(HANDLE handle, Canceller && canceller) throw()
 	}
 	catch (...)
 	{
-		if (canceller(cancel_level_hard))
+		if (canceller(cl_kill))
 		{
 			WaitForSingleObject(handle, INFINITE);
 			return async::value();

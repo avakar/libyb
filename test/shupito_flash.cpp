@@ -24,5 +24,5 @@ TEST_CASE(ShupitoFlash, "+shupito")
 	r << ts.open(th, "usb");
 	r << ts.fast_close();
 
-	f.wait(yb::cancel_level_hint);
+	f.wait(yb::cl_quit);
 }

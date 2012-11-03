@@ -132,7 +132,10 @@ task<void> serial_port::open(string_ref const & name, settings const & s)
 
 		open_thread_params * params2 = params.release();
 
-		task<void> t = make_win32_handle_task(hThread, [hThread, params2](cancel_level_t) -> bool {
+		task<void> t = make_win32_handle_task(hThread, [hThread, params2](cancel_level cl) -> bool {
+			if (cl < cl_abort)
+				return true;
+
 			bool cancelled = false;
 			EnterCriticalSection(&params2->cs);
 			if (params2->m_state == open_thread_params::st_running)
@@ -181,7 +184,10 @@ task<size_t> serial_port::read(uint8_t * buffer, size_t size)
 		DWORD dwError = GetLastError();
 		if (dwError == ERROR_IO_PENDING)
 		{
-			return make_win32_handle_task(m_pimpl->readOverlapped.hEvent, [this](cancel_level_t) -> bool {
+			return make_win32_handle_task(m_pimpl->readOverlapped.hEvent, [this](cancel_level cl) -> bool {
+				if (cl < cl_abort)
+					return true;
+
 				if (HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll"))
 				{
 					typedef BOOL WINAPI CancelIoEx_t(HANDLE hFile, LPOVERLAPPED lpOverlapped);
@@ -194,6 +200,7 @@ task<size_t> serial_port::read(uint8_t * buffer, size_t size)
 				{
 					CancelIo(m_pimpl->hFile);
 				}
+
 				return true;
 			}).then([this]() -> task<size_t> {
 				DWORD dwTransferred;
@@ -221,7 +228,10 @@ task<size_t> serial_port::write(uint8_t const * buffer, size_t size)
 		DWORD dwError = GetLastError();
 		if (dwError == ERROR_IO_PENDING)
 		{
-			return make_win32_handle_task(m_pimpl->writeOverlapped.hEvent, [this](cancel_level_t) -> bool {
+			return make_win32_handle_task(m_pimpl->writeOverlapped.hEvent, [this](cancel_level cl) -> bool {
+				if (cl < cl_abort)
+					return true;
+
 				if (HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll"))
 				{
 					typedef BOOL WINAPI CancelIoEx_t(HANDLE hFile, LPOVERLAPPED lpOverlapped);
@@ -234,6 +244,7 @@ task<size_t> serial_port::write(uint8_t const * buffer, size_t size)
 				{
 					CancelIo(m_pimpl->hFile);
 				}
+
 				return true;
 			}).then([this]() -> task<size_t> {
 				DWORD dwTransferred;

@@ -24,9 +24,9 @@ public:
 			m_buffer->release();
 	}
 
-	void cancel(cancel_level_t) throw()
+	void cancel(cancel_level cl) throw()
 	{
-		if (m_buffer)
+		if (cl >= cl_abort && m_buffer)
 		{
 			m_buffer->release();
 			m_buffer = 0;
@@ -35,7 +35,7 @@ public:
 
 	task_result<void> cancel_and_wait() throw()
 	{
-		this->cancel(cancel_level_hard);
+		this->cancel(cl_kill);
 		return task_result<void>();
 	}
 
@@ -82,10 +82,9 @@ public:
 			m_buffer->release();
 	}
 
-	void cancel(cancel_level_t cl) throw()
+	void cancel(cancel_level cl) throw()
 	{
-		assert(cl);
-		if (m_buffer)
+		if (cl >= cl_abort && m_buffer)
 		{
 			m_buffer->release();
 			m_buffer = 0;
@@ -94,7 +93,7 @@ public:
 
 	task_result<T> cancel_and_wait() throw()
 	{
-		this->cancel(cancel_level_hard);
+		this->cancel(cl_kill);
 		assert(!m_buffer);
 		return std::copy_exception(std::runtime_error("cancelled"));
 	}

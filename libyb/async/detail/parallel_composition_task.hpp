@@ -14,7 +14,7 @@ class parallel_composition_task
 public:
 	parallel_composition_task(task<void> && t, task<void> && u);
 
-	void cancel(cancel_level_t cl) throw();
+	void cancel(cancel_level cl) throw();
 	task_result<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();

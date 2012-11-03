@@ -13,7 +13,7 @@ class task_wait_finalization_context;
 struct task_base_common
 {
 	virtual ~task_base_common() throw();
-	virtual void cancel(cancel_level_t cl) throw() = 0;
+	virtual void cancel(cancel_level cl) throw() = 0;
 };
 
 template <typename R>

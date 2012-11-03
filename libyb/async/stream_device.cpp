@@ -24,15 +24,15 @@ task<void> stream_device::run(stream & s)
 {
 	try
 	{
-		task<void> read_task = loop<size_t>(s.read(m_read_buffer, sizeof m_read_buffer), [this, &s](size_t r, cancel_level_t cancelled) -> task<size_t> {
+		task<void> read_task = loop<size_t>(s.read(m_read_buffer, sizeof m_read_buffer), [this, &s](size_t r, cancel_level cl) -> task<size_t> {
 			m_parser.parse(*this, buffer_ref(m_read_buffer, r));
-			if (cancelled)
+			if (cl >= cl_quit)
 				return nulltask;
 			return s.read(m_read_buffer, sizeof m_read_buffer);
 		});
 
-		task<void> write_task = loop([this, &s](cancel_level_t cancelled) {
-			return cancelled? nulltask: this->write_loop(s);
+		task<void> write_task = loop([this, &s](cancel_level cl) {
+			return cl >= cl_quit? nulltask: this->write_loop(s);
 		});
 
 		return std::move(read_task) | std::move(write_task);

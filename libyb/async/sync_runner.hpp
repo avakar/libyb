@@ -30,7 +30,7 @@ public:
 			delete this;
 	}
 
-	void cancel(cancel_level_t cl)
+	void cancel(cancel_level cl)
 	{
 		m_task.cancel(cl);
 	}
@@ -128,20 +128,20 @@ public:
 			return task_result<T>(m_exception);
 	}
 
-	T get(cancel_level_t cl = cancel_level_none)
+	T get(cancel_level cl = cl_none)
 	{
-		if (cl != cancel_level_none)
+		if (cl != cl_none)
 			this->cancel(cl);
 		return m_promise->get().get();
 	}
 
-	void cancel(cancel_level_t cl = cancel_level_hint)
+	void cancel(cancel_level cl)
 	{
 		if (m_promise)
 			m_promise->cancel(cl);
 	}
 
-	T wait(cancel_level_t cl = cancel_level_none)
+	T wait(cancel_level cl = cl_none)
 	{
 		return this->get(cl);
 	}
@@ -241,7 +241,7 @@ private:
 			m_promise->release();
 		}
 
-		void cancel(cancel_level_t cl) throw()
+		void cancel(cancel_level cl) throw()
 		{
 			m_promise->cancel(cl);
 		}

@@ -15,7 +15,7 @@ class loop_task
 public:
 	loop_task(task<S> && t, F const & f);
 
-	void cancel(cancel_level_t cl) throw();
+	void cancel(cancel_level cl) throw();
 	task_result<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
@@ -23,7 +23,7 @@ public:
 private:
 	task<S> m_task;
 	F m_f;
-	cancel_level_t m_cancel_level;
+	cancel_level m_cancel_level;
 };
 
 template <typename F>
@@ -33,7 +33,7 @@ class loop_task<void, F>
 public:
 	loop_task(task<void> && t, F const & f);
 
-	void cancel(cancel_level_t cl) throw();
+	void cancel(cancel_level cl) throw();
 	task_result<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
@@ -41,7 +41,7 @@ public:
 private:
 	task<void> m_task;
 	F m_f;
-	cancel_level_t m_cancel_level;
+	cancel_level m_cancel_level;
 };
 
 } // namespace detail
@@ -52,12 +52,12 @@ namespace detail {
 
 template <typename S, typename F>
 loop_task<S, F>::loop_task(task<S> && t, F const & f)
-	: m_task(std::move(t)), m_f(f), m_cancel_level(cancel_level_none)
+	: m_task(std::move(t)), m_f(f), m_cancel_level(cl_none)
 {
 }
 
 template <typename S, typename F>
-void loop_task<S, F>::cancel(cancel_level_t cl) throw()
+void loop_task<S, F>::cancel(cancel_level cl) throw()
 {
 	m_cancel_level = (std::max)(m_cancel_level, cl);
 	m_task.cancel(cl);
@@ -74,7 +74,7 @@ task_result<void> loop_task<S, F>::cancel_and_wait() throw()
 
 		try
 		{
-			m_task = m_f(r.get(), cancel_level_hard);
+			m_task = m_f(r.get(), cl_kill);
 		}
 		catch (...)
 		{
@@ -119,12 +119,12 @@ task<void> loop_task<S, F>::finish_wait(task_wait_finalization_context & ctx) th
 
 template <typename F>
 loop_task<void, F>::loop_task(task<void> && t, F const & f)
-	: m_task(std::move(t)), m_f(f), m_cancel_level(cancel_level_none)
+	: m_task(std::move(t)), m_f(f), m_cancel_level(cl_none)
 {
 }
 
 template <typename F>
-void loop_task<void, F>::cancel(cancel_level_t cl) throw()
+void loop_task<void, F>::cancel(cancel_level cl) throw()
 {
 	m_cancel_level = (std::max)(m_cancel_level, cl);
 	m_task.cancel(cl);
@@ -141,7 +141,7 @@ task_result<void> loop_task<void, F>::cancel_and_wait() throw()
 
 		try
 		{
-			m_task = m_f(cancel_level_hard);
+			m_task = m_f(cl_kill);
 		}
 		catch (...)
 		{

@@ -95,6 +95,7 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libyb\async\cancel_level.hpp" />
     <ClInclude Include="..\libyb\async\channel.hpp" />
     <ClInclude Include="..\libyb\async\descriptor_reader.hpp" />
     <ClInclude Include="..\libyb\async\detail\canceller_task.hpp" />

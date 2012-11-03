@@ -28,8 +28,15 @@ task<void> timer::wait_ms(int milliseconds)
 	if (!SetWaitableTimer(m_pimpl->hTimer, &tout, 0, 0, 0, FALSE))
 		return async::raise<void>(std::runtime_error("couldn't set the timer"));
 
-	return make_win32_handle_task(m_pimpl->hTimer, [this](cancel_level_t) -> bool {
-		CancelWaitableTimer(m_pimpl->hTimer);
-		return false;
+	return make_win32_handle_task(m_pimpl->hTimer, [this](cancel_level cl) -> bool {
+		if (cl >= cl_abort)
+		{
+			CancelWaitableTimer(m_pimpl->hTimer);
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	});
 }

@@ -2,6 +2,7 @@
 #define LIBYB_ASYNC_DETAIL_TASK_FWD_HPP
 
 #include "../task_result.hpp"
+#include "../cancel_level.hpp"
 #include <memory> // unique_ptr
 #include <exception> // exception_ptr, exception
 
@@ -83,13 +84,6 @@ struct nulltask_t
 
 static nulltask_t nulltask;
 
-enum cancel_level_t
-{
-	cancel_level_none,
-	cancel_level_hint,
-	cancel_level_hard
-};
-
 template <typename R>
 class task
 {
@@ -122,7 +116,7 @@ public:
 	void prepare_wait(task_wait_preparation_context & ctx);
 	void finish_wait(task_wait_finalization_context & ctx);
 
-	void cancel(cancel_level_t cl);
+	void cancel(cancel_level cl);
 
 	// task shall not be null; returns the result after a potential synchronous wait
 	task_result<result_type> cancel_and_wait();

@@ -26,9 +26,9 @@ public:
 			m_buffer->release();
 	}
 
-	void cancel(cancel_level_t) throw()
+	void cancel(cancel_level cl) throw()
 	{
-		if (m_buffer && m_buffer->empty())
+		if (cl >= cl_abort && m_buffer && m_buffer->empty())
 		{
 			m_buffer->release();
 			m_buffer = 0;
@@ -37,7 +37,7 @@ public:
 
 	task_result<T> cancel_and_wait() throw()
 	{
-		this->cancel(cancel_level_hard);
+		this->cancel(cl_kill);
 
 		if (m_buffer)
 			return task_result<T>(m_buffer->front());
