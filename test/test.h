@@ -8,7 +8,7 @@ struct test_registrar
 {
 	test_registrar(void (*testfn)(), char const * name, char const * file, int line, char const * tags);
 
-	bool is_eligible(std::set<yb::string_ref> const & args) const;
+	bool is_eligible(bool wildcard, std::set<yb::string_ref> const & args) const;
 
 	void (*testfn)();
 	char const * name;
