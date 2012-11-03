@@ -4,6 +4,7 @@
 #include "value_task.hpp"
 #include "sequential_composition_task.hpp"
 #include "loop_task.hpp"
+#include "cancel_level_upgrade_task.hpp"
 #include <type_traits>
 
 namespace yb {
@@ -336,6 +337,24 @@ task<R> task<R>::follow_with(F f)
 	});
 }
 
+template <typename R>
+task<R> task<R>::abort_on(cancel_level cl, cancel_level abort_cl)
+{
+	if (m_kind == k_task)
+	{
+		try
+		{
+			return task<R>(new detail::cancel_level_upgrade_task<R>(std::move(*this), cl, abort_cl));
+		}
+		catch (...)
+		{
+			return async::result(this->cancel_and_wait());
+		}
+	}
+
+	return std::move(*this);
+}
+
 template <typename F>
 typename detail::task_protect_type<F>::type protect(F f)
 {
@@ -347,22 +366,6 @@ typename detail::task_protect_type<F>::type protect(F f)
 	{
 		return detail::task_protect_type<F>::type(std::current_exception());
 	}
-}
-
-template <typename F>
-task<void> loop(F f)
-{
-	return protect([&f] {
-		return task<void>(new detail::loop_task<void, F>(async::value(), f));
-	});
-}
-
-template <typename S, typename F>
-task<void> loop(task<S> && t, F f)
-{
-	return protect([&t, &f] {
-		return task<void>(new detail::loop_task<S, F>(std::move(t), f));
-	});
 }
 
 } // namespace yb

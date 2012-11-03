@@ -99,6 +99,7 @@
     <ClInclude Include="..\libyb\async\channel.hpp" />
     <ClInclude Include="..\libyb\async\descriptor_reader.hpp" />
     <ClInclude Include="..\libyb\async\detail\canceller_task.hpp" />
+    <ClInclude Include="..\libyb\async\detail\cancel_level_upgrade_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\loop_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\parallel_composition_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\sequential_composition_task.hpp" />

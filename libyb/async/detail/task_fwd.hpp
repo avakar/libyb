@@ -3,6 +3,7 @@
 
 #include "../task_result.hpp"
 #include "../cancel_level.hpp"
+#include "../../utils/noncopyable.hpp"
 #include <memory> // unique_ptr
 #include <exception> // exception_ptr, exception
 
@@ -86,6 +87,7 @@ static nulltask_t nulltask;
 
 template <typename R>
 class task
+	: noncopyable
 {
 public:
 	typedef R result_type;
@@ -132,6 +134,8 @@ public:
 	template <typename F>
 	task<R> follow_with(F f);
 
+	task<R> abort_on(cancel_level cl, cancel_level abort_cl = cl_abort);
+
 private:
 	typedef task_base<R> * task_base_ptr;
 
@@ -151,9 +155,6 @@ private:
 			std::alignment_of<task_result<R>>::value
 			>::value
 		>::type m_storage;
-
-	task(task const &);
-	task & operator=(task const &);
 };
 
 task<void> operator|(task<void> && lhs, task<void> && rhs);
@@ -163,7 +164,7 @@ template <typename F>
 typename detail::task_protect_type<F>::type protect(F f);
 
 template <typename F>
-task<void> loop(F f);
+task<void> loop(F && f);
 
 template <typename S, typename F>
 task<void> loop(task<S> && t, F f);

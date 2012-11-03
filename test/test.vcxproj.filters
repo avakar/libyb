@@ -155,6 +155,9 @@
     <ClInclude Include="..\libyb\async\cancel_level.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\cancel_level_upgrade_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
