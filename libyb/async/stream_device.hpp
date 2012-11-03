@@ -16,7 +16,7 @@ public:
 	stream_device();
 
 	task<void> run(stream & s);
-	void write_packet(packet const & p);
+	task<void> write_packet(packet const & p);
 
 private:
 	uint8_t m_read_buffer[256];

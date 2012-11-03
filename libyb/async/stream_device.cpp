@@ -52,18 +52,27 @@ static void append_packet(std::vector<uint8_t> & out, packet const & p)
 	out.insert(out.end(), p.begin() + 1, p.end());
 }
 
-void stream_device::write_packet(packet const & p)
+task<void> stream_device::write_packet(packet const & p)
 {
-	if (m_write_buffer.empty())
+	try
 	{
-		append_packet(m_write_buffer, p);
+		if (m_write_buffer.empty())
+		{
+			append_packet(m_write_buffer, p);
 
-		task<void> t = m_start_write.fire();
-		assert(t.has_result());
-		(void)t;
+			task<void> t = m_start_write.fire();
+			assert(t.has_result());
+			(void)t;
+		}
+		else
+		{
+			append_packet(m_write_backlog, p);
+		}
+
+		return async::value();
 	}
-	else
+	catch (...)
 	{
-		append_packet(m_write_backlog, p);
+		return async::raise<void>();
 	}
 }

@@ -22,7 +22,7 @@ public:
 
 	bool attach(device & dev, device_descriptor const & desc);
 
-	void request_tunnel_list();
+	task<void> request_tunnel_list();
 
 	template <typename F>
 	void on_tunnel_list(F && f)
@@ -33,7 +33,7 @@ public:
 	task<tunnel_list_t> list_tunnels();
 
 	task<uint8_t> open(string_ref const & name);
-	void fast_close(uint8_t pipe_no);
+	task<void> fast_close(uint8_t pipe_no);
 	task<size_t> read(uint8_t pipe_no, uint8_t * buffer, size_t size);
 	task<size_t> write(uint8_t pipe_no, uint8_t const * buffer, size_t size);
 
@@ -68,7 +68,7 @@ public:
 	~tunnel_stream();
 
 	task<void> open(tunnel_handler & th, string_ref const & name);
-	void fast_close();
+	task<void> fast_close();
 
 	task<size_t> read(uint8_t * buffer, size_t size);
 	task<size_t> write(uint8_t const * buffer, size_t size);

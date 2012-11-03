@@ -3,6 +3,7 @@
 
 #include "../packet.hpp"
 #include "../packet_handler.hpp"
+#include "task.hpp"
 #include <list>
 
 namespace yb {
@@ -14,7 +15,7 @@ public:
 	typedef std::list<packet_handler *>::iterator receiver_registration;
 
 	virtual ~device() {}
-	virtual void write_packet(packet const & p) = 0;
+	virtual task<void> write_packet(packet const & p) = 0;
 
 	receiver_registration register_receiver(packet_handler & r);
 	void unregister_receiver(receiver_registration reg);

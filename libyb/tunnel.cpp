@@ -25,9 +25,9 @@ bool tunnel_handler::attach(device & dev, device_descriptor const & desc)
 	return true;
 }
 
-void tunnel_handler::request_tunnel_list()
+task<void> tunnel_handler::request_tunnel_list()
 {
-	m_dev->write_packet(make_packet(m_config.cmd) % 0 % 0);
+	return m_dev->write_packet(make_packet(m_config.cmd) % 0 % 0);
 }
 
 task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
@@ -37,7 +37,7 @@ task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
 		promise<tunnel_list_t> ch;
 		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.set_value(tl); });
 		this->request_tunnel_list();
-		return ch.get();
+		return wait_for(ch);
 	}
 	catch (...)
 	{
@@ -92,27 +92,29 @@ task<uint8_t> tunnel_handler::open(string_ref const & name)
 	promise<uint8_t> p;
 	m_active_opens.push_back(p);
 
-	m_dev->write_packet(yb::make_packet(m_config.cmd) % 0 % 1 % name);
-	return p.get();
+	return m_dev->write_packet(yb::make_packet(m_config.cmd) % 0 % 1 % name).then([p] {
+		return wait_for(p);
+	});
 }
 
-void tunnel_handler::fast_close(uint8_t pipe_no)
+task<void> tunnel_handler::fast_close(uint8_t pipe_no)
 {
-	m_dev->write_packet(yb::make_packet(m_config.cmd) % 0 % 2 % pipe_no);
+	return m_dev->write_packet(yb::make_packet(m_config.cmd) % 0 % 2 % pipe_no);
 }
 
 task<size_t> tunnel_handler::read(uint8_t pipe_no, uint8_t * buffer, size_t size)
 {
 	read_irp irp = { buffer, size };
 	m_read_irps[pipe_no].push_back(irp);
-	return irp.transferred.get();
+	return wait_for(irp.transferred);
 }
 
 task<size_t> tunnel_handler::write(uint8_t pipe_no, uint8_t const * buffer, size_t size)
 {
 	size_t chunk = (std::min)(size, (size_t)14);
-	m_dev->write_packet(make_packet(m_config.cmd) % pipe_no % buffer_ref(buffer, chunk));
-	return async::value(chunk);
+	return m_dev->write_packet(make_packet(m_config.cmd) % pipe_no % buffer_ref(buffer, chunk)).then([chunk] {
+		return async::value((size_t)chunk);
+	});
 }
 
 tunnel_stream::tunnel_stream()
@@ -122,7 +124,6 @@ tunnel_stream::tunnel_stream()
 
 tunnel_stream::~tunnel_stream()
 {
-	this->fast_close();
 }
 
 task<void> tunnel_stream::open(tunnel_handler & th, string_ref const & name)
@@ -133,13 +134,17 @@ task<void> tunnel_stream::open(tunnel_handler & th, string_ref const & name)
 	});
 }
 
-void tunnel_stream::fast_close()
+task<void> tunnel_stream::fast_close()
 {
+	task<void> res;
+
 	if (m_th)
 	{
-		m_th->fast_close(m_pipe_no);
+		res = m_th->fast_close(m_pipe_no);
 		m_th = 0;
 	}
+
+	return std::move(res);
 }
 
 task<size_t> tunnel_stream::read(uint8_t * buffer, size_t size)
