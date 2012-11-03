@@ -2,8 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="memmock.cpp" />
-    <ClCompile Include="test.cpp" />
     <ClCompile Include="..\libyb\async\serial_port.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
@@ -40,10 +38,18 @@
     <ClCompile Include="..\libyb\async\mock_stream.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
+    <ClCompile Include="shupito_flash.cpp" />
+    <ClCompile Include="test.cpp">
+      <Filter>libtest</Filter>
+    </ClCompile>
+    <ClCompile Include="memmock.cpp">
+      <Filter>libtest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\tunnel.cpp">
+      <Filter>libyb</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="test.h" />
-    <ClInclude Include="memmock.h" />
     <ClInclude Include="..\libyb\async\task.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
@@ -140,6 +146,12 @@
     <ClInclude Include="..\libyb\async\promise.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
+    <ClInclude Include="test.h">
+      <Filter>libtest</Filter>
+    </ClInclude>
+    <ClInclude Include="memmock.h">
+      <Filter>libtest</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
@@ -153,6 +165,9 @@
     </Filter>
     <Filter Include="libyb\utils">
       <UniqueIdentifier>{6196bca1-6e9a-4837-acec-357c10b12ddf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libtest">
+      <UniqueIdentifier>{78f3e669-6ed4-46da-ba64-47c2893dd406}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

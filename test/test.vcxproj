@@ -88,8 +88,10 @@
     <ClCompile Include="..\libyb\async\timer.cpp" />
     <ClCompile Include="..\libyb\descriptor.cpp" />
     <ClCompile Include="..\libyb\stream_parser.cpp" />
+    <ClCompile Include="..\libyb\tunnel.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="memmock.cpp" />
+    <ClCompile Include="shupito_flash.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
