@@ -76,6 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\libyb\async\cancellation_token.cpp" />
     <ClCompile Include="..\libyb\async\descriptor_reader.cpp" />
     <ClCompile Include="..\libyb\async\detail\parallel_composition_task.cpp" />
     <ClCompile Include="..\libyb\async\detail\task_impl.cpp" />
@@ -88,6 +89,7 @@
     <ClCompile Include="..\libyb\async\stream_device.cpp" />
     <ClCompile Include="..\libyb\async\timer.cpp" />
     <ClCompile Include="..\libyb\descriptor.cpp" />
+    <ClCompile Include="..\libyb\shupito\escape_sequence.cpp" />
     <ClCompile Include="..\libyb\stream_parser.cpp" />
     <ClCompile Include="..\libyb\tunnel.cpp" />
     <ClCompile Include="..\libyb\usb\bulk_stream.cpp" />
@@ -99,14 +101,17 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libyb\async\cancellation_token.hpp" />
     <ClInclude Include="..\libyb\async\cancel_exception.hpp" />
     <ClInclude Include="..\libyb\async\cancel_level.hpp" />
     <ClInclude Include="..\libyb\async\channel.hpp" />
     <ClInclude Include="..\libyb\async\descriptor_reader.hpp" />
+    <ClInclude Include="..\libyb\async\detail\cancellation_token_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\canceller_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\cancel_level_upgrade_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\loop_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\parallel_composition_task.hpp" />
+    <ClInclude Include="..\libyb\async\detail\promise_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\sequential_composition_task.hpp" />
     <ClInclude Include="..\libyb\async\detail\task_fwd.hpp" />
     <ClInclude Include="..\libyb\async\detail\task_impl.hpp" />
@@ -131,6 +136,7 @@
     <ClInclude Include="..\libyb\descriptor.hpp" />
     <ClInclude Include="..\libyb\packet.hpp" />
     <ClInclude Include="..\libyb\packet_handler.hpp" />
+    <ClInclude Include="..\libyb\shupito\escape_sequence.hpp" />
     <ClInclude Include="..\libyb\stream_parser.hpp" />
     <ClInclude Include="..\libyb\tunnel.hpp" />
     <ClInclude Include="..\libyb\usb\bulk_stream.hpp" />

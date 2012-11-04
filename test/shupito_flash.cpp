@@ -6,6 +6,7 @@
 #include <libyb/tunnel.hpp>
 #include <libyb/usb/usb.h>
 #include <libyb/usb/bulk_stream.hpp>
+#include <libyb/shupito/escape_sequence.hpp>
 
 TEST_CASE(ShupitoFlash, "+shupito")
 {
@@ -50,9 +51,10 @@ TEST_CASE(ShupitoFlash, "+shupito")
 
 	yb::tunnel_stream ts;
 	r << ts.open(th, "usb");
+	r << send_avr232boot_escape_seq(ts, 1000);
 
-	static uint8_t const escape_seq[] = { 't', '~', 'z', '3' };
-	r << ts.write_all(escape_seq, sizeof escape_seq);
+	static uint8_t const unescape_seq[] = { 0x11 };
+	r << ts.write_all(unescape_seq, sizeof unescape_seq);
 
 	r << ts.fast_close();
 

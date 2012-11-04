@@ -60,6 +60,12 @@
     <ClCompile Include="..\libyb\async\null_stream.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\shupito\escape_sequence.cpp">
+      <Filter>libyb\shupito</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\cancellation_token.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -188,6 +194,18 @@
     <ClInclude Include="..\libyb\async\cancel_exception.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
+    <ClInclude Include="..\libyb\shupito\escape_sequence.hpp">
+      <Filter>libyb\shupito</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\promise_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\detail\cancellation_token_task.hpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\cancellation_token.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
@@ -210,6 +228,9 @@
     </Filter>
     <Filter Include="libyb\usb\detail">
       <UniqueIdentifier>{b1911b25-fa42-46c9-9f52-f7f87ed232e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\shupito">
+      <UniqueIdentifier>{cef38e0a-058e-4830-bc12-b9ede2b153ce}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
