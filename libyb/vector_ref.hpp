@@ -9,7 +9,7 @@
 
 namespace yb {
 
-template <typename T>
+template <typename T, typename Derived>
 class vector_ref_base
 {
 public:
@@ -41,6 +41,17 @@ public:
 	bool empty() const { return first == last; }
 
 	T const & operator[](size_t i) const { return first[i]; }
+
+	friend Derived operator+(vector_ref_base const & lhs, size_t rhs)
+	{
+		return Derived(lhs.begin() + (std::min)(lhs.size(), rhs), lhs.end());
+	}
+
+	Derived & operator+=(size_t offset)
+	{
+		first += (std::min)(this->size(), offset);
+		return static_cast<Derived &>(*this);
+	}
 
 	friend bool operator==(vector_ref_base const & lhs, vector_ref_base const & rhs)
 	{
@@ -80,58 +91,60 @@ private:
 
 template <typename T>
 class vector_ref
-	: public vector_ref_base<T>
+	: public vector_ref_base<T, vector_ref<T>>
 {
+	typedef vector_ref_base<T, vector_ref<T>> base_type;
 public:
 	vector_ref()
-		: vector_ref_base<T>()
+		: base_type()
 	{
 	}
 
 	vector_ref(T const * first, T const * last)
-		: vector_ref_base<T>(first, last)
+		: base_type(first, last)
 	{
 	}
 
 	vector_ref(T const * first, size_t size)
-		: vector_ref_base<T>(first, size)
+		: base_type(first, size)
 	{
 	}
 
 	vector_ref(std::vector<T> const & v)
-		: vector_ref_base<T>(v)
+		: base_type(v)
 	{
 	}
 };
 
 template <>
 class vector_ref<uint8_t>
-	: public vector_ref_base<uint8_t>
+	: public vector_ref_base<uint8_t, vector_ref<uint8_t>>
 {
+	typedef vector_ref_base<uint8_t, vector_ref<uint8_t>> base_type;
 public:
 	vector_ref()
-		: vector_ref_base<uint8_t>()
+		: base_type()
 	{
 	}
 
 	vector_ref(uint8_t const * first, uint8_t const * last)
-		: vector_ref_base<uint8_t>(first, last)
+		: base_type(first, last)
 	{
 	}
 
 	vector_ref(uint8_t const * first, size_t size)
-		: vector_ref_base<uint8_t>(first, size)
+		: base_type(first, size)
 	{
 	}
 
 	vector_ref(std::vector<uint8_t> const & v)
-		: vector_ref_base<uint8_t>(v)
+		: base_type(v)
 	{
 	}
 
 	template <size_t N>
 	vector_ref(uint8_t const (&v)[N])
-		: vector_ref_base<uint8_t>(v, N)
+		: base_type(v, N)
 	{
 	}
 };
@@ -140,36 +153,37 @@ typedef vector_ref<uint8_t> buffer_ref;
 
 template <>
 class vector_ref<char>
-	: public vector_ref_base<char>
+	: public vector_ref_base<char, vector_ref<char>>
 {
+	typedef vector_ref_base<char, vector_ref<char>> base_type;
 public:
 	vector_ref()
-		: vector_ref_base<char>()
+		: base_type()
 	{
 	}
 
 	vector_ref(char const * first, char const * last)
-		: vector_ref_base<char>(first, last)
+		: base_type(first, last)
 	{
 	}
 
 	vector_ref(char const * first, size_t size)
-		: vector_ref_base<char>(first, size)
+		: base_type(first, size)
 	{
 	}
 
 	vector_ref(std::vector<char> const & v)
-		: vector_ref_base<char>(v)
+		: base_type(v)
 	{
 	}
 
 	vector_ref(char const * str)
-		: vector_ref_base<char>(str, strlen(str))
+		: base_type(str, strlen(str))
 	{
 	}
 
 	vector_ref(std::string const & str)
-		: vector_ref_base<char>(str.data(), str.size())
+		: base_type(str.data(), str.size())
 	{
 	}
 
