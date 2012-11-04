@@ -16,6 +16,9 @@ public:
 	task<void> write_all(uint8_t const * buffer, size_t size);
 };
 
+task<void> copy(stream & sink, stream & source, size_t buffer_size = 256);
+task<void> discard(stream & source, size_t buffer_size = 256);
+
 } // namespace yb
 
 #endif // LIBYB_ASYNC_STREAM_HPP
