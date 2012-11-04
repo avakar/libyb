@@ -82,6 +82,7 @@
     <ClCompile Include="..\libyb\async\detail\win32_wait_context.cpp" />
     <ClCompile Include="..\libyb\async\device.cpp" />
     <ClCompile Include="..\libyb\async\mock_stream.cpp" />
+    <ClCompile Include="..\libyb\async\null_stream.cpp" />
     <ClCompile Include="..\libyb\async\serial_port.cpp" />
     <ClCompile Include="..\libyb\async\stream.cpp" />
     <ClCompile Include="..\libyb\async\stream_device.cpp" />
@@ -89,12 +90,16 @@
     <ClCompile Include="..\libyb\descriptor.cpp" />
     <ClCompile Include="..\libyb\stream_parser.cpp" />
     <ClCompile Include="..\libyb\tunnel.cpp" />
+    <ClCompile Include="..\libyb\usb\bulk_stream.cpp" />
+    <ClCompile Include="..\libyb\usb\interface_guard.cpp" />
+    <ClCompile Include="..\libyb\usb\usb_device.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="memmock.cpp" />
     <ClCompile Include="shupito_flash.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libyb\async\cancel_exception.hpp" />
     <ClInclude Include="..\libyb\async\cancel_level.hpp" />
     <ClInclude Include="..\libyb\async\channel.hpp" />
     <ClInclude Include="..\libyb\async\descriptor_reader.hpp" />
@@ -112,6 +117,7 @@
     <ClInclude Include="..\libyb\async\detail\win32_wait_context.hpp" />
     <ClInclude Include="..\libyb\async\device.hpp" />
     <ClInclude Include="..\libyb\async\mock_stream.hpp" />
+    <ClInclude Include="..\libyb\async\null_stream.hpp" />
     <ClInclude Include="..\libyb\async\promise.hpp" />
     <ClInclude Include="..\libyb\async\serial_port.hpp" />
     <ClInclude Include="..\libyb\async\signal.hpp" />
@@ -127,6 +133,10 @@
     <ClInclude Include="..\libyb\packet_handler.hpp" />
     <ClInclude Include="..\libyb\stream_parser.hpp" />
     <ClInclude Include="..\libyb\tunnel.hpp" />
+    <ClInclude Include="..\libyb\usb\bulk_stream.hpp" />
+    <ClInclude Include="..\libyb\usb\detail\libusb0_win32_intf.h" />
+    <ClInclude Include="..\libyb\usb\interface_guard.hpp" />
+    <ClInclude Include="..\libyb\usb\usb.h" />
     <ClInclude Include="..\libyb\utils\noncopyable.hpp" />
     <ClInclude Include="..\libyb\vector_ref.hpp" />
     <ClInclude Include="memmock.h" />

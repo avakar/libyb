@@ -48,6 +48,18 @@
     <ClCompile Include="..\libyb\tunnel.cpp">
       <Filter>libyb</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\usb\usb_device.cpp">
+      <Filter>libyb\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\bulk_stream.cpp">
+      <Filter>libyb\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\interface_guard.cpp">
+      <Filter>libyb\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\null_stream.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -158,6 +170,24 @@
     <ClInclude Include="..\libyb\async\detail\cancel_level_upgrade_task.hpp">
       <Filter>libyb\async\detail</Filter>
     </ClInclude>
+    <ClInclude Include="..\libyb\usb\detail\libusb0_win32_intf.h">
+      <Filter>libyb\usb\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\usb.h">
+      <Filter>libyb\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\bulk_stream.hpp">
+      <Filter>libyb\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\interface_guard.hpp">
+      <Filter>libyb\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\null_stream.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\cancel_exception.hpp">
+      <Filter>libyb\async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
@@ -174,6 +204,12 @@
     </Filter>
     <Filter Include="libtest">
       <UniqueIdentifier>{78f3e669-6ed4-46da-ba64-47c2893dd406}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\usb">
+      <UniqueIdentifier>{f9d9852e-bce1-46ad-8801-b3cfcc305eca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\usb\detail">
+      <UniqueIdentifier>{b1911b25-fa42-46c9-9f52-f7f87ed232e6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
