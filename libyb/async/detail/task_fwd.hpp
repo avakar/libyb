@@ -4,6 +4,7 @@
 #include "../task_result.hpp"
 #include "../cancel_level.hpp"
 #include "../../utils/noncopyable.hpp"
+#include "../cancellation_token.hpp"
 #include <memory> // unique_ptr
 #include <exception> // exception_ptr, exception
 
@@ -129,6 +130,9 @@ public:
 	task<void> finish_on(cancel_level cl, cancel_level abort_cl = cl_abort);
 
 	task<void> ignore_result();
+
+	task<R> cancellable(cancellation_token & ct);
+	task<R> finishable(cancellation_token & ct);
 
 private:
 	typedef task_base<R> * task_base_ptr;

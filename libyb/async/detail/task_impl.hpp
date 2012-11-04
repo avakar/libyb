@@ -5,6 +5,7 @@
 #include "sequential_composition_task.hpp"
 #include "loop_task.hpp"
 #include "cancel_level_upgrade_task.hpp"
+#include "cancellation_token_task.hpp"
 #include <type_traits>
 
 namespace yb {
@@ -383,6 +384,36 @@ template <>
 inline task<void> task<void>::ignore_result()
 {
 	return std::move(*this);
+}
+
+template <typename R>
+task<R> task<R>::cancellable(cancellation_token & ct)
+{
+	if (m_kind != k_task)
+		return std::move(*this);
+
+	detail::cancellation_token_core<R> * core = new detail::cancellation_token_core<R>();
+	cancellation_token new_ct(core);
+	task<R> core_task(new detail::cancellation_token_task<R>(core));
+
+	core->m_task = std::move(*this);
+	ct = new_ct;
+	return std::move(core_task);
+}
+
+template <>
+inline task<void> task<void>::finishable(cancellation_token & ct)
+{
+	if (m_kind != k_task)
+		return std::move(*this);
+
+	detail::cancellation_token_core<void> * core = new detail::cancellation_token_core<void>();
+	cancellation_token new_ct(core);
+	task<void> core_task(new detail::cancellation_token_task<void>(core, true));
+
+	core->m_task = std::move(*this);
+	ct = new_ct;
+	return std::move(core_task);
 }
 
 template <typename F>
