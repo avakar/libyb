@@ -64,15 +64,6 @@ struct task_protect_type
 
 }
 
-struct task_cancelled
-	: public std::exception
-{
-	task_cancelled()
-		: std::exception("task cancelled")
-	{
-	}
-};
-
 class task_wait_preparation_context;
 class task_wait_finalization_context;
 

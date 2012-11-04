@@ -4,6 +4,7 @@
 #include "../task.hpp"
 #include "win32_wait_context.hpp"
 #include "../utils/noncopyable.hpp"
+#include "../cancel_exception.hpp"
 #include <windows.h>
 
 namespace yb {

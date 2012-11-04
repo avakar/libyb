@@ -2,6 +2,7 @@
 #define LIBYB_ASYNC_DETAIL_CHANNEL_DETAIL_HPP
 
 #include "circular_buffer.hpp"
+#include "../cancel_exception.hpp"
 
 namespace yb {
 
@@ -55,7 +56,7 @@ public:
 		if (m_buffer)
 			return async::value();
 		else
-			return async::raise<void>(std::runtime_error("cancelled"));
+			return async::raise<void>(task_cancelled());
 	}
 
 private:
@@ -95,7 +96,7 @@ public:
 	{
 		this->cancel(cl_kill);
 		assert(!m_buffer);
-		return std::copy_exception(std::runtime_error("cancelled"));
+		return std::copy_exception(task_cancelled());
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
@@ -105,7 +106,7 @@ public:
 
 		if (!m_buffer)
 		{
-			m_result = async::raise<T>(std::runtime_error("cancelled"));
+			m_result = async::raise<T>(task_cancelled());
 		}
 		else
 		{

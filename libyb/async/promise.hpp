@@ -42,7 +42,7 @@ public:
 		if (m_buffer)
 			return task_result<T>(m_buffer->front());
 		else
-			return task_result<T>(std::copy_exception(std::runtime_error("cancelled")));
+			return task_result<T>(std::copy_exception(task_cancelled()));
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
@@ -56,7 +56,7 @@ public:
 		if (m_buffer)
 			return async::result(m_buffer->front());
 		else
-			return async::raise<T>(std::runtime_error("cancelled"));
+			return async::raise<T>(task_cancelled());
 	}
 
 private:
