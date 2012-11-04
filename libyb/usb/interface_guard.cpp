@@ -9,7 +9,7 @@ usb_interface_guard::usb_interface_guard()
 
 usb_interface_guard::~usb_interface_guard()
 {
-	run(this->release());
+	try_run(this->release());
 }
 
 void usb_interface_guard::attach(usb_device & dev, uint8_t intfno)
