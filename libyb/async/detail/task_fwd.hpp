@@ -99,8 +99,6 @@ public:
 
 	void normalize() throw();
 
-	operator void const *() const;
-	bool operator!() const;
 	bool empty() const;
 	bool has_task() const;
 	bool has_result() const;

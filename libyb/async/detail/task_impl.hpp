@@ -113,18 +113,6 @@ void task<R>::normalize() throw()
 }
 
 template <typename R>
-task<R>::operator void const *() const
-{
-	return m_kind != k_empty? this: nullptr;
-}
-
-template <typename R>
-bool task<R>::operator!() const
-{
-	return m_kind == k_empty;
-}
-
-template <typename R>
 bool task<R>::empty() const
 {
 	return m_kind == k_empty;
