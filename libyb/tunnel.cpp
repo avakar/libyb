@@ -66,6 +66,19 @@ void tunnel_handler::handle_packet(packet const & p)
 		uint8_t pipe_no = p[3];
 		current_open.set_value(pipe_no);
 	}
+	else if (p.size() > 2)
+	{
+		std::map<uint8_t, std::deque<read_irp>>::iterator it = m_read_irps.find(p[1]);
+		if (it != m_read_irps.end() && !it->second.empty())
+		{
+			read_irp r = it->second.front();
+			it->second.pop_front();
+
+			size_t chunk = (std::min)(r.size, p.size() - 2);
+			std::copy(p.begin() + 2, p.begin() + 2 + chunk, r.buffer);
+			r.transferred.set_value(chunk);
+		}
+	}
 }
 
 tunnel_handler::tunnel_list_t tunnel_handler::parse_tunnel_list(packet const & p)
