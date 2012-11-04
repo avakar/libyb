@@ -9,7 +9,7 @@ stream_device::stream_device()
 
 task<void> stream_device::write_loop(stream & s)
 {
-	return wait_for(m_start_write).abort_on(cl_quit).then([this, &s] {
+	return wait_for(m_start_write).finish_on(cl_quit).then([this, &s] {
 		return s.write_all(m_write_buffer.data(), m_write_buffer.size());
 	}).then([this]() -> task<void> {
 		m_write_buffer.swap(m_write_backlog);
@@ -32,7 +32,7 @@ task<void> stream_device::run(stream & s)
 		});
 
 		task<void> write_task = loop([this, &s](cancel_level cl) {
-			return cl >= cl_quit? nulltask: this->write_loop(s);
+			return m_write_buffer.empty() && m_write_backlog.empty() && cl >= cl_quit? nulltask: this->write_loop(s);
 		});
 
 		return std::move(read_task) | std::move(write_task);
