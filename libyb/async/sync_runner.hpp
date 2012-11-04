@@ -190,6 +190,14 @@ public:
 	}
 
 	template <typename T>
+	void post_detached(task<T> && t)
+	{
+		assert(!t.empty());
+		if (t.has_task())
+			m_parallel_tasks |= std::move(t);
+	}
+
+	template <typename T>
 	friend sync_future<T> operator|(sync_runner & r, task<T> && t)
 	{
 		return r.post(std::move(t));
@@ -198,8 +206,8 @@ public:
 	template <typename T>
 	friend sync_runner & operator|=(sync_runner & r, task<T> && t)
 	{
-		r.post(std::move(t)).detach();
-		return *this;
+		r.post_detached(std::move(t));
+		return r;
 	}
 
 	template <typename T>
