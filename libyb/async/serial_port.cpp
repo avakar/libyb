@@ -249,12 +249,12 @@ task<size_t> serial_port::write(uint8_t const * buffer, size_t size)
 			}).then([this]() -> task<size_t> {
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(m_pimpl->hFile, &m_pimpl->writeOverlapped, &dwTransferred, TRUE))
-					throw std::runtime_error("the read operation failed"); // XXX
+					throw std::runtime_error("the write operation failed"); // XXX
 				return async::value((size_t)dwTransferred);
 			});
 		}
 		else
-			return async::raise<size_t>(std::runtime_error("the read operation failed")); // XXX
+			return async::raise<size_t>(std::runtime_error("the write operation failed")); // XXX
 	}
 	else
 	{
