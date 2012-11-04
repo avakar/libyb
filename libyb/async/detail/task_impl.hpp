@@ -337,6 +337,18 @@ task<R> task<R>::follow_with(F f)
 	});
 }
 
+template <>
+template <typename F>
+task<void> task<void>::follow_with(F f)
+{
+	return this->continue_with([f](task_result<void> r) -> task<void> {
+		if (r.has_exception())
+			return async::raise<void>(r.exception());
+		f();
+		return async::value();
+	});
+}
+
 template <typename R>
 task<R> task<R>::abort_on(cancel_level cl, cancel_level abort_cl)
 {
@@ -352,6 +364,36 @@ task<R> task<R>::abort_on(cancel_level cl, cancel_level abort_cl)
 		}
 	}
 
+	return std::move(*this);
+}
+
+template <>
+inline task<void> task<void>::finish_on(cancel_level cl, cancel_level abort_cl)
+{
+	if (m_kind == k_task)
+	{
+		try
+		{
+			return task<void>(new detail::cancel_level_upgrade_task<void>(std::move(*this), cl, abort_cl, true));
+		}
+		catch (...)
+		{
+			return async::result(this->cancel_and_wait());
+		}
+	}
+
+	return std::move(*this);
+}
+
+template <typename R>
+task<void> task<R>::ignore_result()
+{
+	return this->then([](R const &) { return async::value(); });
+}
+
+template <>
+inline task<void> task<void>::ignore_result()
+{
 	return std::move(*this);
 }
 

@@ -127,6 +127,11 @@ public:
 
 	task<R> abort_on(cancel_level cl, cancel_level abort_cl = cl_abort);
 
+	// task<void> only
+	task<void> finish_on(cancel_level cl, cancel_level abort_cl = cl_abort);
+
+	task<void> ignore_result();
+
 private:
 	typedef task_base<R> * task_base_ptr;
 
