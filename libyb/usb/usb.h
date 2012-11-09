@@ -119,16 +119,23 @@ private:
 class usb_device
 {
 public:
+	usb_device();
 	~usb_device();
 
 	usb_device_descriptor descriptor() const;
 	usb_config_descriptor get_config_descriptor() const;
+
+	std::vector<uint16_t> get_langid_list();
+	std::string get_string_descriptor(uint8_t index, uint16_t langid);
 
 	task<void> claim_interface(uint8_t intfno);
 	task<void> release_interface(uint8_t intfno);
 
 	task<size_t> bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size);
 	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size);
+
+	task<size_t> control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
+	task<size_t> control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
 
 private:
 	usb_device(std::shared_ptr<usb_device_core> core);

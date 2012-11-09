@@ -66,6 +66,9 @@
     <ClCompile Include="..\libyb\async\cancellation_token.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\utils\utf.cpp">
+      <Filter>libyb\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -205,6 +208,12 @@
     </ClInclude>
     <ClInclude Include="..\libyb\async\cancellation_token.hpp">
       <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\signal.hpp">
+      <Filter>libyb\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\utf.hpp">
+      <Filter>libyb\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

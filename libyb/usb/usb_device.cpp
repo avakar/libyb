@@ -5,6 +5,7 @@
 #include "../async/detail/win32_handle_task.hpp"
 #include "../async/sync_runner.hpp"
 #include "../vector_ref.hpp"
+#include "../utils/utf.hpp"
 #include <map>
 #include <memory>
 #include <Windows.h>
@@ -139,6 +140,7 @@ public:
 	task<size_t> get_descriptor(HANDLE hFile, uint8_t desc_type, uint8_t desc_index, uint16_t langid, unsigned char * data, int length)
 	{
 		req = libusb0_win32_request();
+		req.timeout = 5000;
 		req.descriptor.type = desc_type;
 		req.descriptor.index = desc_index;
 		req.descriptor.language_id = langid;
@@ -162,6 +164,7 @@ public:
 		assert((ep & 0x80) != 0);
 
 		req = libusb0_win32_request();
+		req.timeout = 5000;
 		req.endpoint.endpoint = ep;
 		return opctx.ioctl(
 			hFile,
@@ -177,6 +180,7 @@ public:
 		assert((ep & 0x80) == 0);
 
 		req = libusb0_win32_request();
+		req.timeout = 5000;
 		req.endpoint.endpoint = ep;
 		return opctx.ioctl(
 			hFile,
@@ -185,6 +189,56 @@ public:
 			sizeof req,
 			const_cast<uint8_t *>(buffer),
 			size);
+	}
+
+	task<size_t> control_read(HANDLE hFile, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size)
+	{
+		assert((bmRequestType & 0x80) != 0);
+		assert((bmRequestType & 0x60) < (3<<5));
+		assert((bmRequestType & 0x1f) < 3);
+
+		req = libusb0_win32_request();
+		req.timeout = 5000;
+		req.vendor.type = (bmRequestType & 0x60) >> 5;
+		req.vendor.recipient = (bmRequestType & 0x1f);
+		req.vendor.bRequest = bRequest;
+		req.vendor.wValue = wValue;
+		req.vendor.wIndex = wIndex;
+
+		return opctx.ioctl(
+			hFile,
+			LIBUSB_IOCTL_VENDOR_READ,
+			&req,
+			sizeof req,
+			buffer,
+			size);
+	}
+
+	task<size_t> control_write(HANDLE hFile, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
+	{
+		assert((bmRequestType & 0x80) == 0);
+		assert((bmRequestType & 0x60) < (3<<5));
+		assert((bmRequestType & 0x1f) < 3);
+
+		req = libusb0_win32_request();
+		req.timeout = 5000;
+		req.vendor.type = (bmRequestType & 0x60) >> 5;
+		req.vendor.recipient = (bmRequestType & 0x1f);
+		req.vendor.bRequest = bRequest;
+		req.vendor.wValue = wValue;
+		req.vendor.wIndex = wIndex;
+
+		buf.resize(sizeof(libusb0_win32_request) + size);
+		std::copy(reinterpret_cast<uint8_t const *>(&req), reinterpret_cast<uint8_t const *>(&req) + sizeof req, buf.begin());
+		std::copy(buffer, buffer + size, buf.begin() + sizeof req);
+
+		return opctx.ioctl(
+			hFile,
+			LIBUSB_IOCTL_VENDOR_WRITE,
+			buf.data(),
+			buf.size(),
+			0,
+			0);
 	}
 
 	task<void> claim_interface(HANDLE hFile, uint8_t intfno)
@@ -203,6 +257,7 @@ public:
 
 private:
 	libusb0_win32_request req;
+	std::vector<uint8_t> buf;
 	win32_file_operation opctx;
 };
 
@@ -261,6 +316,10 @@ std::vector<usb_device> usb_context::get_device_list() const
 	}
 
 	return res;
+}
+
+usb_device::usb_device()
+{
 }
 
 usb_device::usb_device(std::shared_ptr<usb_device_core> core)
@@ -380,6 +439,33 @@ usb_config_descriptor usb_device::get_config_descriptor() const
 	return parse_config_descriptor(desc);
 }
 
+std::vector<uint16_t> usb_device::get_langid_list()
+{
+	usb_request_context ctx;
+
+	uint8_t buf[256];
+	size_t read = run(ctx.get_descriptor(m_core->hFile.get(), 3, 0, 0, buf, sizeof buf));
+	if (read < 2 || buf[0] != read || buf[1] != 3 || read % 2 != 0)
+		throw std::runtime_error("invalid string descriptor");
+
+	std::vector<uint16_t> res;
+	for (size_t i = 2; i < read; i += 2)
+		res.push_back(buf[i] | (buf[i+1] << 8));
+	return res;
+}
+
+std::string usb_device::get_string_descriptor(uint8_t index, uint16_t langid)
+{
+	usb_request_context ctx;
+
+	uint8_t buf[256];
+	size_t read = run(ctx.get_descriptor(m_core->hFile.get(), 3, index, langid, buf, sizeof buf));
+	if (read < 2 || buf[0] != read || buf[1] != 3)
+		throw std::runtime_error("invalid string descriptor");
+
+	return utf16le_to_utf8(yb::buffer_ref(buf + 2, read - 2));
+}
+
 task<void> usb_device::claim_interface(uint8_t intfno)
 {
 	try
@@ -425,6 +511,32 @@ task<size_t> usb_device::bulk_write(usb_endpoint_t ep, uint8_t const * buffer, s
 	{
 		std::shared_ptr<usb_request_context> ctx(new usb_request_context());
 		return ctx->bulk_write(m_core->hFile.get(), ep, buffer, size).follow_with([ctx](size_t){});
+	}
+	catch (...)
+	{
+		return async::raise<size_t>();
+	}
+}
+
+task<size_t> usb_device::control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size)
+{
+	try
+	{
+		std::shared_ptr<usb_request_context> ctx(new usb_request_context());
+		return ctx->control_read(m_core->hFile.get(), bmRequestType, bRequest, wValue, wIndex, buffer, size).follow_with([ctx](size_t){});
+	}
+	catch (...)
+	{
+		return async::raise<size_t>();
+	}
+}
+
+task<size_t> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
+{
+	try
+	{
+		std::shared_ptr<usb_request_context> ctx(new usb_request_context());
+		return ctx->control_write(m_core->hFile.get(), bmRequestType, bRequest, wValue, wIndex, buffer, size).follow_with([ctx](size_t){});
 	}
 	catch (...)
 	{
