@@ -242,7 +242,9 @@ namespace detail {
 template <typename R, typename S, typename F, typename X>
 task<R> then_impl(task<S> && t, F const & f, std::true_type, X)
 {
-	return t.continue_with([f](task_result<S> r) {
+	return t.continue_with([f](task_result<S> r) -> task<R> {
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
 		return f(r.get());
 	});
 }
@@ -251,6 +253,8 @@ template <typename R, typename S, typename F>
 task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 {
 	return t.continue_with([f](task_result<S> r) -> task<R> {
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
 		f(r.get());
 		return async::value();
 	});
@@ -259,7 +263,9 @@ task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 template <typename R, typename S, typename F>
 task<R> then_impl(task<S> && t, F const & f, std::false_type, std::false_type)
 {
-	return t.continue_with([f](task_result<S> r) {
+	return t.continue_with([f](task_result<S> r) -> task<R> {
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
 		return async::value(f(r.get()));
 	});
 }
@@ -289,7 +295,8 @@ template <typename R, typename F>
 task<R> then_impl(task<void> && t, F const & f, std::false_type, std::false_type)
 {
 	return t.continue_with([f](task_result<void> r) -> task<R> {
-		r.rethrow();
+		if (r.has_exception())
+			return async::raise<R>(r.exception());
 		return async::value(f());
 	});
 }
