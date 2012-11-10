@@ -22,9 +22,9 @@ enum flip_status_t
 	status_ok            = 0x0002,
 	status_stall         = 0x0f0a,
 	status_mem_unknown   = 0x030a,
-	status_mem_protected = 0x0300,
+	status_mem_protected = 0x0302,
 	status_out_of_range  = 0x080a,
-	status_blank_fail    = 0x0500,
+	status_blank_fail    = 0x0502,
 	status_erase_ongoing = 0x0904
 };
 
