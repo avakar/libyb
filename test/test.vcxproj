@@ -90,6 +90,7 @@
     <ClCompile Include="..\libyb\async\timer.cpp" />
     <ClCompile Include="..\libyb\descriptor.cpp" />
     <ClCompile Include="..\libyb\shupito\escape_sequence.cpp" />
+    <ClCompile Include="..\libyb\shupito\flip2.cpp" />
     <ClCompile Include="..\libyb\stream_parser.cpp" />
     <ClCompile Include="..\libyb\tunnel.cpp" />
     <ClCompile Include="..\libyb\usb\bulk_stream.cpp" />
@@ -138,6 +139,7 @@
     <ClInclude Include="..\libyb\packet.hpp" />
     <ClInclude Include="..\libyb\packet_handler.hpp" />
     <ClInclude Include="..\libyb\shupito\escape_sequence.hpp" />
+    <ClInclude Include="..\libyb\shupito\flip2.hpp" />
     <ClInclude Include="..\libyb\stream_parser.hpp" />
     <ClInclude Include="..\libyb\tunnel.hpp" />
     <ClInclude Include="..\libyb\usb\bulk_stream.hpp" />

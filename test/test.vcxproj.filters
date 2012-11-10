@@ -69,6 +69,9 @@
     <ClCompile Include="..\libyb\utils\utf.cpp">
       <Filter>libyb\utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\shupito\flip2.cpp">
+      <Filter>libyb\shupito</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -214,6 +217,9 @@
     </ClInclude>
     <ClInclude Include="..\libyb\utils\utf.hpp">
       <Filter>libyb\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\shupito\flip2.hpp">
+      <Filter>libyb\shupito</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
