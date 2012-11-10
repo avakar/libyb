@@ -116,11 +116,20 @@ private:
 	std::unique_ptr<impl> m_pimpl;
 };
 
+struct usb_control_code_t
+{
+	uint8_t bmRequestType;
+	uint8_t bRequest;
+};
+
 class usb_device
 {
 public:
 	usb_device();
 	~usb_device();
+
+	void clear();
+	bool empty() const;
 
 	usb_device_descriptor descriptor() const;
 	usb_config_descriptor get_config_descriptor() const;
@@ -135,7 +144,10 @@ public:
 	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size);
 
 	task<size_t> control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
-	task<size_t> control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
+	task<void> control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
+
+	task<size_t> control_read(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
+	task<void> control_write(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
 
 private:
 	usb_device(std::shared_ptr<usb_device_core> core);

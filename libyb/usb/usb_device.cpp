@@ -214,7 +214,7 @@ public:
 			size);
 	}
 
-	task<size_t> control_write(HANDLE hFile, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
+	task<void> control_write(HANDLE hFile, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
 	{
 		assert((bmRequestType & 0x80) == 0);
 		assert((bmRequestType & 0x60) < (3<<5));
@@ -238,7 +238,7 @@ public:
 			buf.data(),
 			buf.size(),
 			0,
-			0);
+			0).ignore_result();
 	}
 
 	task<void> claim_interface(HANDLE hFile, uint8_t intfno)
@@ -330,6 +330,16 @@ usb_device::usb_device(std::shared_ptr<usb_device_core> core)
 
 usb_device::~usb_device()
 {
+}
+
+void usb_device::clear()
+{
+	m_core.reset();
+}
+
+bool usb_device::empty() const
+{
+	return m_core.get() == nullptr;
 }
 
 usb_device_descriptor usb_device::descriptor() const
@@ -531,15 +541,25 @@ task<size_t> usb_device::control_read(uint8_t bmRequestType, uint8_t bRequest, u
 	}
 }
 
-task<size_t> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
+task<void> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
 {
 	try
 	{
 		std::shared_ptr<usb_request_context> ctx(new usb_request_context());
-		return ctx->control_write(m_core->hFile.get(), bmRequestType, bRequest, wValue, wIndex, buffer, size).follow_with([ctx](size_t){});
+		return ctx->control_write(m_core->hFile.get(), bmRequestType, bRequest, wValue, wIndex, buffer, size).follow_with([ctx](){});
 	}
 	catch (...)
 	{
-		return async::raise<size_t>();
+		return async::raise<void>();
 	}
+}
+
+task<size_t> usb_device::control_read(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size)
+{
+	return this->control_read(code.bmRequestType, code.bRequest, wValue, wIndex, buffer, size);
+}
+
+task<void> usb_device::control_write(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
+{
+	return this->control_write(code.bmRequestType, code.bRequest, wValue, wIndex, buffer, size);
 }
