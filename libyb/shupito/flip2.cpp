@@ -200,12 +200,18 @@ task<void> flip2::chip_erase()
 	});
 }
 
-static task<void> write_memory_loop(usb_device & dev, flip2::offset_t offset, uint8_t const * buffer, size_t size, size_t packet_size)
+static task<void> write_memory_loop(usb_device & dev, flip2::offset_t address, uint8_t const * buffer, size_t size, size_t packet_size)
 {
-	// FIXME: turn this into a loop
-	size_t chunk = (std::min)(size, (size_t)1024);
-	return write_memory_range(dev, offset, buffer, chunk, packet_size).then([&dev, offset, buffer, size, packet_size, chunk] {
-		return size == chunk? async::value(): write_memory_loop(dev, offset + chunk, buffer + chunk, size - chunk, packet_size);
+	return loop_with_state<void, size_t>(async::value(), 0, [&dev, address, buffer, size, packet_size](size_t & st, cancel_level cl) -> task<void> {
+		size_t offset = st;
+		size_t remaining = size - st;
+		size_t chunk = (std::min)(remaining, (size_t)1024);
+		if (chunk == 0)
+			return nulltask;
+		if (cl >= cl_abort)
+			return async::raise<void>(task_cancelled(cl));
+		st += chunk;
+		return write_memory_range(dev, address + offset, buffer + offset, chunk, packet_size);
 	});
 }
 
@@ -233,7 +239,7 @@ task<void> flip2::start_application()
 
 	return m_device.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size()).then([this] {
 		return m_device.control_write(usbcc_download, 0, 0, 0, 0);
-	}).continue_with([this](task_result<void> const & r) -> task<void> {
+	}).continue_with([this](task_result<void> const &) -> task<void> {
 		m_device.clear();
 		return async::value();
 	});

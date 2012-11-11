@@ -4,21 +4,25 @@ using namespace yb;
 
 task<void> stream::read_all(uint8_t * buffer, size_t size)
 {
-	return this->read(buffer, size).then([this, buffer, size](size_t transferred) -> task<void> {
-		if (size == transferred)
-			return this->read_all(buffer + transferred, size - transferred);
-		else
-			return async::value();
+	return loop_with_state<size_t, size_t>(async::value((size_t)0), 0, [this, buffer, size](size_t r, size_t & st, cancel_level cl) -> task<size_t> {
+		st += r;
+		if (cl >= cl_abort)
+			return async::raise<size_t>(task_cancelled(cl));
+		if (st == size)
+			return nulltask;
+		return this->read(buffer + st, size - st);
 	});
 }
 
 task<void> stream::write_all(uint8_t const * buffer, size_t size)
 {
-	return this->write(buffer, size).then([this, buffer, size](size_t transferred) -> task<void> {
-		if (size != transferred)
-			return this->write_all(buffer + transferred, size - transferred);
-		else
-			return async::value();
+	return loop_with_state<size_t, size_t>(async::value((size_t)0), 0, [this, buffer, size](size_t r, size_t & st, cancel_level cl) -> task<size_t> {
+		st += r;
+		if (cl >= cl_abort)
+			return async::raise<size_t>(task_cancelled(cl));
+		if (st == size)
+			return nulltask;
+		return this->write(buffer + st, size - st);
 	});
 }
 
