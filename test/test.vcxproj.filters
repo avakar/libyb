@@ -78,6 +78,9 @@
     <ClCompile Include="..\libyb\utils\sparse_buffer.cpp">
       <Filter>libyb\utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\async\async_runner.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -232,6 +235,9 @@
     </ClInclude>
     <ClInclude Include="..\libyb\utils\ihex_file.hpp">
       <Filter>libyb\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\async_runner.hpp">
+      <Filter>libyb\async</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -76,6 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\libyb\async\async_runner.cpp" />
     <ClCompile Include="..\libyb\async\cancellation_token.cpp" />
     <ClCompile Include="..\libyb\async\descriptor_reader.cpp" />
     <ClCompile Include="..\libyb\async\detail\parallel_composition_task.cpp" />
@@ -105,6 +106,7 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libyb\async\async_runner.hpp" />
     <ClInclude Include="..\libyb\async\cancellation_token.hpp" />
     <ClInclude Include="..\libyb\async\cancel_exception.hpp" />
     <ClInclude Include="..\libyb\async\cancel_level.hpp" />

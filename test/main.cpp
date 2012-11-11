@@ -4,6 +4,7 @@
 
 #include <libyb/async/task.hpp>
 #include <libyb/async/sync_runner.hpp>
+#include <libyb/async/async_runner.hpp>
 #include <libyb/async/timer.hpp>
 #include <libyb/async/channel.hpp>
 #include <libyb/async/serial_port.hpp>
@@ -102,6 +103,32 @@ TEST_CASE(ReadDescriptorTask, "signal_task")
 
 	yb::sync_runner runner;
 	yb::sync_future<void> f = runner.post(dev.run(sp));
+
+	yb::device_descriptor dd = runner.run(yb::read_device_descriptor(dev));
+	assert(dd.device_guid() == "01020304-0506-0708-090a-0b0c0d0e0f10");
+
+	yb::device_config const * config = dd.get_config("c49124d9-4629-4aef-ae35-ddc32c21b279");
+	assert(config);
+}
+
+TEST_CASE(ReadDescriptorTask_AsyncRunner, "signal_task async_runner")
+{
+	static uint8_t const w1[] = { 0x80, 0x01, 0x00 };
+	static uint8_t const r2[] = {
+		0x80, 0x0f, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0x80, 0x0f, 15, 16,
+		0x00, 0x00, 0xc4, 0x91, 0x24, 0xd9, 0x46, 0x29, 0x4a, 0xef, 0xae, 0x35, 0xdd, 0x80, 0x08, 0xc3, 0x2c, 0x21, 0xb2, 0x79, 0, 0, 0,
+	};
+
+	yb::mock_stream sp;
+	sp.expect_write(w1, 1);
+	sp.expect_read(r2, 1);
+
+	yb::stream_device dev;
+
+	yb::async_runner runner;
+	runner.start();
+
+	yb::async_future<void> f = runner.post(dev.run(sp));
 
 	yb::device_descriptor dd = runner.run(yb::read_device_descriptor(dev));
 	assert(dd.device_guid() == "01020304-0506-0708-090a-0b0c0d0e0f10");
