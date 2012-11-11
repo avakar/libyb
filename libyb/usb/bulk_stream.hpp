@@ -3,7 +3,7 @@
 
 #include "../async/stream.hpp"
 #include "interface_guard.hpp"
-#include "usb.h"
+#include "usb_device.hpp"
 
 namespace yb {
 

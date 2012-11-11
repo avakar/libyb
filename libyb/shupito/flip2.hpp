@@ -2,7 +2,7 @@
 #define LIBYB_SHUPITO_FLIP2_HPP
 
 #include "../async/task.hpp"
-#include "../usb/usb.h"
+#include "../usb/usb_device.hpp"
 
 namespace yb {
 

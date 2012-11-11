@@ -1,7 +1,7 @@
 #ifndef LIBYB_USB_INTERFACE_GUARD_HPP
 #define LIBYB_USB_INTERFACE_GUARD_HPP
 
-#include "usb.h"
+#include "usb_device.hpp"
 #include "../utils/noncopyable.hpp"
 
 namespace yb {

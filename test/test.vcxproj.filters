@@ -81,6 +81,21 @@
     <ClCompile Include="..\libyb\async\async_runner.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\utils\detail\win32_file_operation.cpp">
+      <Filter>libyb\utils\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\utils\detail\win32_overlapped.cpp">
+      <Filter>libyb\utils\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\usb_context.cpp">
+      <Filter>libyb\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\detail\usb_request_context.cpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\usb_descriptors.cpp">
+      <Filter>libyb\usb</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -194,9 +209,6 @@
     <ClInclude Include="..\libyb\usb\detail\libusb0_win32_intf.h">
       <Filter>libyb\usb\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\libyb\usb\usb.h">
-      <Filter>libyb\usb</Filter>
-    </ClInclude>
     <ClInclude Include="..\libyb\usb\bulk_stream.hpp">
       <Filter>libyb\usb</Filter>
     </ClInclude>
@@ -239,6 +251,33 @@
     <ClInclude Include="..\libyb\async\async_runner.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
+    <ClInclude Include="..\libyb\usb\usb_device.hpp">
+      <Filter>libyb\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\usb_context.hpp">
+      <Filter>libyb\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\usb_descriptors.hpp">
+      <Filter>libyb\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\detail\usb_device_core_fwd.hpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\detail\usb_device_core.hpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\detail\scoped_win32_handle.hpp">
+      <Filter>libyb\utils\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\detail\win32_overlapped.hpp">
+      <Filter>libyb\utils\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\detail\win32_file_operation.hpp">
+      <Filter>libyb\utils\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\detail\usb_request_context.hpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="libyb">
@@ -264,6 +303,9 @@
     </Filter>
     <Filter Include="libyb\shupito">
       <UniqueIdentifier>{cef38e0a-058e-4830-bc12-b9ede2b153ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libyb\utils\detail">
+      <UniqueIdentifier>{1b65f54e-ba8a-4ab9-a2c9-a53d42fe1a11}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

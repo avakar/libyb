@@ -4,7 +4,7 @@
 #include <libyb/async/sync_runner.hpp>
 #include <libyb/async/descriptor_reader.hpp>
 #include <libyb/tunnel.hpp>
-#include <libyb/usb/usb.h>
+#include <libyb/usb/usb_context.hpp>
 #include <libyb/usb/bulk_stream.hpp>
 #include <libyb/shupito/escape_sequence.hpp>
 
