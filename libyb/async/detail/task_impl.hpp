@@ -164,9 +164,11 @@ task_result<R> task<R>::get_result()
 template <typename R>
 void task<R>::prepare_wait(task_wait_preparation_context & ctx)
 {
-	assert(m_kind == k_task);
-	task_base_ptr p = this->as_task();
-	p->prepare_wait(ctx);
+	if (m_kind == k_task)
+	{
+		task_base_ptr p = this->as_task();
+		p->prepare_wait(ctx);
+	}
 }
 
 template <typename R>
