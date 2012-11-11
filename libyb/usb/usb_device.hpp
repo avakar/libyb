@@ -39,6 +39,13 @@ public:
 	task<size_t> control_read(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
 	task<void> control_write(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
 
+	friend bool operator==(usb_device const & lhs, usb_device const & rhs);
+	friend bool operator!=(usb_device const & lhs, usb_device const & rhs);
+	friend bool operator<(usb_device const & lhs, usb_device const & rhs);
+	friend bool operator>(usb_device const & lhs, usb_device const & rhs);
+	friend bool operator<=(usb_device const & lhs, usb_device const & rhs);
+	friend bool operator>=(usb_device const & lhs, usb_device const & rhs);
+
 private:
 	std::shared_ptr<detail::usb_device_core> m_core;
 };

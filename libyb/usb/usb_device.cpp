@@ -188,3 +188,33 @@ task<void> usb_device::control_write(usb_control_code_t const & code, uint16_t w
 {
 	return this->control_write(code.bmRequestType, code.bRequest, wValue, wIndex, buffer, size);
 }
+
+bool yb::operator==(usb_device const & lhs, usb_device const & rhs)
+{
+	return lhs.m_core == rhs.m_core;
+}
+
+bool yb::operator!=(usb_device const & lhs, usb_device const & rhs)
+{
+	return lhs.m_core != rhs.m_core;
+}
+
+bool yb::operator<(usb_device const & lhs, usb_device const & rhs)
+{
+	return lhs.m_core < rhs.m_core;
+}
+
+bool yb::operator>(usb_device const & lhs, usb_device const & rhs)
+{
+	return lhs.m_core > rhs.m_core;
+}
+
+bool yb::operator<=(usb_device const & lhs, usb_device const & rhs)
+{
+	return lhs.m_core <= rhs.m_core;
+}
+
+bool yb::operator>=(usb_device const & lhs, usb_device const & rhs)
+{
+	return lhs.m_core >= rhs.m_core;
+}
