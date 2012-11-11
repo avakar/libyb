@@ -170,9 +170,9 @@ task<void> loop(task<S> && t, F f);
 namespace async {
 
 template <typename R>
-task<typename std::remove_reference<R>::type> value(R && v)
+task<typename std::remove_const<typename std::remove_reference<R>::type>::type> value(R && v)
 {
-	typedef typename std::remove_reference<R>::type result_type;
+	typedef typename std::remove_const<typename std::remove_reference<R>::type>::type result_type;
 
 	try
 	{
