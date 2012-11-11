@@ -72,6 +72,12 @@
     <ClCompile Include="..\libyb\shupito\flip2.cpp">
       <Filter>libyb\shupito</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\utils\ihex_file.cpp">
+      <Filter>libyb\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\utils\sparse_buffer.cpp">
+      <Filter>libyb\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -220,6 +226,12 @@
     </ClInclude>
     <ClInclude Include="..\libyb\shupito\flip2.hpp">
       <Filter>libyb\shupito</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\sparse_buffer.hpp">
+      <Filter>libyb\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\utils\ihex_file.hpp">
+      <Filter>libyb\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

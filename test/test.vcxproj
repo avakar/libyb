@@ -96,6 +96,8 @@
     <ClCompile Include="..\libyb\usb\bulk_stream.cpp" />
     <ClCompile Include="..\libyb\usb\interface_guard.cpp" />
     <ClCompile Include="..\libyb\usb\usb_device.cpp" />
+    <ClCompile Include="..\libyb\utils\ihex_file.cpp" />
+    <ClCompile Include="..\libyb\utils\sparse_buffer.cpp" />
     <ClCompile Include="..\libyb\utils\utf.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="memmock.cpp" />
@@ -146,8 +148,10 @@
     <ClInclude Include="..\libyb\usb\detail\libusb0_win32_intf.h" />
     <ClInclude Include="..\libyb\usb\interface_guard.hpp" />
     <ClInclude Include="..\libyb\usb\usb.h" />
+    <ClInclude Include="..\libyb\utils\ihex_file.hpp" />
     <ClInclude Include="..\libyb\utils\noncopyable.hpp" />
     <ClInclude Include="..\libyb\utils\signal.hpp" />
+    <ClInclude Include="..\libyb\utils\sparse_buffer.hpp" />
     <ClInclude Include="..\libyb\utils\utf.hpp" />
     <ClInclude Include="..\libyb\vector_ref.hpp" />
     <ClInclude Include="memmock.h" />

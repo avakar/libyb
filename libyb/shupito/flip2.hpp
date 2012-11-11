@@ -20,9 +20,16 @@ public:
 	task<size_t> read_memory(memory_id_t mem, offset_t offset, uint8_t * buffer, size_t size);
 	task<bool> blank_check(memory_id_t mem, offset_t first, offset_t size);
 
+	task<void> chip_erase();
+	task<void> write_memory(memory_id_t mem, offset_t offset, uint8_t const * buffer, size_t size);
+
+	task<void> start_application();
+
 private:
 	usb_device m_device;
 	uint8_t m_interface_number;
+	size_t m_packet_size;
+
 	memory_id_t m_current_mem_id;
 	uint16_t m_current_page;
 	bool m_mem_page_selected;

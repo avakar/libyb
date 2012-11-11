@@ -99,9 +99,14 @@ TEST_CASE(ShupitoFlash, "+shupito")
 }
 
 #include <libyb/shupito/flip2.hpp>
+#include <libyb/utils/ihex_file.hpp>
+#include <fstream>
 
 TEST_CASE(DfuFlash, "+dfu")
 {
+	std::ifstream fin("c:\\devel\\checkouts\\pokkus\\Debug\\pokkus.hex");
+	yb::sparse_buffer program = yb::parse_ihex(fin);
+
 	yb::usb_context usb;
 	std::vector<yb::usb_device> devs = usb.get_device_list();
 
@@ -150,10 +155,17 @@ TEST_CASE(DfuFlash, "+dfu")
 	size_t read = run(fl.read_memory(5, 0, sig, sizeof sig));
 
 	assert(read == 4);
+	assert(sig[0] == 0x1e && sig[1] == 0x95 && sig[2] == 0x41 && sig[3] == 0x04);
+
+	run(fl.chip_erase());
+	bool blank_succeeded = run(fl.blank_check(0, 0, 32*1024));
+	assert(blank_succeeded);
+
+	for (yb::sparse_buffer::region_iterator it = program.region_begin(); it != program.region_end(); ++it)
+		run(fl.write_memory(0, it->first, it->second.data(), it->second.size()));
 
 	uint8_t buffer[16*1024];
 	read = run(fl.read_memory(0, 0, buffer, sizeof buffer));
 
-	bool blank_succeeded = run(fl.blank_check(0, 0, 32*1024));
+	run(fl.start_application());
 }
-

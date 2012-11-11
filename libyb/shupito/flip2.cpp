@@ -15,7 +15,10 @@ struct flip_command_code_t
 
 static flip_command_code_t const flipcc_select_memory = { 0x06, 0x03 };
 static flip_command_code_t const flipcc_read_memory   = { 0x03, 0x00 };
+static flip_command_code_t const flipcc_write_memory  = { 0x01, 0x00 };
 static flip_command_code_t const flipcc_blank_check   = { 0x03, 0x01 };
+static flip_command_code_t const flipcc_chip_erase    = { 0x04, 0x00 };
+static flip_command_code_t const flipcc_start_app     = { 0x04, 0x03 };
 
 enum flip_status_t
 {
@@ -25,7 +28,8 @@ enum flip_status_t
 	status_mem_protected = 0x0302,
 	status_out_of_range  = 0x080a,
 	status_blank_fail    = 0x0502,
-	status_erase_ongoing = 0x0904
+	status_erase_ongoing = 0x0904,
+	status_unknown       = 0xffff
 };
 
 flip2::flip2()
@@ -35,7 +39,10 @@ flip2::flip2()
 
 void flip2::open(usb_device & dev)
 {
+	yb::usb_device_descriptor desc = dev.descriptor();
+
 	m_device = dev;
+	m_packet_size = desc.bMaxPacketSize0;
 	m_mem_page_selected = false;
 }
 
@@ -85,6 +92,25 @@ static task<size_t> read_memory_range(usb_device & dev, flip2::offset_t offset, 
 	return dev.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size()).then([ctx, &dev, buffer, size] {
 		return dev.control_read(usbcc_upload, 0, 0, buffer, size);
 	});
+}
+
+static task<void> write_memory_range(usb_device & dev, flip2::offset_t offset, uint8_t const * buffer, size_t size, size_t packet_size)
+{
+	assert(!dev.empty());
+	assert(size != 0);
+
+	flip2::offset_t last = offset + size - 1;
+
+	std::shared_ptr<std::vector<uint8_t>> ctx = std::make_shared<std::vector<uint8_t>>(std::vector<uint8_t>(packet_size + size));
+	(*ctx)[0] = flipcc_write_memory.group;
+	(*ctx)[1] = flipcc_write_memory.command;
+	(*ctx)[2] = (uint8_t)(offset >> 8);
+	(*ctx)[3] = (uint8_t)offset;
+	(*ctx)[4] = (uint8_t)(last >> 8);
+	(*ctx)[5] = (uint8_t)last;
+	std::copy(buffer, buffer + size, ctx->data() + packet_size);
+
+	return dev.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size());
 }
 
 static task<flip_status_t> get_status(usb_device & dev)
@@ -150,5 +176,65 @@ task<bool> flip2::blank_check(memory_id_t mem, offset_t first, offset_t size)
 		m_current_page = (uint16_t)(first >> 16);
 		m_mem_page_selected = true;
 		return blank_check_range(m_device, first, size);
+	});
+}
+
+task<void> flip2::chip_erase()
+{
+	assert(!m_device.empty());
+
+	std::shared_ptr<std::vector<uint8_t>> ctx = std::make_shared<std::vector<uint8_t>>(std::vector<uint8_t>(6));
+	(*ctx)[0] = flipcc_chip_erase.group;
+	(*ctx)[1] = flipcc_chip_erase.command;
+	return m_device.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size()).then([this, ctx]() -> task<void> {
+		flip2 * self = this;
+		return loop<flip_status_t>(async::value(status_erase_ongoing), [self](flip_status_t status, cancel_level cl) -> task<flip_status_t> {
+			if (status == status_ok)
+				return nulltask;
+			if (cl >= cl_abort)
+				return async::raise<flip_status_t>(task_cancelled(cl));
+			if (status == status_erase_ongoing)
+				return get_status(self->m_device);
+			return async::raise<flip_status_t>(std::runtime_error("erase failure"));
+		});
+	});
+}
+
+static task<void> write_memory_loop(usb_device & dev, flip2::offset_t offset, uint8_t const * buffer, size_t size, size_t packet_size)
+{
+	// FIXME: turn this into a loop
+	size_t chunk = (std::min)(size, (size_t)1024);
+	return write_memory_range(dev, offset, buffer, chunk, packet_size).then([&dev, offset, buffer, size, packet_size, chunk] {
+		return size == chunk? async::value(): write_memory_loop(dev, offset + chunk, buffer + chunk, size - chunk, packet_size);
+	});
+}
+
+task<void> flip2::write_memory(memory_id_t mem, offset_t offset, uint8_t const * buffer, size_t size)
+{
+	assert(!m_device.empty());
+
+	return (!m_mem_page_selected || m_current_mem_id != mem? select_memory_space(m_device, mem): async::value()).then([this, offset, mem, size]() -> task<void> {
+		m_current_mem_id = mem;
+		return !m_mem_page_selected || m_current_page != (uint16_t)(offset >> 16)? select_memory_page(m_device, (uint16_t)(offset >> 16)): async::value();
+	}).then([this, offset, buffer, size]() -> task<void> {
+		m_current_page = (uint16_t)(offset >> 16);
+		m_mem_page_selected = true;
+		return write_memory_loop(m_device, offset, buffer, size, m_packet_size);
+	});
+}
+
+task<void> flip2::start_application()
+{
+	assert(!m_device.empty());
+
+	std::shared_ptr<std::vector<uint8_t>> ctx = std::make_shared<std::vector<uint8_t>>(std::vector<uint8_t>(6));
+	(*ctx)[0] = flipcc_start_app.group;
+	(*ctx)[1] = flipcc_start_app.command;
+
+	return m_device.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size()).then([this] {
+		return m_device.control_write(usbcc_download, 0, 0, 0, 0);
+	}).continue_with([this](task_result<void> const & r) -> task<void> {
+		m_device.clear();
+		return async::value();
 	});
 }
