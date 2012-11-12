@@ -14,10 +14,12 @@ public:
 
 	flip2();
 
-	void open(usb_device & dev);
+	task<void> open(usb_device & dev);
 	void close();
 
-	task<size_t> read_memory(memory_id_t mem, offset_t offset, uint8_t * buffer, size_t size);
+	bool is_open() const;
+
+	task<void> read_memory(memory_id_t mem, offset_t offset, uint8_t * buffer, size_t size);
 	task<bool> blank_check(memory_id_t mem, offset_t first, offset_t size);
 
 	task<void> chip_erase();

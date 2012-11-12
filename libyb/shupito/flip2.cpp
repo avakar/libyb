@@ -37,18 +37,25 @@ flip2::flip2()
 {
 }
 
-void flip2::open(usb_device & dev)
+task<void> flip2::open(usb_device & dev)
 {
 	yb::usb_device_descriptor desc = dev.descriptor();
 
 	m_device = dev;
 	m_packet_size = desc.bMaxPacketSize0;
 	m_mem_page_selected = false;
+
+	return dev.control_write(usbcc_clear_status, 0, 0, 0, 0);
 }
 
 void flip2::close()
 {
 	m_device.clear();
+}
+
+bool flip2::is_open() const
+{
+	return !m_device.empty();
 }
 
 static task<void> select_memory_space(usb_device & dev, flip2::memory_id_t mem)
@@ -148,20 +155,30 @@ static task<bool> blank_check_range(usb_device & dev, flip2::offset_t offset, fl
 	});
 }
 
-task<size_t> flip2::read_memory(memory_id_t mem, offset_t offset, uint8_t * buffer, size_t size)
+static task<void> read_memory_loop(usb_device & dev, flip2::offset_t address, uint8_t * buffer, size_t size)
+{
+	return loop_with_state<size_t, size_t>(async::value((size_t)0), 0, [&dev, address, buffer, size](size_t r, size_t & st, cancel_level cl) -> task<size_t> {
+		st += r;
+		size_t chunk = (std::min)(size - st, (size_t)1024);
+		if (chunk == 0)
+			return nulltask;
+		if (cl >= cl_abort)
+			return async::raise<size_t>(task_cancelled(cl));
+		return read_memory_range(dev, address + st, buffer + st, chunk);
+	});
+}
+
+task<void> flip2::read_memory(memory_id_t mem, offset_t offset, uint8_t * buffer, size_t size)
 {
 	assert(!m_device.empty());
-
-	if (size > 1024)
-		size = 1024;
 
 	return (!m_mem_page_selected || m_current_mem_id != mem? select_memory_space(m_device, mem): async::value()).then([this, offset, mem]() -> task<void> {
 		m_current_mem_id = mem;
 		return !m_mem_page_selected || m_current_page != (uint16_t)(offset >> 16)? select_memory_page(m_device, (uint16_t)(offset >> 16)): async::value();
-	}).then([this, offset, buffer, size]() -> task<size_t> {
+	}).then([this, offset, buffer, size]() -> task<void> {
 		m_current_page = (uint16_t)(offset >> 16);
 		m_mem_page_selected = true;
-		return read_memory_range(m_device, offset, buffer, size);
+		return read_memory_loop(m_device, offset, buffer, size);
 	});
 }
 
