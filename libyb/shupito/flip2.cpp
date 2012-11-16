@@ -37,15 +37,18 @@ flip2::flip2()
 {
 }
 
-task<void> flip2::open(usb_device & dev)
+void flip2::open(usb_device & dev)
 {
 	yb::usb_device_descriptor desc = dev.descriptor();
 
 	m_device = dev;
 	m_packet_size = desc.bMaxPacketSize0;
 	m_mem_page_selected = false;
+}
 
-	return dev.control_write(usbcc_clear_status, 0, 0, 0, 0);
+task<void> flip2::clear_errors()
+{
+	return m_device.control_write(usbcc_clear_status, 0, 0, 0, 0);
 }
 
 void flip2::close()
@@ -254,10 +257,7 @@ task<void> flip2::start_application()
 	(*ctx)[0] = flipcc_start_app.group;
 	(*ctx)[1] = flipcc_start_app.command;
 
-	return m_device.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size()).then([this] {
+	return m_device.control_write(usbcc_download, 0, 0, ctx->data(), ctx->size()).then([this, ctx] {
 		return m_device.control_write(usbcc_download, 0, 0, 0, 0);
-	}).continue_with([this](task_result<void> const &) -> task<void> {
-		m_device.clear();
-		return async::value();
 	});
 }
