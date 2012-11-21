@@ -3,6 +3,7 @@ SOURCES += \
     $$PWD/libyb/descriptor.cpp \
     $$PWD/libyb/stream_parser.cpp \
     $$PWD/libyb/tunnel.cpp \
+    $$PWD/libyb/async/async_channel.cpp \
     $$PWD/libyb/async/async_runner.cpp \
     $$PWD/libyb/async/cancellation_token.cpp \
     $$PWD/libyb/async/descriptor_reader.cpp \

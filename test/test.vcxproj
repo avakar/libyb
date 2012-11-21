@@ -76,6 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\libyb\async\async_channel.cpp" />
     <ClCompile Include="..\libyb\async\async_runner.cpp" />
     <ClCompile Include="..\libyb\async\cancellation_token.cpp" />
     <ClCompile Include="..\libyb\async\descriptor_reader.cpp" />
@@ -111,6 +112,7 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libyb\async\async_channel.hpp" />
     <ClInclude Include="..\libyb\async\async_runner.hpp" />
     <ClInclude Include="..\libyb\async\cancellation_token.hpp" />
     <ClInclude Include="..\libyb\async\cancel_exception.hpp" />
@@ -136,7 +138,6 @@
     <ClInclude Include="..\libyb\async\null_stream.hpp" />
     <ClInclude Include="..\libyb\async\promise.hpp" />
     <ClInclude Include="..\libyb\async\serial_port.hpp" />
-    <ClInclude Include="..\libyb\async\signal.hpp" />
     <ClInclude Include="..\libyb\async\stream.hpp" />
     <ClInclude Include="..\libyb\async\stream_device.hpp" />
     <ClInclude Include="..\libyb\async\sync_runner.hpp" />

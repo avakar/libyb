@@ -96,6 +96,9 @@
     <ClCompile Include="..\libyb\usb\usb_descriptors.cpp">
       <Filter>libyb\usb</Filter>
     </ClCompile>
+    <ClCompile Include="..\libyb\async\async_channel.cpp">
+      <Filter>libyb\async</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\libyb\async\task.hpp">
@@ -162,9 +165,6 @@
       <Filter>libyb\async</Filter>
     </ClInclude>
     <ClInclude Include="..\libyb\async\stream_device.hpp">
-      <Filter>libyb\async</Filter>
-    </ClInclude>
-    <ClInclude Include="..\libyb\async\signal.hpp">
       <Filter>libyb\async</Filter>
     </ClInclude>
     <ClInclude Include="..\libyb\packet_handler.hpp">
@@ -277,6 +277,9 @@
     </ClInclude>
     <ClInclude Include="..\libyb\usb\detail\usb_request_context.hpp">
       <Filter>libyb\usb\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\async\async_channel.hpp">
+      <Filter>libyb\async</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
