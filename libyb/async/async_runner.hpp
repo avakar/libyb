@@ -139,7 +139,7 @@ public:
 
 	bool empty() const
 	{
-		return m_promise == 0 && !(m_exception == nullptr);
+		return m_promise == 0 && m_exception == nullptr;
 	}
 
 	void detach()
