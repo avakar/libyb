@@ -24,6 +24,9 @@ public:
 	usb_device_descriptor descriptor() const;
 	usb_config_descriptor get_config_descriptor() const;
 
+	uint32_t vidpid() const;
+
+	uint16_t get_default_langid() const;
 	std::vector<uint16_t> get_langid_list();
 	std::string get_string_descriptor(uint8_t index, uint16_t langid);
 

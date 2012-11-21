@@ -74,6 +74,23 @@ usb_config_descriptor usb_device::get_config_descriptor() const
 	return parse_config_descriptor(desc);
 }
 
+uint32_t usb_device::vidpid() const
+{
+	return ((uint32_t)m_core->desc.idVendor << 16) | m_core->desc.idProduct;
+}
+
+uint16_t usb_device::get_default_langid() const
+{
+	detail::usb_request_context ctx;
+
+	uint8_t buf[4];
+	size_t read = run(ctx.get_descriptor(m_core->hFile.get(), 3, 0, 0, buf, sizeof buf));
+	if (read < 2 || buf[0] < read || buf[1] != 3 || read % 2 != 0)
+		throw std::runtime_error("invalid string descriptor");
+
+	return read == 2? 0: buf[2] | (buf[3] << 8);
+}
+
 std::vector<uint16_t> usb_device::get_langid_list()
 {
 	detail::usb_request_context ctx;
