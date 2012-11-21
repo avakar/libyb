@@ -101,6 +101,32 @@ std::string usb_device::get_string_descriptor(uint8_t index, uint16_t langid)
 	return utf16le_to_utf8(yb::buffer_ref(buf + 2, read - 2));
 }
 
+task<uint8_t> usb_device::get_configuration()
+{
+	try
+	{
+		std::shared_ptr<detail::usb_request_context> ctx(new detail::usb_request_context());
+		return ctx->get_configuration(m_core->hFile.get()).follow_with([ctx](size_t){});
+	}
+	catch (...)
+	{
+		return async::raise<uint8_t>();
+	}
+}
+
+task<void> usb_device::set_configuration(uint8_t config)
+{
+	try
+	{
+		std::shared_ptr<detail::usb_request_context> ctx(new detail::usb_request_context());
+		return ctx->set_configuration(m_core->hFile.get(), config).follow_with([ctx](){});
+	}
+	catch (...)
+	{
+		return async::raise<void>();
+	}
+}
+
 task<void> usb_device::claim_interface(uint8_t intfno)
 {
 	try
@@ -127,7 +153,7 @@ task<void> usb_device::release_interface(uint8_t intfno)
 	}
 }
 
-task<size_t> usb_device::bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size)
+task<size_t> usb_device::bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size) const
 {
 	try
 	{
@@ -140,7 +166,7 @@ task<size_t> usb_device::bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t s
 	}
 }
 
-task<size_t> usb_device::bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size)
+task<size_t> usb_device::bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size) const
 {
 	try
 	{

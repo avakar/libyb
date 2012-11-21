@@ -24,6 +24,24 @@ task<void> usb_request_context::get_device_descriptor(HANDLE hFile, usb_device_d
 	});
 }
 
+task<uint8_t> usb_request_context::get_configuration(HANDLE hFile)
+{
+	req = libusb0_win32_request();
+	return opctx.ioctl(hFile, LIBUSB_IOCTL_GET_CONFIGURATION, &req, sizeof req, stack_buf, 1).then([this](size_t r) -> task<uint8_t> {
+		return r != 1? async::raise<uint8_t>(std::runtime_error("invalid response")): async::value(stack_buf[0]);
+	});
+}
+
+task<void> usb_request_context::set_configuration(HANDLE hFile, uint8_t config)
+{
+	req = libusb0_win32_request();
+	req.timeout = 5000;
+	req.configuration.configuration = config;
+	return opctx.ioctl(hFile, LIBUSB_IOCTL_SET_CONFIGURATION, &req, sizeof req, 0, 0).then([this](size_t) -> task<void> {
+		return async::value();
+	});
+}
+
 task<size_t> usb_request_context::bulk_read(HANDLE hFile, usb_endpoint_t ep, uint8_t * buffer, size_t size)
 {
 	assert((ep & 0x80) != 0);

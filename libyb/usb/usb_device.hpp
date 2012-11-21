@@ -27,11 +27,14 @@ public:
 	std::vector<uint16_t> get_langid_list();
 	std::string get_string_descriptor(uint8_t index, uint16_t langid);
 
+	task<uint8_t> get_configuration();
+	task<void> set_configuration(uint8_t config);
+
 	task<void> claim_interface(uint8_t intfno);
 	task<void> release_interface(uint8_t intfno);
 
-	task<size_t> bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size);
-	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size);
+	task<size_t> bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size) const;
+	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size) const;
 
 	task<size_t> control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
 	task<void> control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
