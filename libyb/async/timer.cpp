@@ -40,3 +40,9 @@ task<void> timer::wait_ms(int milliseconds)
 		}
 	});
 }
+
+task<void> yb::wait_ms(int milliseconds)
+{
+	std::shared_ptr<timer> tmr(new timer());
+	return tmr->wait_ms(milliseconds).follow_with([tmr]{});
+}

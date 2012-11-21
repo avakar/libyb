@@ -22,6 +22,8 @@ private:
 	timer & operator=(timer const &);
 };
 
+task<void> wait_ms(int milliseconds);
+
 } // namespace yb
 
 #endif // LIBYB_ASYNC_TIMER_HPP
