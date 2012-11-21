@@ -126,7 +126,6 @@ TEST_CASE(ReadDescriptorTask_AsyncRunner, "signal_task async_runner")
 	yb::stream_device dev;
 
 	yb::async_runner runner;
-	runner.start();
 
 	yb::async_future<void> f = runner.post(dev.run(sp));
 

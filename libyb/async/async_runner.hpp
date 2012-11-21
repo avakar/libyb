@@ -16,11 +16,23 @@ class async_promise_base
 	: noncopyable
 {
 public:
-	async_promise_base();
-	~async_promise_base();
+	explicit async_promise_base(async_runner * runner);
+	virtual ~async_promise_base();
+
+	void addref();
+	void release();
 
 	void mark_finished();
 	void wait();
+	void cancel(cancel_level cl);
+	void perform_pending_cancels();
+
+	virtual void prepare_wait(task_wait_preparation_context & ctx) = 0;
+	virtual bool finish_wait(task_wait_finalization_context & ctx) throw() = 0;
+	virtual void cancel_and_wait() = 0;
+
+protected:
+	virtual void do_cancel(cancel_level cl) = 0;
 
 private:
 	struct impl;
@@ -33,29 +45,8 @@ class async_promise
 {
 public:
 	explicit async_promise(async_runner * runner)
-		: m_runner(runner), m_refcount(0)
+		: async_promise_base(runner)
 	{
-	}
-
-	void addref()
-	{
-		++m_refcount;
-	}
-
-	void release()
-	{
-		if (!--m_refcount)
-			delete this;
-	}
-
-	void cancel(cancel_level cl)
-	{
-		m_task.cancel(cl);
-	}
-
-	void cancel_and_wait()
-	{
-		m_task = async::result(m_task.cancel_and_wait());
 	}
 
 	void set_task(task<T> && t)
@@ -68,9 +59,15 @@ public:
 		m_task.prepare_wait(ctx);
 	}
 
-	void finish_wait(task_wait_finalization_context & ctx) throw()
+	bool finish_wait(task_wait_finalization_context & ctx) throw()
 	{
 		m_task.finish_wait(ctx);
+		return this->has_result();
+	}
+
+	void cancel_and_wait()
+	{
+		m_task.cancel_and_wait();
 	}
 
 	bool has_result() const
@@ -86,9 +83,13 @@ public:
 		return m_task.get_result();
 	}
 
+protected:
+	void do_cancel(cancel_level cl)
+	{
+		m_task.cancel(cl);
+	}
+
 private:
-	async_runner * m_runner;
-	int m_refcount;
 	task<T> m_task;
 };
 
@@ -98,11 +99,11 @@ template <typename T>
 class async_future
 {
 public:
-	explicit async_future(detail::async_promise<T> * promise)
+	explicit async_future(detail::async_promise<T> * promise = 0)
 		: m_promise(promise)
 	{
-		assert(m_promise);
-		m_promise->addref();
+		if (m_promise)
+			m_promise->addref();
 	}
 
 	explicit async_future(std::exception_ptr exc)
@@ -120,7 +121,8 @@ public:
 	{
 		if (m_promise)
 		{
-			m_promise->cancel_and_wait();
+			m_promise->cancel(cl_kill);
+			m_promise->wait();
 			m_promise->release();
 		}
 	}
@@ -133,6 +135,11 @@ public:
 		o.m_promise = 0;
 		m_exception = std::move(o.m_exception);
 		return *this;
+	}
+
+	bool empty() const
+	{
+		return m_promise == 0;
 	}
 
 	void detach()
@@ -152,22 +159,15 @@ public:
 			return task_result<T>(m_exception);
 	}
 
-	T get(cancel_level cl = cl_none)
+	T get()
 	{
-		if (cl != cl_none)
-			this->cancel(cl);
-		return m_promise->get().get();
+		return this->try_get().get();
 	}
 
-	void cancel(cancel_level cl)
+	void cancel(cancel_level cl = cl_abort)
 	{
 		if (m_promise)
 			m_promise->cancel(cl);
-	}
-
-	T wait(cancel_level cl = cl_none)
-	{
-		return this->get(cl);
 	}
 
 private:
@@ -187,8 +187,6 @@ public:
 	async_runner();
 	~async_runner();
 
-	void start();
-
 	template <typename T>
 	async_future<T> post(task<T> && t)
 	{
@@ -197,17 +195,16 @@ public:
 		try
 		{
 			std::unique_ptr<detail::async_promise<T>> promise(new detail::async_promise<T>(this));
-			if (t.has_result())
+			if (promise->has_result())
 			{
 				promise->set_task(std::move(t));
 				return async_future<T>(promise.release());
 			}
 
-			task<void> tt(new promise_task<T>(promise.get()));
-			detail::async_promise<T> * ppromise = promise.release();
-			this->submit(std::move(tt));
-			ppromise->set_task(std::move(t));
-			return async_future<T>(ppromise);
+			submit_context sc(*this);
+			promise->set_task(std::move(t));
+			sc.submit(promise.get());
+			return async_future<T>(promise.release());
 		}
 		catch (...)
 		{
@@ -216,8 +213,16 @@ public:
 	}
 
 	template <typename T>
-	task_result<T> try_run(async_future<T> & f);
+	void post_detached(task<T> && t)
+	{
+		async_future<T>(this->post(std::move(t))).detach();
+	}
 
+	template <typename T>
+	task_result<T> try_run(async_future<T> & f)
+	{
+		return f.try_get();
+	}
 
 	template <typename T>
 	task_result<T> try_run(task<T> && t)
@@ -233,65 +238,20 @@ public:
 	}
 
 private:
-	void submit(task<void> && t);
-
-	template <typename T>
-	class promise_task
-		: public task_base<void>
+	struct submit_context
+		: noncopyable
 	{
-	public:
-		promise_task(detail::async_promise<T> * promise)
-			: m_promise(promise)
-		{
-			m_promise->addref();
-		}
-
-		~promise_task()
-		{
-			m_promise->release();
-		}
-
-		void cancel(cancel_level cl) throw()
-		{
-			m_promise->cancel(cl);
-		}
-
-		task_result<void> cancel_and_wait() throw()
-		{
-			m_promise->cancel_and_wait();
-			assert(m_promise->has_result());
-			return task_result<void>();
-		}
-
-		void prepare_wait(task_wait_preparation_context & ctx)
-		{
-			m_promise->prepare_wait(ctx);
-		}
-
-		task<void> finish_wait(task_wait_finalization_context & ctx) throw()
-		{
-			m_promise->finish_wait(ctx);
-			if (m_promise->has_result())
-			{
-				m_promise->mark_finished();
-				return async::value();
-			}
-			return nulltask;
-		}
-
-	private:
-		detail::async_promise<T> * m_promise;
+		submit_context(async_runner & runner);
+		~submit_context();
+		void submit(detail::async_promise_base * p);
+		async_runner & m_runner;
 	};
 
 	struct impl;
 	std::unique_ptr<impl> m_pimpl;
-};
 
-template <typename T>
-task_result<T> async_runner::try_run(async_future<T> & f)
-{
-	return f.try_get();
-}
+	friend class detail::async_promise_base;
+};
 
 } // namespace yb
 

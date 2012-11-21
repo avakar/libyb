@@ -7,6 +7,8 @@
 #include <libyb/usb/usb_context.hpp>
 #include <libyb/usb/bulk_stream.hpp>
 #include <libyb/shupito/escape_sequence.hpp>
+#include <libyb/async/async_runner.hpp>
+#include <libyb/async/timer.hpp>
 
 struct shupito_info
 {
@@ -116,7 +118,7 @@ TEST_CASE(DfuFlash, "+dfu")
 		shupito_info shinfo;
 
 		shinfo.desc = devs[i].descriptor();
-		if (shinfo.desc.idVendor != 0x03eb || shinfo.desc.idProduct != 0x2fe4)
+		if (shinfo.desc.idVendor != 0x4a61 || shinfo.desc.idProduct != 0x679c)
 			continue;
 
 		shinfo.config = devs[i].get_config_descriptor();
@@ -148,9 +150,25 @@ TEST_CASE(DfuFlash, "+dfu")
 	if (!selected)
 		return;
 
-	yb::flip2 fl;
-	fl.open(selected->dev);
+//	uint8_t config = run(selected->dev.get_configuration());
 
+	yb::async_runner runner;
+
+	uint8_t buf[] = { 'a', 'h', 'o', 'j' };
+	uint8_t read_buf[256];
+
+	yb::async_future<size_t> readf = runner.post(selected->dev.bulk_read(0x81, read_buf, sizeof read_buf));
+	runner.post_detached(selected->dev.bulk_write(2, buf, sizeof buf));
+	size_t s = readf.get();
+
+	/*r.cancel();
+	r.wait();
+
+	run(yb::wait_ms(10000));*/
+
+	/*yb::flip2 fl;
+	fl.open(selected->dev);
+	
 	uint8_t sig[4];
 	size_t read = run(fl.read_memory(5, 0, sig, sizeof sig));
 
@@ -167,5 +185,5 @@ TEST_CASE(DfuFlash, "+dfu")
 	uint8_t buffer[16*1024];
 	read = run(fl.read_memory(0, 0, buffer, sizeof buffer));
 
-	run(fl.start_application());
+	run(fl.start_application());*/
 }

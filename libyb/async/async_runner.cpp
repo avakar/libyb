@@ -8,7 +8,8 @@ using namespace yb::detail;
 
 struct async_promise_base::impl
 {
-	impl()
+	explicit impl(async_runner * runner)
+		: m_refcount(0), m_runner(runner), m_applied_cancel(cl_none), m_requested_cancel(cl_none)
 	{
 		hFinishedEvent = CreateEvent(0, TRUE, FALSE, 0);
 		if (!hFinishedEvent)
@@ -20,16 +21,31 @@ struct async_promise_base::impl
 		CloseHandle(hFinishedEvent);
 	}
 
+	LONG m_refcount;
+	async_runner * m_runner;
+	cancel_level m_applied_cancel;
+	cancel_level m_requested_cancel;
 	HANDLE hFinishedEvent;
 };
 
-async_promise_base::async_promise_base()
-	: m_pimpl(new impl())
+async_promise_base::async_promise_base(async_runner * runner)
+	: m_pimpl(new impl(runner))
 {
 }
 
 async_promise_base::~async_promise_base()
 {
+}
+
+void async_promise_base::addref()
+{
+	InterlockedIncrement(&m_pimpl->m_refcount);
+}
+
+void async_promise_base::release()
+{
+	if (!InterlockedDecrement(&m_pimpl->m_refcount))
+		delete this;
 }
 
 void async_promise_base::mark_finished()
@@ -40,6 +56,15 @@ void async_promise_base::mark_finished()
 void async_promise_base::wait()
 {
 	WaitForSingleObject(m_pimpl->hFinishedEvent, INFINITE);
+}
+
+void async_promise_base::perform_pending_cancels()
+{
+	if (m_pimpl->m_applied_cancel < m_pimpl->m_requested_cancel)
+	{
+		m_pimpl->m_applied_cancel = m_pimpl->m_requested_cancel;
+		this->do_cancel(m_pimpl->m_applied_cancel);
+	}
 }
 
 namespace {
@@ -98,16 +123,39 @@ struct handle_holder
 
 }
 
+namespace {
+
+struct parallel_promise
+{
+	async_promise_base * promise;
+	task_wait_memento m;
+
+	parallel_promise()
+		: promise(0)
+	{
+	}
+
+	~parallel_promise()
+	{
+		if (promise)
+			promise->release();
+	}
+
+	parallel_promise(parallel_promise && o)
+		: promise(o.promise)
+	{
+		o.promise = 0;
+	}
+};
+
+} // namespace
+
 struct async_runner::impl
 {
 	impl()
-		: hThread(0)
+		: hThread(0), stopped(false)
 	{
-		hStopEvent.attach(CreateEvent(0, TRUE, FALSE, 0));
-		if (!hStopEvent.get())
-			throw std::runtime_error("cannot create stop event");
-
-		hQueueUpdated.attach(CreateEvent(0, TRUE, FALSE, 0));
+		hQueueUpdated.attach(CreateEvent(0, FALSE, FALSE, 0));
 		if (!hQueueUpdated.get())
 			throw std::runtime_error("cannot create update event");
 
@@ -134,7 +182,12 @@ struct async_runner::impl
 	{
 		if (hThread)
 		{
-			SetEvent(hStopEvent.get());
+			{
+				cs_holder l(queue_mutex);
+				stopped = true;
+			}
+
+			SetEvent(hQueueUpdated.get());
 			WaitForSingleObject(hThread, INFINITE);
 			CloseHandle(hThread);
 			hThread = 0;
@@ -149,86 +202,131 @@ struct async_runner::impl
 		for (;;)
 		{
 			wait_ctx.clear();
-			wait_ctx_impl.m_handles.push_back(hStopEvent.get());
-			parallel_tasks.prepare_wait(wait_ctx);
+
+			{
+				cs_holder l(queue_mutex);
+				if (stopped)
+					break;
+
+				for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
+					it->promise->perform_pending_cancels();
+
+				for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
+				{
+					assert(it->promise != 0);
+
+					task_wait_memento_builder mb(wait_ctx);
+					it->promise->prepare_wait(wait_ctx);
+					it->m = mb.finish();
+				}
+			}
+
 			wait_ctx_impl.m_handles.push_back(hQueueUpdated.get());
 
 			if (wait_ctx_impl.m_finished_tasks)
 			{
 				task_wait_finalization_context finish_ctx;
 				finish_ctx.finished_tasks = wait_ctx_impl.m_finished_tasks;
-				parallel_tasks.finish_wait(finish_ctx);
+				this->finish_wait(finish_ctx);
 			}
 			else
 			{
 				DWORD dwRes = WaitForMultipleObjects(wait_ctx_impl.m_handles.size(), wait_ctx_impl.m_handles.data(), FALSE, INFINITE);
 				assert(dwRes >= WAIT_OBJECT_0 && dwRes < WAIT_OBJECT_0 + wait_ctx_impl.m_handles.size());
 
-				if (dwRes == WAIT_OBJECT_0)
-					break;
-
 				if (dwRes - WAIT_OBJECT_0 == wait_ctx_impl.m_handles.size() - 1)
-				{
-					cs_holder l(queue_mutex);
-					for (size_t i = 0; i < queued_tasks.size(); ++i)
-						parallel_tasks |= std::move(queued_tasks[i]);
-					queued_tasks.clear();
-					ResetEvent(hQueueUpdated.get());
 					continue;
-				}
 
 				task_wait_finalization_context finish_ctx;
 				finish_ctx.finished_tasks = false;
 				finish_ctx.selected_poll_item = dwRes - WAIT_OBJECT_0;
-				parallel_tasks.finish_wait(finish_ctx);
+				this->finish_wait(finish_ctx);
 			}
 		}
+	}
+
+	void finish_wait(task_wait_finalization_context & ctx)
+	{
+		cs_holder l(queue_mutex);
+		for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); )
+		{
+			if (ctx.contains(it->m) && it->promise->finish_wait(ctx))
+			{
+				it->promise->mark_finished();
+				it = promises.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
+
+	void run2()
+	{
+		try
+		{
+			this->run();
+		}
+		catch (...)
+		{
+		}
+
+		for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
+			it->promise->cancel_and_wait();
 	}
 
 	static DWORD CALLBACK runner_thread(LPVOID lpParam)
 	{
 		impl * pimpl = (impl *)lpParam;
-
-		// FIXME: exception safety
-		try
-		{
-			pimpl->run();
-		}
-		catch (...)
-		{
-			return 1;
-		}
-
+		pimpl->run2();
 		return 0;
 	}
 
-	task<void> parallel_tasks;
+	CRITICAL_SECTION queue_mutex;
+	std::list<parallel_promise> promises;
 
 	HANDLE hThread;
-	handle_holder hStopEvent;
 	handle_holder hQueueUpdated;
 
-	CRITICAL_SECTION queue_mutex;
-	std::vector<task<void>> queued_tasks;
+	bool stopped;
 };
 
 async_runner::async_runner()
 	: m_pimpl(new impl())
 {
+	m_pimpl->start();
 }
 
 async_runner::~async_runner()
 {
 }
 
-void async_runner::start()
+async_runner::submit_context::submit_context(async_runner & runner)
+	: m_runner(runner)
 {
-	m_pimpl->start();
+	EnterCriticalSection(&m_runner.m_pimpl->queue_mutex);
+	m_runner.m_pimpl->promises.push_back(parallel_promise());
 }
 
-void async_runner::submit(task<void> && t)
+async_runner::submit_context::~submit_context()
 {
-	cs_holder l(m_pimpl->queue_mutex);
-	m_pimpl->queued_tasks.push_back(std::move(t));
-	SetEvent(m_pimpl->hQueueUpdated.get());
+	if (m_runner.m_pimpl->promises.back().promise == 0)
+		m_runner.m_pimpl->promises.pop_back();
+	LeaveCriticalSection(&m_runner.m_pimpl->queue_mutex);
+}
+
+void async_runner::submit_context::submit(detail::async_promise_base * p)
+{
+	assert(m_runner.m_pimpl->promises.back().promise == 0);
+	m_runner.m_pimpl->promises.back().promise = p;
+	p->addref();
+	SetEvent(m_runner.m_pimpl->hQueueUpdated.get());
+}
+
+void async_promise_base::cancel(cancel_level cl)
+{
+	cs_holder l(m_pimpl->m_runner->m_pimpl->queue_mutex);
+	m_pimpl->m_requested_cancel = cl;
+	SetEvent(m_pimpl->m_runner->m_pimpl->hQueueUpdated.get());
 }
