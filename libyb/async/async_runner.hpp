@@ -139,7 +139,7 @@ public:
 
 	bool empty() const
 	{
-		return m_promise == 0;
+		return m_promise == 0 && !(m_exception == nullptr);
 	}
 
 	void detach()
@@ -149,14 +149,30 @@ public:
 			m_promise->release();
 			m_promise = 0;
 		}
+
+		m_exception = nullptr;
+	}
+
+	task_result<T> wait()
+	{
+		if (m_promise)
+		{
+			task_result<T> r(m_promise->get());
+			m_promise->release();
+			m_promise = 0;
+			return std::move(r);
+		}
+		else
+		{
+			task_result<T> r(m_exception);
+			m_exception = nullptr;
+			return std::move(r);
+		}
 	}
 
 	task_result<T> try_get()
 	{
-		if (m_promise)
-			return m_promise->get();
-		else
-			return task_result<T>(m_exception);
+		return this->wait();
 	}
 
 	T get()
