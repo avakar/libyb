@@ -1,5 +1,6 @@
 #include "utf.hpp"
 #include <cassert>
+#include <stdexcept>
 using namespace yb;
 
 static void encode_utf8(std::string & out, uint32_t cp)

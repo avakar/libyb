@@ -12,7 +12,7 @@ class task_wait_finalization_context;
 
 struct task_base_common
 {
-	virtual ~task_base_common() throw();
+	virtual ~task_base_common();
 	virtual void cancel(cancel_level cl) throw() = 0;
 };
 
@@ -37,7 +37,7 @@ public:
 
 namespace yb {
 
-inline task_base_common::~task_base_common() throw()
+inline task_base_common::~task_base_common()
 {
 }
 

@@ -62,12 +62,12 @@ class promise
 public:
 	void set_value(T && t) const
 	{
-		m_buffer->push_back(task_result<T>(std::move(t)));
+		this->m_buffer->push_back(task_result<T>(std::move(t)));
 	}
 
 	void set_value(T const & t) const
 	{
-		m_buffer->push_back(task_result<T>(t));
+		this->m_buffer->push_back(task_result<T>(t));
 	}
 };
 
@@ -78,7 +78,7 @@ class promise<void>
 public:
 	void set_value() const
 	{
-		m_buffer->push_back(task_result<void>());
+		this->m_buffer->push_back(task_result<void>());
 	}
 };
 

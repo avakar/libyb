@@ -24,7 +24,7 @@ public:
 
 	void broadcast(T const & v)
 	{
-		for (std::list<std::function<bool(T)>>::iterator it = m_clients.begin(); it != m_clients.end();)
+		for (typename std::list<std::function<bool(T)>>::iterator it = m_clients.begin(); it != m_clients.end();)
 		{
 			if ((*it)(v))
 				++it;

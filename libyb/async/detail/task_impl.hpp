@@ -1,7 +1,6 @@
 #ifndef LIBYB_ASYNC_DETAIL_TASK_IMPL_HPP
 #define LIBYB_ASYNC_DETAIL_TASK_IMPL_HPP
 
-#include "value_task.hpp"
 #include "sequential_composition_task.hpp"
 #include "loop_task.hpp"
 #include "cancel_level_upgrade_task.hpp"
@@ -434,7 +433,7 @@ typename detail::task_protect_type<F>::type protect(F f)
 	}
 	catch (...)
 	{
-		return detail::task_protect_type<F>::type(std::current_exception());
+		return typename detail::task_protect_type<F>::type(std::current_exception());
 	}
 }
 

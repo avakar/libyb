@@ -38,7 +38,7 @@ ihex_parse_error::ihex_parse_error(kind_t kind, int line)
 {
 }
 
-const char * ihex_parse_error::what() const
+const char * ihex_parse_error::what() const throw()
 {
 	return "ihex parsing failed";
 }

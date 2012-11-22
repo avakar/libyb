@@ -1,4 +1,5 @@
 #include "bulk_stream.hpp"
+#include <stdexcept>
 using namespace yb;
 
 usb_bulk_stream::usb_bulk_stream()
@@ -31,14 +32,14 @@ task<void> usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard
 		if (idesc.endpoints[i].is_input())
 		{
 			if (read_ep)
-				return false; 
+				return std::copy_exception(std::runtime_error("duplicate endpoints"));
 			read_ep = idesc.endpoints[i].bEndpointAddress;
 		}
 
 		if (idesc.endpoints[i].is_output())
 		{
 			if (write_ep)
-				return false; 
+				return std::copy_exception(std::runtime_error("duplicate endpoints"));
 			write_ep = idesc.endpoints[i].bEndpointAddress;
 		}
 	}
@@ -65,7 +66,7 @@ task<void> usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard
 	}
 
 	if (!selected_idesc)
-		return false;
+		return std::copy_exception(std::runtime_error("no acm interface"));
 
 	return this->claim_and_open(dev, g, *selected_idesc);
 }

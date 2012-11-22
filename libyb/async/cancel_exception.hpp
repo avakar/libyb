@@ -15,7 +15,7 @@ public:
 	{
 	}
 
-	const char * what() const
+	const char * what() const throw()
 	{
 		return "cancelled";
 	}

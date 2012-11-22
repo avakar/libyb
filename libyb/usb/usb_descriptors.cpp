@@ -1,5 +1,6 @@
 #include "usb_descriptors.hpp"
 #include <cassert>
+#include <stdexcept>
 using namespace yb;
 
 usb_config_descriptor yb::parse_config_descriptor(yb::buffer_ref d)

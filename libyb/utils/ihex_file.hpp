@@ -23,7 +23,7 @@ public:
 
 	ihex_parse_error(kind_t kind, int line);
 
-	const char * what() const;
+	const char * what() const throw();
 	kind_t kind() const;
 	int line() const;
 

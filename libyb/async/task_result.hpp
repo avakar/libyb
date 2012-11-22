@@ -87,7 +87,7 @@ private:
 namespace yb {
 
 template <typename T>
-task_result<T>::task_result(value_type const & v)
+task_result<T>::task_result(value_type const & v) throw()
 	: m_has_value(true)
 {
 	new(&m_storage) value_type(v);

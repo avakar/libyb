@@ -41,6 +41,7 @@ public:
 	using channel_base<T, Capacity>::send;
 
 private:
+	typedef typename channel_base<T, Capacity>::buffer_type buffer_type;
 	explicit channel(buffer_type * buffer);
 };
 
@@ -57,6 +58,7 @@ public:
 	task<void> fire() const;
 
 private:
+	typedef typename channel_base<void, Capacity>::buffer_type buffer_type;
 	explicit channel(buffer_type * buffer);
 };
 

@@ -14,7 +14,7 @@ public:
 
 	flip2();
 
-	void open(usb_device & dev);
+	void open(usb_device const & dev);
 	void close();
 
 	bool is_open() const;

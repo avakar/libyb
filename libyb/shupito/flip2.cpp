@@ -1,5 +1,6 @@
 #include "flip2.hpp"
 #include <cassert>
+#include <stdexcept>
 using namespace yb;
 
 static usb_control_code_t const usbcc_download = { 0x21, 0x01 };
@@ -37,7 +38,7 @@ flip2::flip2()
 {
 }
 
-void flip2::open(usb_device & dev)
+void flip2::open(usb_device const & dev)
 {
 	yb::usb_device_descriptor desc = dev.descriptor();
 
