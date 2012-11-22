@@ -1,4 +1,3 @@
-QMAKE_CXXFLAGS += -std=c++0x
 INCLUDEPATH += $$PWD
 SOURCES += \
     $$PWD/libyb/descriptor.cpp \
@@ -38,6 +37,7 @@ win32 {
 }
 
 unix:!macx:!symbian {
+    QMAKE_CXXFLAGS += -std=c++0x
     SOURCES += \
         $$PWD/libyb/async/detail/linux_async_channel.cpp \
         $$PWD/libyb/async/detail/linux_async_runner.cpp \

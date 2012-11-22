@@ -1,6 +1,6 @@
-#include "async_runner.hpp"
-#include "../utils/noncopyable.hpp"
-#include "detail/win32_wait_context.hpp"
+#include "../async_runner.hpp"
+#include "../../utils/noncopyable.hpp"
+#include "win32_wait_context.hpp"
 #include <list>
 #include <windows.h>
 using namespace yb;

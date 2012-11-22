@@ -1,7 +1,7 @@
-#include "usb_context.hpp"
-#include "detail/usb_device_core.hpp"
-#include "detail/usb_request_context.hpp"
-#include "../async/sync_runner.hpp"
+#include "../usb_context.hpp"
+#include "usb_device_core.hpp"
+#include "usb_request_context.hpp"
+#include "../../async/sync_runner.hpp"
 #include <map>
 #include <memory>
 using namespace yb;

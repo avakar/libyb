@@ -1,5 +1,5 @@
-#include "timer.hpp"
-#include "detail/win32_handle_task.hpp"
+#include "../timer.hpp"
+#include "win32_handle_task.hpp"
 #include <stdexcept>
 using namespace yb;
 

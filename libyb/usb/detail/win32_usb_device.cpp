@@ -1,9 +1,9 @@
-#include "usb_device.hpp"
-#include "detail/usb_device_core.hpp"
-#include "detail/usb_request_context.hpp"
-#include "../async/sync_runner.hpp"
-#include "../async/detail/win32_handle_task.hpp"
-#include "../utils/utf.hpp"
+#include "../usb_device.hpp"
+#include "usb_device_core.hpp"
+#include "usb_request_context.hpp"
+#include "../../async/sync_runner.hpp"
+#include "../../async/detail/win32_handle_task.hpp"
+#include "../../utils/utf.hpp"
 using namespace yb;
 
 usb_device::usb_device()
