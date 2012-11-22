@@ -1,34 +1,10 @@
 #include "../usb_device.hpp"
-#include "usb_device_core.hpp"
+#include "win32_usb_device_core.hpp"
 #include "usb_request_context.hpp"
 #include "../../async/sync_runner.hpp"
 #include "../../async/detail/win32_handle_task.hpp"
 #include "../../utils/utf.hpp"
 using namespace yb;
-
-usb_device::usb_device()
-{
-}
-
-usb_device::usb_device(std::shared_ptr<detail::usb_device_core> core)
-	: m_core(core)
-{
-	assert(core.get() != nullptr);
-}
-
-usb_device::~usb_device()
-{
-}
-
-void usb_device::clear()
-{
-	m_core.reset();
-}
-
-bool usb_device::empty() const
-{
-	return m_core.get() == nullptr;
-}
 
 usb_device_descriptor usb_device::descriptor() const
 {
@@ -220,44 +196,4 @@ task<void> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, ui
 	{
 		return async::raise<void>();
 	}
-}
-
-task<size_t> usb_device::control_read(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size)
-{
-	return this->control_read(code.bmRequestType, code.bRequest, wValue, wIndex, buffer, size);
-}
-
-task<void> usb_device::control_write(usb_control_code_t const & code, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size)
-{
-	return this->control_write(code.bmRequestType, code.bRequest, wValue, wIndex, buffer, size);
-}
-
-bool yb::operator==(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core == rhs.m_core;
-}
-
-bool yb::operator!=(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core != rhs.m_core;
-}
-
-bool yb::operator<(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core < rhs.m_core;
-}
-
-bool yb::operator>(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core > rhs.m_core;
-}
-
-bool yb::operator<=(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core <= rhs.m_core;
-}
-
-bool yb::operator>=(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core >= rhs.m_core;
 }

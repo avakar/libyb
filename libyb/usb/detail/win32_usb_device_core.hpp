@@ -1,5 +1,5 @@
-#ifndef LIBYB_USB_DETAIL_USB_DEVICE_CORE_HPP
-#define LIBYB_USB_DETAIL_USB_DEVICE_CORE_HPP
+#ifndef LIBYB_USB_DETAIL_WIN32_USB_DEVICE_CORE_HPP
+#define LIBYB_USB_DETAIL_WIN32_USB_DEVICE_CORE_HPP
 
 #include "usb_device_core_fwd.hpp"
 #include "../usb_descriptors.hpp"
@@ -17,4 +17,4 @@ struct usb_device_core
 } // namespace detail
 } // namespace yb
 
-#endif // LIBYB_USB_DETAIL_USB_DEVICE_CORE_HPP
+#endif // LIBYB_USB_DETAIL_WIN32_USB_DEVICE_CORE_HPP
