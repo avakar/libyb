@@ -2,9 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\libyb\async\serial_port.cpp">
-      <Filter>libyb\async</Filter>
-    </ClCompile>
     <ClCompile Include="..\libyb\async\stream.cpp">
       <Filter>libyb\async</Filter>
     </ClCompile>
@@ -78,17 +75,11 @@
     <ClCompile Include="..\libyb\utils\sparse_buffer.cpp">
       <Filter>libyb\utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\libyb\async\async_runner.cpp">
-      <Filter>libyb\async</Filter>
-    </ClCompile>
     <ClCompile Include="..\libyb\utils\detail\win32_file_operation.cpp">
       <Filter>libyb\utils\detail</Filter>
     </ClCompile>
     <ClCompile Include="..\libyb\utils\detail\win32_overlapped.cpp">
       <Filter>libyb\utils\detail</Filter>
-    </ClCompile>
-    <ClCompile Include="..\libyb\usb\usb_context.cpp">
-      <Filter>libyb\usb</Filter>
     </ClCompile>
     <ClCompile Include="..\libyb\usb\detail\usb_request_context.cpp">
       <Filter>libyb\usb\detail</Filter>
@@ -96,8 +87,26 @@
     <ClCompile Include="..\libyb\usb\usb_descriptors.cpp">
       <Filter>libyb\usb</Filter>
     </ClCompile>
-    <ClCompile Include="..\libyb\async\async_channel.cpp">
-      <Filter>libyb\async</Filter>
+    <ClCompile Include="..\libyb\async\detail\win32_serial_port.cpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\win32_async_channel.cpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\win32_async_runner.cpp">
+      <Filter>libyb\async\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\detail\win32_usb_context.cpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\usb\detail\win32_usb_device.cpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\win32_timer.cpp">
+      <Filter>libyb\usb\detail</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libyb\async\detail\win32_sync_runner.cpp">
+      <Filter>libyb\usb\detail</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -263,9 +272,6 @@
     <ClInclude Include="..\libyb\usb\detail\usb_device_core_fwd.hpp">
       <Filter>libyb\usb\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\libyb\usb\detail\usb_device_core.hpp">
-      <Filter>libyb\usb\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\libyb\utils\detail\scoped_win32_handle.hpp">
       <Filter>libyb\utils\detail</Filter>
     </ClInclude>
@@ -280,6 +286,9 @@
     </ClInclude>
     <ClInclude Include="..\libyb\async\async_channel.hpp">
       <Filter>libyb\async</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libyb\usb\detail\win32_usb_device_core.hpp">
+      <Filter>libyb\usb\detail</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
