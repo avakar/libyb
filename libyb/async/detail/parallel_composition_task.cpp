@@ -1,4 +1,5 @@
 #include "parallel_composition_task.hpp"
+#include "task_impl.hpp"
 #include <stdexcept>
 using namespace yb;
 using namespace yb::detail;
