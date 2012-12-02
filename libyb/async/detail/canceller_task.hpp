@@ -3,30 +3,63 @@
 
 #include "../task_base.hpp"
 #include "../task.hpp"
-#include <utility> // move
+#include <utility> // forward
 
 namespace yb {
 namespace detail {
 
-template <typename R, typename Canceller>
+template <typename Nested, typename Canceller>
 class canceller_task
-	: public task_base<R>
+	: public task_base<typename Nested::result_type>
 {
 public:
-	canceller_task(task<R> && nested, Canceller const & canceller)
-		: m_nested(std::move(nested)), m_canceller(canceller)
+	typedef typename Nested::result_type result_type;
+
+	canceller_task(Canceller const & canceller)
+		: m_nested(), m_canceller(canceller)
 	{
 	}
 
-	void cancel() throw()
+	template <typename P1>
+	canceller_task(Canceller const & canceller, P1 && p1)
+		: m_nested(std::forward<P1>(p1)), m_canceller(canceller)
 	{
-		if (m_canceller())
-			m_nested.cancel();
 	}
 
-	task_result<R> wait() throw()
+	template <typename P1, typename P2>
+	canceller_task(Canceller const & canceller, P1 && p1, P2 && p2)
+		: m_nested(std::forward<P1>(p1), std::forward<P2>(p2)), m_canceller(canceller)
 	{
-		return m_nested.wait();
+	}
+
+	template <typename P1, typename P2, typename P3>
+	canceller_task(Canceller const & canceller, P1 && p1, P2 && p2, P3 && p3)
+		: m_nested(std::forward<P1>(p1), std::forward<P2>(p2), std::forward<P3>(p3)), m_canceller(canceller)
+	{
+	}
+
+	template <typename P1, typename P2, typename P3, typename P4>
+	canceller_task(Canceller const & canceller, P1 && p1, P2 && p2, P3 && p3, P4 && p4)
+		: m_nested(std::forward<P1>(p1), std::forward<P2>(p2), std::forward<P3>(p3), std::forward<P4>(p4)), m_canceller(canceller)
+	{
+	}
+
+	template <typename P1, typename P2, typename P3, typename P4, typename P5>
+	canceller_task(Canceller const & canceller, P1 && p1, P2 && p2, P3 && p3, P4 && p4, P5 && p5)
+		: m_nested(std::forward<P1>(p1), std::forward<P2>(p2), std::forward<P3>(p3), std::forward<P4>(p4), std::forward<P5>(p5)), m_canceller(canceller)
+	{
+	}
+
+	void cancel(cancel_level cl) throw()
+	{
+		if (!m_canceller(cl))
+			m_nested.cancel(cl);
+	}
+
+	task_result<result_type> cancel_and_wait() throw()
+	{
+		m_canceller(yb::cl_kill);
+		return m_nested.cancel_and_wait();
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
@@ -34,13 +67,13 @@ public:
 		m_nested.prepare_wait(ctx);
 	}
 
-	task<R> finish_wait(task_wait_finalization_context & ctx) throw()
+	task<result_type> finish_wait(task_wait_finalization_context & ctx) throw()
 	{
-		m_nested.finish_wait(ctx);
+		return m_nested.finish_wait(ctx);
 	}
 
 private:
-	task<R> m_nested;
+	Nested m_nested;
 	Canceller m_canceller;
 };
 

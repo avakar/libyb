@@ -21,6 +21,8 @@ class task_base
 	: public task_base_common
 {
 public:
+	typedef R result_type;
+
 	// Cancels the task with `cancel_level_hard`
 	// and synchronously waits for it to complete.
 	virtual task_result<R> cancel_and_wait() throw() = 0;
