@@ -3,6 +3,7 @@
 
 #include "detail/circular_buffer.hpp"
 #include "detail/promise_task.hpp"
+#include "detail/canceller_task.hpp"
 #include "task.hpp"
 #include <stdexcept>
 
@@ -44,9 +45,23 @@ public:
 		});
 	}
 
+	template <typename Canceller>
+	task<T> wait_for(Canceller const & canceller) const
+	{
+		return protect([this, &canceller] {
+			return task<T>(new canceller_task<promise_task_impl<T>, Canceller>(canceller, m_buffer));
+		});
+	}
+
 	friend task<T> wait_for(promise_base const & p)
 	{
 		return p.wait_for();
+	}
+
+	template <typename Canceller>
+	friend task<T> wait_for(promise_base const & p, Canceller const & canceller)
+	{
+		return p.wait_for(canceller);
 	}
 
 protected:
