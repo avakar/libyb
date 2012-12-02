@@ -4,3 +4,8 @@ test/Debug
 test/ipch
 **.opensdf
 **.sdf
+**.o
+Makefile
+test/test
+**.pro.user
+a.diff
