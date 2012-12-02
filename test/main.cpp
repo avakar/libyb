@@ -51,7 +51,7 @@ TEST_CASE(TimerTask, "timer_task")
 
 		{
 			yb::task<void> t = tmr.wait_ms(1);
-			r = yb::try_run(std::move(t));
+			r = yb::sync_runner().try_run(std::move(t));
 		}
 
 		assert(!m.good() || !r.has_exception());
@@ -72,7 +72,7 @@ TEST_CASE(ChannelTask, "channel_task")
 
 	t |= tmr.wait_ms(1).then([&sig] { sig.send(42); });
 
-	yb::run(std::move(t));
+	yb::sync_runner().run(std::move(t));
 
 	assert(res == 42);
 }
@@ -84,7 +84,7 @@ TEST_CASE(SignalTask, "signal_task")
 
 	yb::task<void> t = wait_for(sig);
 	t |= tmr.wait_ms(1).then([&sig] { sig.fire(); });
-	yb::run(std::move(t));
+	yb::sync_runner().run(std::move(t));
 }
 
 TEST_CASE(ReadDescriptorTask, "signal_task")

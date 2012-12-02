@@ -153,10 +153,12 @@ public:
 		m_exception = nullptr;
 	}
 
-	task_result<T> wait()
+	task_result<T> wait(cancel_level cl = cl_none)
 	{
 		if (m_promise)
 		{
+			if (cl > cl_none)
+				m_promise->cancel(cl);
 			task_result<T> r(m_promise->get());
 			m_promise->release();
 			m_promise = 0;
@@ -211,9 +213,10 @@ public:
 		try
 		{
 			std::unique_ptr<detail::async_promise<T>> promise(new detail::async_promise<T>(this));
-			if (promise->has_result())
+			if (t.has_result())
 			{
 				promise->set_task(std::move(t));
+				promise->mark_finished();
 				return async_future<T>(promise.release());
 			}
 
@@ -251,6 +254,25 @@ public:
 	T run(task<T> && t)
 	{
 		return this->try_run(std::move(t)).get();
+	}
+
+	template <typename T>
+	friend T operator <<(async_runner & r, task<T> && t)
+	{
+		return r.run(std::move(t));
+	}
+
+	template <typename T>
+	friend async_future<T> operator|(async_runner & r, task<T> && t)
+	{
+		return r.post(std::move(t));
+	}
+
+	template <typename T>
+	friend async_runner & operator|=(async_runner & r, task<T> && t)
+	{
+		r.post_detached(std::move(t));
+		return r;
 	}
 
 private:

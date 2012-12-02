@@ -21,7 +21,8 @@ struct shupito_info
 
 TEST_CASE(ShupitoFlash, "+shupito")
 {
-	yb::usb_context usb;
+	yb::async_runner r;
+	yb::usb_context usb(r);
 	std::vector<yb::usb_device> devs = usb.get_device_list();
 
 	std::vector<shupito_info> shupito_devs;
@@ -67,12 +68,10 @@ TEST_CASE(ShupitoFlash, "+shupito")
 	yb::usb_interface_guard ig;
 	yb::serial_port sp;
 
-	yb::sync_runner r;
-
 	if (selected)
 	{
 		yb::usb_config_descriptor cd = selected->get_config_descriptor();
-		r << bs.claim_and_open(*selected, ig, cd);
+		bs.claim_and_open(*selected, ig, cd);
 	}
 
 	if (bs.is_readable())
@@ -81,7 +80,7 @@ TEST_CASE(ShupitoFlash, "+shupito")
 	r << sp.open("COM3", 38400);
 
 	yb::stream_device dev;
-	yb::sync_future<void> f = r | dev.run(sp);
+	yb::async_future<void> f = r | dev.run(sp);
 
 	yb::device_descriptor dd = r << yb::read_device_descriptor(dev);
 
@@ -109,7 +108,8 @@ TEST_CASE(DfuFlash, "+dfu")
 	std::ifstream fin("c:\\devel\\checkouts\\pokkus\\Debug\\pokkus.hex");
 	yb::sparse_buffer program = yb::parse_ihex(fin);
 
-	yb::usb_context usb;
+	yb::async_runner runner;
+	yb::usb_context usb(runner);
 	std::vector<yb::usb_device> devs = usb.get_device_list();
 
 	std::vector<shupito_info> shupito_devs;
@@ -151,8 +151,6 @@ TEST_CASE(DfuFlash, "+dfu")
 		return;
 
 //	uint8_t config = run(selected->dev.get_configuration());
-
-	yb::async_runner runner;
 
 	uint8_t buf[] = { 'a', 'h', 'o', 'j' };
 	uint8_t read_buf[256];

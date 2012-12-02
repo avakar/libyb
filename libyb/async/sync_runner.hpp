@@ -310,20 +310,6 @@ task_result<T> sync_promise<T>::get()
 	return m_runner->try_run(sync_future<T>(this));
 }
 
-template <typename T>
-task_result<T> try_run(task<T> && t)
-{
-	sync_runner runner;
-	return runner.try_run(std::move(t));
-}
-
-template <typename T>
-T run(task<T> && t)
-{
-	task_result<T> r = try_run(std::move(t));
-	return r.get();
-}
-
 } // namespace yb
 
 #endif // LIBYB_ASYNC_SYNC_RUNNER_HPP
