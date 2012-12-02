@@ -7,6 +7,10 @@
 #define thread_local __declspec(thread)
 #endif
 
+#ifdef __GNUC__
+#define thread_local __thread
+#endif
+
 static thread_local size_t g_alloc_count = 0;
 static thread_local alloc_filter_registration g_reg = {};
 
@@ -58,7 +62,7 @@ void operator delete[](void * ptr)
 	free(ptr);
 }
 
-void * operator new(size_t size, std::nothrow_t)
+void * operator new(size_t size, std::nothrow_t) throw()
 {
 	++g_alloc_count;
 	if (!g_reg.filter || g_reg.filter(g_alloc_count, g_reg.context))
@@ -72,7 +76,7 @@ void operator delete(void * ptr, std::nothrow_t)
 	free(ptr);
 }
 
-void * operator new[](size_t size, std::nothrow_t)
+void * operator new[](size_t size, std::nothrow_t) throw()
 {
 	++g_alloc_count;
 	if (!g_reg.filter || g_reg.filter(g_alloc_count, g_reg.context))

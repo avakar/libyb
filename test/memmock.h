@@ -2,6 +2,7 @@
 #define MEMMOCK_H
 
 #include <cassert>
+#include <stddef.h>
 
 struct alloc_filter_registration
 {
