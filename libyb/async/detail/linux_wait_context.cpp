@@ -12,13 +12,8 @@ task_wait_preparation_context::~task_wait_preparation_context()
 
 void task_wait_preparation_context::clear()
 {
-	// XXX
+	m_pimpl->m_pollfds.clear();
 	m_pimpl->m_finished_tasks = 0;
-}
-
-void task_wait_preparation_context::add_poll_item(task_wait_poll_item const & item)
-{
-	// XXX
 }
 
 task_wait_preparation_context_impl * task_wait_preparation_context::get() const
@@ -33,8 +28,8 @@ void task_wait_preparation_context::set_finished()
 
 task_wait_checkpoint task_wait_preparation_context::checkpoint() const
 {
-	// XXX
 	task_wait_checkpoint res;
+	res.poll_item_count = m_pimpl->m_pollfds.size();
 	res.finished_task_count = m_pimpl->m_finished_tasks;
 	return res;
 }

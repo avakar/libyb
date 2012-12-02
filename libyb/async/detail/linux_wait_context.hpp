@@ -3,6 +3,7 @@
 
 #include "wait_context.hpp"
 #include <vector>
+#include <sys/poll.h>
 
 namespace yb {
 
@@ -12,6 +13,7 @@ struct task_wait_poll_item
 
 struct task_wait_preparation_context_impl
 {
+	std::vector<struct pollfd> m_pollfds;
 	size_t m_finished_tasks;
 };
 

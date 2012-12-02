@@ -67,6 +67,7 @@ private:
 class task_wait_finalization_context
 {
 public:
+	task_wait_preparation_context * prep_ctx;
 	size_t finished_tasks;
 	size_t selected_poll_item;
 
