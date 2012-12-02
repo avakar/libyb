@@ -2,6 +2,7 @@
 #define LIBYB_USB_USB_CONTEXT_HPP
 
 #include "usb_device.hpp"
+#include "../async/async_runner.hpp"
 #include "../utils/noncopyable.hpp"
 #include <vector>
 #include <memory>
@@ -12,8 +13,10 @@ class usb_context
 	: noncopyable
 {
 public:
-	usb_context();
+	explicit usb_context(async_runner & runner);
 	~usb_context();
+
+	task<void> run();
 
 	std::vector<usb_device> get_device_list() const;
 

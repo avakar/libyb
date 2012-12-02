@@ -14,10 +14,10 @@ public:
 	usb_bulk_stream();
 
 	bool open(usb_device & dev, usb_endpoint_t read_ep, usb_endpoint_t write_ep);
-	task<void> claim_and_open(usb_device & dev, usb_interface_guard & g, usb_interface_descriptor const & idesc);
-	task<void> claim_and_open(usb_device & dev, usb_interface_guard & g, usb_config_descriptor const & cdesc);
+	bool claim_and_open(usb_device & dev, usb_interface_guard & g, usb_interface_descriptor const & idesc);
+	bool claim_and_open(usb_device & dev, usb_interface_guard & g, usb_config_descriptor const & cdesc);
 
-	task<void> close();
+	void close();
 
 	bool is_open() const;
 	bool is_readable() const;

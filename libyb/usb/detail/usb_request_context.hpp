@@ -16,7 +16,10 @@ class usb_request_context
 {
 public:
 	task<size_t> get_descriptor(HANDLE hFile, uint8_t desc_type, uint8_t desc_index, uint16_t langid, unsigned char * data, int length);
-	task<void> get_device_descriptor(HANDLE hFile, usb_device_descriptor & desc);
+	size_t get_descriptor_sync(HANDLE hFile, uint8_t desc_type, uint8_t desc_index, uint16_t langid, unsigned char * data, int length);
+	void get_device_descriptor(HANDLE hFile, usb_device_descriptor & desc);
+	std::string get_string_descriptor_sync(HANDLE hFile, uint8_t index, uint16_t langid);
+	uint16_t get_default_langid(HANDLE hFile);
 
 	task<uint8_t> get_configuration(HANDLE hFile);
 	task<void> set_configuration(HANDLE hFile, uint8_t config);
@@ -27,8 +30,8 @@ public:
 	task<size_t> control_read(HANDLE hFile, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
 	task<void> control_write(HANDLE hFile, uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);
 
-	task<void> claim_interface(HANDLE hFile, uint8_t intfno);
-	task<void> release_interface(HANDLE hFile, uint8_t intfno);
+	bool claim_interface(HANDLE hFile, uint8_t intfno);
+	void release_interface(HANDLE hFile, uint8_t intfno);
 
 private:
 	libusb0_win32_request req;

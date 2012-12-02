@@ -22,6 +22,10 @@ public:
 	bool empty() const;
 
 	usb_device_descriptor descriptor() const;
+
+	size_t get_config_descriptor_count() const;
+	usb_config_descriptor get_config_descriptor(size_t index) const;
+	usb_config_descriptor get_config_descriptor_by_value(uint8_t value) const;
 	usb_config_descriptor get_config_descriptor() const;
 
 	uint32_t vidpid() const;
@@ -30,11 +34,16 @@ public:
 	std::vector<uint16_t> get_langid_list();
 	std::string get_string_descriptor(uint8_t index, uint16_t langid);
 
+	std::string product() const;
+	std::string manufacturer() const;
+	std::string serial_number() const;
+
+	uint8_t get_cached_configuration() const;
 	task<uint8_t> get_configuration();
 	task<void> set_configuration(uint8_t config);
 
-	task<void> claim_interface(uint8_t intfno);
-	task<void> release_interface(uint8_t intfno);
+	bool claim_interface(uint8_t intfno);
+	void release_interface(uint8_t intfno);
 
 	task<size_t> bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size) const;
 	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size) const;

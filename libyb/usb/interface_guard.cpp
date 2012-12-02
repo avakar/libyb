@@ -9,7 +9,7 @@ usb_interface_guard::usb_interface_guard()
 
 usb_interface_guard::~usb_interface_guard()
 {
-	try_run(this->release());
+	this->release();
 }
 
 void usb_interface_guard::attach(usb_device & dev, uint8_t intfno)
@@ -36,24 +36,22 @@ uint8_t usb_interface_guard::intfno() const
 	return m_intfno;
 }
 
-task<void> usb_interface_guard::claim(usb_device & dev, uint8_t intfno)
+bool usb_interface_guard::claim(usb_device & dev, uint8_t intfno)
 {
 	assert(intfno);
-	return dev.claim_interface(intfno).then([this]() -> task<void> {
-		return this->release();
-	}).then([this, &dev, intfno]() -> task<void> {
-		this->attach(dev, intfno);
-		return async::value();
-	});
+	if (!dev.claim_interface(intfno))
+		return false;
+
+	this->release();
+	this->attach(dev, intfno);
+	return true;
 }
 
-task<void> usb_interface_guard::release()
+void usb_interface_guard::release()
 {
 	if (!m_dev)
-		return async::value();
+		return;
 
-	return m_dev->release_interface(m_intfno).then([this]() -> task<void> {
-		this->detach();
-		return async::value();
-	});
+	m_dev->release_interface(m_intfno);
+	this->detach();
 }

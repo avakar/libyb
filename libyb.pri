@@ -39,7 +39,7 @@ win32 {
 }
 
 unix:!macx:!symbian {
-    QMAKE_CXXFLAGS += -std=c++0x
+    QMAKE_CXXFLAGS += -std=c++0x -Wno-missing-field-initializers
     SOURCES += \
         $$PWD/libyb/async/detail/linux_async_channel.cpp \
         $$PWD/libyb/async/detail/linux_async_runner.cpp \
@@ -49,4 +49,5 @@ unix:!macx:!symbian {
         $$PWD/libyb/async/detail/linux_wait_context.cpp \
         $$PWD/libyb/usb/detail/linux_usb_context.cpp \
         $$PWD/libyb/usb/detail/linux_usb_device.cpp
+    LIBS += -ludev
 }

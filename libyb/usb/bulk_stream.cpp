@@ -22,7 +22,7 @@ bool usb_bulk_stream::open(usb_device & dev, usb_endpoint_t read_ep, usb_endpoin
 	return true;
 }
 
-task<void> usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard & g, usb_interface_descriptor const & idesc)
+bool usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard & g, usb_interface_descriptor const & idesc)
 {
 	usb_endpoint_t read_ep = 0;
 	usb_endpoint_t write_ep = 0;
@@ -32,26 +32,28 @@ task<void> usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard
 		if (idesc.endpoints[i].is_input())
 		{
 			if (read_ep)
-				return std::copy_exception(std::runtime_error("duplicate endpoints"));
+				return false;
 			read_ep = idesc.endpoints[i].bEndpointAddress;
 		}
 
 		if (idesc.endpoints[i].is_output())
 		{
 			if (write_ep)
-				return std::copy_exception(std::runtime_error("duplicate endpoints"));
+				return false;
 			write_ep = idesc.endpoints[i].bEndpointAddress;
 		}
 	}
 
-	return g.claim(dev, idesc.bInterfaceNumber).follow_with([this, &dev, read_ep, write_ep] {
-		m_dev = &dev;
-		m_read_ep = read_ep;
-		m_write_ep = write_ep;
-	});
+	if (!g.claim(dev, idesc.bInterfaceNumber))
+		return false;
+
+	m_dev = &dev;
+	m_read_ep = read_ep;
+	m_write_ep = write_ep;
+	return true;
 }
 
-task<void> usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard & g, usb_config_descriptor const & cdesc)
+bool usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard & g, usb_config_descriptor const & cdesc)
 {
 	yb::usb_interface_descriptor const * selected_idesc = 0;
 	for (size_t i = 0; !selected_idesc && i < cdesc.interfaces.size(); ++i)
@@ -66,23 +68,23 @@ task<void> usb_bulk_stream::claim_and_open(usb_device & dev, usb_interface_guard
 	}
 
 	if (!selected_idesc)
-		return std::copy_exception(std::runtime_error("no acm interface"));
+		return false;
 
 	return this->claim_and_open(dev, g, *selected_idesc);
 }
 
-task<void> usb_bulk_stream::close()
+void usb_bulk_stream::close()
 {
 	if (!m_dev)
-		return async::value();
+		return;
 
-	return (m_claimed_intf != 0? m_dev->release_interface(m_claimed_intf): nulltask).then([this]() -> task<void> {
-		m_dev = 0;
-		m_read_ep = 0;
-		m_write_ep = 0;
-		m_claimed_intf = 0;
-		return async::value();
-	});
+	if (m_claimed_intf != 0)
+		m_dev->release_interface(m_claimed_intf);
+
+	m_dev->clear();
+	m_claimed_intf = 0;
+	m_read_ep = 0;
+	m_write_ep = 0;
 }
 
 bool usb_bulk_stream::is_open() const

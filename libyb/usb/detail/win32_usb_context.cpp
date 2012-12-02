@@ -1,5 +1,5 @@
 #include "../usb_context.hpp"
-#include "usb_device_core.hpp"
+#include "win32_usb_device_core.hpp"
 #include "usb_request_context.hpp"
 #include "../../async/sync_runner.hpp"
 #include <map>
@@ -7,12 +7,19 @@
 using namespace yb;
 
 struct usb_context::impl
+	: noncopyable
 {
+	async_runner & m_runner;
 	std::map<size_t, std::weak_ptr<detail::usb_device_core>> m_device_repository;
+
+	impl(async_runner & runner)
+		: m_runner(runner)
+	{
+	}
 };
 
-usb_context::usb_context()
-	: m_pimpl(new impl())
+usb_context::usb_context(async_runner & runner)
+	: m_pimpl(new impl(runner))
 {
 }
 
@@ -42,13 +49,26 @@ std::vector<usb_device> usb_context::get_device_list() const
 			continue;
 		}
 
-		usb_device_descriptor desc;
-		if (try_run(get_descriptor_ctx.get_device_descriptor(hFile.get(), desc)).has_exception())
-			continue;
-
 		std::shared_ptr<detail::usb_device_core> dev(new detail::usb_device_core());
-		dev->hFile = std::move(hFile);
-		dev->desc = desc;
+		try
+		{
+			get_descriptor_ctx.get_device_descriptor(hFile.get(), dev->desc);
+
+			uint16_t selected_langid = get_descriptor_ctx.get_default_langid(hFile.get());
+			if (dev->desc.iProduct)
+				dev->product = get_descriptor_ctx.get_string_descriptor_sync(hFile.get(), dev->desc.iProduct, selected_langid);
+			if (dev->desc.iManufacturer)
+				dev->manufacturer = get_descriptor_ctx.get_string_descriptor_sync(hFile.get(), dev->desc.iManufacturer, selected_langid);
+			if (dev->desc.iSerialNumber)
+				dev->serial_number = get_descriptor_ctx.get_string_descriptor_sync(hFile.get(), dev->desc.iSerialNumber, selected_langid);
+
+			dev->hFile = std::move(hFile);
+		}
+		catch (...)
+		{
+			continue;
+		}
+
 		repo_dev = dev;
 		res.push_back(usb_device(std::move(dev)));
 	}

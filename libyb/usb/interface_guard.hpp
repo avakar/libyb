@@ -19,8 +19,8 @@ public:
 	usb_device & device() const;
 	uint8_t intfno() const;
 
-	task<void> claim(usb_device & dev, uint8_t intfno);
-	task<void> release();
+	bool claim(usb_device & dev, uint8_t intfno);
+	void release();
 
 private:
 	usb_device * m_dev;

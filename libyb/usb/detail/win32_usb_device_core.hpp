@@ -12,6 +12,9 @@ struct usb_device_core
 {
 	scoped_win32_handle hFile;
 	usb_device_descriptor desc;
+	std::string product;
+	std::string manufacturer;
+	std::string serial_number;
 };
 
 } // namespace detail
