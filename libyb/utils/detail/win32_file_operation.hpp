@@ -12,6 +12,7 @@ class win32_file_operation
 {
 public:
 	task<size_t> ioctl(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
+	size_t sync_ioctl(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
 
 private:
 	detail::win32_overlapped m_overlapped;

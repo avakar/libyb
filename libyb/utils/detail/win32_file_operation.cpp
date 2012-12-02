@@ -33,3 +33,27 @@ task<size_t> win32_file_operation::ioctl(HANDLE hFile, DWORD dwControlCode, void
 		return async::value((size_t)dwTransferred);
 	}
 }
+
+size_t win32_file_operation::sync_ioctl(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len)
+{
+	DWORD dwTransferred;
+	if (!DeviceIoControl(hFile, dwControlCode, (void *)in_data, in_len, out_data, out_len, &dwTransferred, &m_overlapped.o))
+	{
+		DWORD dwError = GetLastError();
+		if (dwError == ERROR_IO_PENDING)
+		{
+			DWORD dwTransferred;
+			if (!GetOverlappedResult(hFile, &m_overlapped.o, &dwTransferred, TRUE))
+				throw std::runtime_error("GetOverlappedResult failure");
+			return dwTransferred;
+		}
+		else
+		{
+			throw std::runtime_error("DeviceIoControl failed");
+		}
+	}
+	else
+	{
+		return dwTransferred;
+	}
+}
