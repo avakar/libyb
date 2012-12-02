@@ -35,6 +35,8 @@ task<R>::task(task<R> && o)
 		o.as_task().~task_base_ptr();
 		o.m_kind = k_empty;
 		break;
+	case k_empty:
+		break;
 	}
 }
 
@@ -95,6 +97,8 @@ void task<R>::clear() throw()
 	case k_result:
 		this->as_result().~task_result();
 		break;
+	case k_empty:
+		break;
 	}
 
 	m_kind = k_empty;
@@ -134,6 +138,9 @@ task<R> & task<R>::operator=(task<R> && o)
 
 	case k_result:
 		new(&m_storage) task_result<R>(std::move(o.as_result()));
+		break;
+
+	case k_empty:
 		break;
 	}
 
