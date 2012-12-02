@@ -45,6 +45,13 @@ public:
 		return m_fd;
 	}
 
+	void reset(int fd = -1)
+	{
+		if (m_fd >= 0)
+			close(m_fd);
+		m_fd = fd;
+	}
+
 	int release()
 	{
 		int fd = m_fd;
