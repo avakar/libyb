@@ -6,7 +6,7 @@
 static test_registrar * g_reg = 0;
 
 test_registrar::test_registrar(void (*testfn)(), char const * name, char const * file, int line, char const * tags)
-	: testfn(testfn), name(name), file(file), line(line), tags(tags)
+	: testfn(testfn), name(name), file(file), tags(tags), line(line)
 {
 	next = g_reg;
 	g_reg = this;
