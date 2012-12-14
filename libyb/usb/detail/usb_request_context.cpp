@@ -59,12 +59,13 @@ void usb_request_context::get_device_descriptor(HANDLE hFile, usb_device_descrip
 	// FIXME: endianity
 }
 
-task<uint8_t> usb_request_context::get_configuration(HANDLE hFile)
+uint8_t usb_request_context::get_configuration(HANDLE hFile)
 {
 	req = libusb0_win32_request();
-	return opctx.ioctl(hFile, LIBUSB_IOCTL_GET_CONFIGURATION, &req, sizeof req, stack_buf, 1).then([this](size_t r) -> task<uint8_t> {
-		return r != 1? async::raise<uint8_t>(std::runtime_error("invalid response")): async::value(stack_buf[0]);
-	});
+	size_t r = opctx.sync_ioctl(hFile, LIBUSB_IOCTL_GET_CACHED_CONFIGURATION, &req, sizeof req, stack_buf, 1);
+	if (r != 1)
+		return 0;
+	return stack_buf[0];
 }
 
 task<void> usb_request_context::set_configuration(HANDLE hFile, uint8_t config)

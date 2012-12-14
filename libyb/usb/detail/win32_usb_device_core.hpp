@@ -12,9 +12,14 @@ struct usb_device_core
 {
 	scoped_win32_handle hFile;
 	usb_device_descriptor desc;
+	std::vector<usb_config_descriptor> configs;
+	uint16_t selected_langid;
+	int active_config;
+	size_t active_config_index;
 	std::string product;
 	std::string manufacturer;
 	std::string serial_number;
+	std::vector<std::vector<std::string>> interface_names;
 };
 
 } // namespace detail

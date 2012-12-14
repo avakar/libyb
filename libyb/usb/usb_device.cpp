@@ -64,3 +64,13 @@ bool yb::operator>=(usb_device const & lhs, usb_device const & rhs)
 {
 	return !(lhs.m_core < rhs.m_core);
 }
+
+std::shared_ptr<detail::usb_device_core> const & usb_device::core() const
+{
+	return m_core;
+}
+
+usb_device_interface::usb_device_interface(std::shared_ptr<detail::usb_device_core> const & core, size_t config_index, size_t interface_index)
+	: m_core(core), m_config_index(config_index), m_interface_index(interface_index)
+{
+}

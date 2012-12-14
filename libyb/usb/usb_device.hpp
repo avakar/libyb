@@ -61,8 +61,30 @@ public:
 	friend bool operator<=(usb_device const & lhs, usb_device const & rhs);
 	friend bool operator>=(usb_device const & lhs, usb_device const & rhs);
 
+	std::shared_ptr<detail::usb_device_core> const & core() const;
+
 private:
 	std::shared_ptr<detail::usb_device_core> m_core;
+};
+
+class usb_device_interface
+{
+public:
+	usb_device_interface(std::shared_ptr<detail::usb_device_core> const & core, size_t config_index, size_t interface_index);
+
+	usb_device device() const { return usb_device(m_core); }
+	size_t config_index() const { return m_config_index; }
+	uint8_t config_value() const;
+	size_t interface_index() const { return m_interface_index; }
+
+	usb_interface const & descriptor() const;
+
+	std::string name() const;
+
+private:
+	std::shared_ptr<detail::usb_device_core> m_core;
+	size_t m_config_index;
+	size_t m_interface_index;
 };
 
 }

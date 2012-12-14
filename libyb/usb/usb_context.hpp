@@ -18,7 +18,7 @@ public:
 
 	task<void> run();
 
-	std::vector<usb_device> get_device_list() const;
+	void get_device_list(std::vector<usb_device> & devs, std::vector<usb_device_interface> & intfs) const;
 
 private:
 	struct impl;

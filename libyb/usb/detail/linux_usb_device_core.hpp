@@ -8,6 +8,7 @@
 #include "../../async/promise.hpp"
 #include "../../utils/detail/scoped_unix_fd.hpp"
 #include <string>
+#include <vector>
 #include <linux/usbdevice_fs.h>
 
 namespace yb {
@@ -32,6 +33,8 @@ struct usb_device_core
 	std::string iProduct;
 	std::string iManufacturer;
 	std::string iSerialNumber;
+
+	std::vector<std::vector<std::string> > intfnames;
 };
 
 } // namespace detail

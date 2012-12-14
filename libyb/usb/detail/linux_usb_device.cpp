@@ -253,3 +253,18 @@ task<void> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, ui
 
 	return async_transfer(m_core, USBDEVFS_URB_TYPE_CONTROL, 0x00, v.data(), size + 8).then([ctx](size_t) {});
 }
+
+usb_interface const & usb_device_interface::descriptor() const
+{
+	return m_core->configs[m_config_index].interfaces[m_interface_index];
+}
+
+std::string usb_device_interface::name() const
+{
+	return m_core->intfnames[m_config_index][m_interface_index];
+}
+
+uint8_t usb_device_interface::config_value() const
+{
+	return m_core->configs[m_config_index].bConfigurationValue;
+}

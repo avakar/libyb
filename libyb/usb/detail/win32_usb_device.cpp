@@ -97,12 +97,18 @@ std::string usb_device::serial_number() const
 	return m_core->serial_number;
 }
 
+uint8_t usb_device::get_cached_configuration() const
+{
+	detail::usb_request_context ctx;
+	return ctx.get_configuration(m_core->hFile.get());
+}
+
 task<uint8_t> usb_device::get_configuration()
 {
 	try
 	{
-		std::shared_ptr<detail::usb_request_context> ctx(new detail::usb_request_context());
-		return ctx->get_configuration(m_core->hFile.get()).follow_with([ctx](size_t){});
+		detail::usb_request_context ctx;
+		return async::value(ctx.get_configuration(m_core->hFile.get()));
 	}
 	catch (...)
 	{
@@ -185,4 +191,19 @@ task<void> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, ui
 	{
 		return async::raise<void>();
 	}
+}
+
+usb_interface const & usb_device_interface::descriptor() const
+{
+	return m_core->configs[m_config_index].interfaces[m_interface_index];
+}
+
+std::string usb_device_interface::name() const
+{
+	return m_core->interface_names[m_config_index][m_interface_index];
+}
+
+uint8_t usb_device_interface::config_value() const
+{
+	return m_core->configs[m_config_index].bConfigurationValue;
 }
