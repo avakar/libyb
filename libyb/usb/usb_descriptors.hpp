@@ -90,7 +90,11 @@ typedef usb_raw_endpoint_descriptor usb_endpoint_descriptor;
 struct usb_interface_descriptor
 	: usb_raw_interface_descriptor
 {
+	std::vector<std::vector<uint8_t> > extra_descriptors;
 	std::vector<usb_endpoint_descriptor> endpoints;
+
+	size_t out_descriptor_count() const;
+	size_t in_descriptor_count() const;
 };
 
 struct usb_interface

@@ -42,8 +42,7 @@ usb_config_descriptor yb::parse_config_descriptor(yb::buffer_ref d)
 			intf.altsettings.push_back(idesc);
 			current_altsetting = &intf.altsettings.back();
 		}
-
-		if (d[1] == 5/*ENDPOINT*/)
+		else if (d[1] == 5/*ENDPOINT*/)
 		{
 			if (!current_altsetting
 				|| desclen != usb_raw_endpoint_descriptor::size)
@@ -57,11 +56,37 @@ usb_config_descriptor yb::parse_config_descriptor(yb::buffer_ref d)
 
 			current_altsetting->endpoints.push_back(edesc);
 		}
+		else if (current_altsetting)
+		{
+			current_altsetting->extra_descriptors.push_back(std::vector<uint8_t>(d.data(), d.data() + desclen));
+		}
 
 		d += desclen;
 	}
 
 	// TODO: verify that each interface has a consistent number of endpoints.
 
+	return res;
+}
+
+size_t usb_interface_descriptor::out_descriptor_count() const
+{
+	size_t res = 0;
+	for (size_t i = 0; i < endpoints.size(); ++i)
+	{
+		if ((endpoints[i].bEndpointAddress & 0x80) == 0)
+			++res;
+	}
+	return res;
+}
+
+size_t usb_interface_descriptor::in_descriptor_count() const
+{
+	size_t res = 0;
+	for (size_t i = 0; i < endpoints.size(); ++i)
+	{
+		if ((endpoints[i].bEndpointAddress & 0x80) != 0)
+			++res;
+	}
 	return res;
 }
