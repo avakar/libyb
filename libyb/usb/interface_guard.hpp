@@ -13,17 +13,17 @@ public:
 	usb_interface_guard();
 	~usb_interface_guard();
 
-	void attach(usb_device & dev, uint8_t intfno);
+	void attach(usb_device const & dev, uint8_t intfno);
 	void detach();
 
-	usb_device & device() const;
+	usb_device device() const;
 	uint8_t intfno() const;
 
-	bool claim(usb_device & dev, uint8_t intfno);
+	bool claim(usb_device const & dev, uint8_t intfno);
 	void release();
 
 private:
-	usb_device * m_dev;
+	usb_device m_dev;
 	uint8_t m_intfno;
 };
 
