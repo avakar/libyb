@@ -42,8 +42,8 @@ public:
 	task<uint8_t> get_configuration();
 	task<void> set_configuration(uint8_t config);
 
-	bool claim_interface(uint8_t intfno);
-	void release_interface(uint8_t intfno);
+	bool claim_interface(uint8_t intfno) const;
+	void release_interface(uint8_t intfno) const;
 
 	task<size_t> bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size) const;
 	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size) const;
@@ -70,7 +70,11 @@ private:
 class usb_device_interface
 {
 public:
+	usb_device_interface();
 	usb_device_interface(std::shared_ptr<detail::usb_device_core> const & core, size_t config_index, size_t interface_index);
+
+	bool empty() const;
+	void clear();
 
 	usb_device device() const { return usb_device(m_core); }
 	size_t config_index() const { return m_config_index; }
@@ -80,6 +84,13 @@ public:
 	usb_interface const & descriptor() const;
 
 	std::string name() const;
+
+	friend bool operator==(usb_device_interface const & lhs, usb_device_interface const & rhs);
+	friend bool operator!=(usb_device_interface const & lhs, usb_device_interface const & rhs);
+	friend bool operator<(usb_device_interface const & lhs, usb_device_interface const & rhs);
+	friend bool operator>(usb_device_interface const & lhs, usb_device_interface const & rhs);
+	friend bool operator<=(usb_device_interface const & lhs, usb_device_interface const & rhs);
+	friend bool operator>=(usb_device_interface const & lhs, usb_device_interface const & rhs);
 
 private:
 	std::shared_ptr<detail::usb_device_core> m_core;

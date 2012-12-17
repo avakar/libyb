@@ -129,13 +129,13 @@ task<void> usb_device::set_configuration(uint8_t config)
 	}
 }
 
-bool usb_device::claim_interface(uint8_t intfno)
+bool usb_device::claim_interface(uint8_t intfno) const
 {
 	detail::usb_request_context ctx;
 	return ctx.claim_interface(m_core->hFile.get(), intfno);
 }
 
-void usb_device::release_interface(uint8_t intfno)
+void usb_device::release_interface(uint8_t intfno) const
 {
 	detail::usb_request_context ctx;
 	ctx.release_interface(m_core->hFile.get(), intfno);
@@ -206,4 +206,9 @@ std::string usb_device_interface::name() const
 uint8_t usb_device_interface::config_value() const
 {
 	return m_core->configs[m_config_index].bConfigurationValue;
+}
+
+void usb_device_interface::clear()
+{
+	m_core.reset();
 }

@@ -163,7 +163,7 @@ task<void> usb_device::set_configuration(uint8_t config)
 	return async::value();
 }
 
-bool usb_device::claim_interface(uint8_t intfno)
+bool usb_device::claim_interface(uint8_t intfno) const
 {
 	assert(m_core);
 	int ioctl_arg = intfno;
@@ -172,7 +172,7 @@ bool usb_device::claim_interface(uint8_t intfno)
 	return true;
 }
 
-void usb_device::release_interface(uint8_t intfno)
+void usb_device::release_interface(uint8_t intfno) const
 {
 	assert(m_core);
 	int ioctl_arg = intfno;
@@ -267,4 +267,9 @@ std::string usb_device_interface::name() const
 uint8_t usb_device_interface::config_value() const
 {
 	return m_core->configs[m_config_index].bConfigurationValue;
+}
+
+void usb_device_interface::clear()
+{
+	m_core.reset();
 }

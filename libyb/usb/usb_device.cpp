@@ -1,4 +1,5 @@
 #include "usb_device.hpp"
+#include "../utils/tuple_less.hpp"
 using namespace yb;
 
 usb_device::usb_device()
@@ -70,7 +71,46 @@ std::shared_ptr<detail::usb_device_core> const & usb_device::core() const
 	return m_core;
 }
 
+usb_device_interface::usb_device_interface()
+{
+}
+
+bool usb_device_interface::empty() const
+{
+	return m_core.get() == 0;
+}
+
 usb_device_interface::usb_device_interface(std::shared_ptr<detail::usb_device_core> const & core, size_t config_index, size_t interface_index)
 	: m_core(core), m_config_index(config_index), m_interface_index(interface_index)
 {
+}
+
+bool yb::operator==(usb_device_interface const & lhs, usb_device_interface const & rhs)
+{
+	return lhs.m_core == rhs.m_core && lhs.m_config_index == rhs.m_config_index && lhs.m_interface_index == rhs.m_config_index;
+}
+
+bool yb::operator!=(usb_device_interface const & lhs, usb_device_interface const & rhs)
+{
+	return !(lhs == rhs);
+}
+
+bool yb::operator<(usb_device_interface const & lhs, usb_device_interface const & rhs)
+{
+	return tuple_less(lhs.m_core, rhs.m_core)(lhs.m_config_index, rhs.m_config_index)(lhs.m_interface_index, rhs.m_interface_index);
+}
+
+bool yb::operator>(usb_device_interface const & lhs, usb_device_interface const & rhs)
+{
+	return rhs < lhs;
+}
+
+bool yb::operator<=(usb_device_interface const & lhs, usb_device_interface const & rhs)
+{
+	return !(rhs < lhs);
+}
+
+bool yb::operator>=(usb_device_interface const & lhs, usb_device_interface const & rhs)
+{
+	return !(lhs < rhs);
 }
