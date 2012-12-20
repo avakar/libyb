@@ -90,3 +90,47 @@ size_t usb_interface_descriptor::in_descriptor_count() const
 	}
 	return res;
 }
+
+std::vector<uint8_t> usb_interface_descriptor::lookup_extra_descriptor(uint8_t desc_type, yb::buffer_ref const & signature) const
+{
+    std::vector<uint8_t> res;
+
+    enum { st_first, st_inside, st_found } state = st_first;
+    for (size_t i = 0; i != extra_descriptors.size(); ++i)
+    {
+        std::vector<uint8_t> const & frag = extra_descriptors[i];
+
+        if (state == st_found && frag[1] == extra_descriptors[i-1][1])
+        {
+            res.insert(res.begin(), frag.begin() + 2, frag.end());
+            if (frag.size() == 255)
+                continue;
+        }
+
+        if (state == st_found)
+            break;
+
+        if (state == st_inside && frag[1] != extra_descriptors[i-1][1])
+            state = st_first;
+
+        if (state == st_first && frag[1] == desc_type
+            && frag.size() >= signature.size() + 2
+            && std::equal(frag.begin() + 2, frag.begin() + 2 + signature.size(), signature.data()))
+        {
+            res.assign(frag.begin() + 2, frag.end());
+            state = st_found;
+            continue;
+        }
+
+        if (state == st_first && frag.size() == 255)
+        {
+            state = st_inside;
+            continue;
+        }
+
+        if (state == st_inside && frag.size() < 255)
+            state = st_first;
+    }
+
+    return res;
+}

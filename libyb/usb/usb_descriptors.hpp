@@ -95,6 +95,8 @@ struct usb_interface_descriptor
 
 	size_t out_descriptor_count() const;
 	size_t in_descriptor_count() const;
+
+	std::vector<uint8_t> lookup_extra_descriptor(uint8_t desc_type, yb::buffer_ref const & signature) const;
 };
 
 struct usb_interface
