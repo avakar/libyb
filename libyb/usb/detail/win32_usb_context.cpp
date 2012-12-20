@@ -80,6 +80,8 @@ void usb_context::get_device_list(std::vector<usb_device> & devs, std::vector<us
 				dev->interface_names[i].resize(dev->configs[i].interfaces.size());
 				for (size_t j = 0; j < dev->configs[i].interfaces.size(); ++j)
 				{
+					if (dev->configs[i].interfaces[j].altsettings.empty())
+						continue;
 					if (uint8_t iInterface = dev->configs[i].interfaces[j].altsettings[0].iInterface)
 						dev->interface_names[i][j] = get_descriptor_ctx.get_string_descriptor_sync(hFile.get(), iInterface, dev->selected_langid);
 				}
