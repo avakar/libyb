@@ -21,6 +21,8 @@ public:
 	std::string get_string_descriptor_sync(HANDLE hFile, uint8_t index, uint16_t langid);
 	uint16_t get_default_langid(HANDLE hFile);
 
+	void set_interface(HANDLE hFile, uint8_t intfno, uint8_t altsetting);
+
 	uint8_t get_configuration(HANDLE hFile);
 	task<void> set_configuration(HANDLE hFile, uint8_t config);
 

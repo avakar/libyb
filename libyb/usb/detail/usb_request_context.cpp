@@ -23,6 +23,22 @@ uint16_t usb_request_context::get_default_langid(HANDLE hFile)
 	return read == 2? 0: buf[2] | (buf[3] << 8);
 }
 
+void usb_request_context::set_interface(HANDLE hFile, uint8_t intfno, uint8_t altsetting)
+{
+	req = libusb0_win32_request();
+	req.timeout = 5000;
+	req.intf.interface_number = intfno;
+	req.intf.altsetting_number = altsetting;
+
+	opctx.sync_ioctl(
+		hFile,
+		LIBUSB_IOCTL_SET_INTERFACE,
+		reinterpret_cast<uint8_t const *>(&req),
+		sizeof req,
+		0,
+		0);
+}
+
 size_t usb_request_context::get_descriptor_sync(HANDLE hFile, uint8_t desc_type, uint8_t desc_index, uint16_t langid, unsigned char * data, int length)
 {
 	req = libusb0_win32_request();

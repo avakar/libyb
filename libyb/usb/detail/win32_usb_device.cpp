@@ -50,6 +50,12 @@ usb_config_descriptor usb_device::get_config_descriptor() const
 	return parse_config_descriptor(desc);
 }
 
+void usb_device::set_interface(uint8_t intfno, uint8_t altsetting)
+{
+	detail::usb_request_context ctx;
+	ctx.set_interface(m_core->hFile.get(), intfno, altsetting);
+}
+
 uint32_t usb_device::vidpid() const
 {
 	return ((uint32_t)m_core->desc.idVendor << 16) | m_core->desc.idProduct;

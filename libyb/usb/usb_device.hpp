@@ -28,6 +28,8 @@ public:
 	usb_config_descriptor get_config_descriptor_by_value(uint8_t value) const;
 	usb_config_descriptor get_config_descriptor() const;
 
+	void set_interface(uint8_t intfno, uint8_t altsetting);
+
 	uint32_t vidpid() const;
 
 	uint16_t get_default_langid() const;
