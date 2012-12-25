@@ -193,6 +193,8 @@ void usb_context::get_device_list(std::vector<usb_device> & devs, std::vector<us
 			throw std::runtime_error("failed to create udev device");
 
 		char const * devtype = udev_device_get_devtype(dev.get());
+		if (!devtype)
+			continue;
 		if (strcmp(devtype, "usb_device") == 0)
 		{
 			m_pimpl->handle_usb_device(path, dev.get(), new_devices);
