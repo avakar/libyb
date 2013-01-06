@@ -142,6 +142,57 @@ private:
 	struct udev_device * m_ctx;
 };
 
+struct scoped_udev_monitor
+{
+	explicit scoped_udev_monitor(struct udev_monitor * ctx = 0)
+		: m_ctx(ctx)
+	{
+	}
+
+	scoped_udev_monitor(scoped_udev_monitor const & o)
+		: m_ctx(o.m_ctx)
+	{
+		if (m_ctx)
+			udev_monitor_ref(m_ctx);
+	}
+
+	scoped_udev_monitor & operator=(scoped_udev_monitor const & o)
+	{
+		if (o.m_ctx)
+			udev_monitor_ref(o.m_ctx);
+		if (m_ctx)
+			udev_monitor_unref(m_ctx);
+		m_ctx = o.m_ctx;
+		return *this;
+	}
+
+	~scoped_udev_monitor()
+	{
+		if (m_ctx)
+			udev_monitor_unref(m_ctx);
+	}
+
+	bool empty() const
+	{
+		return m_ctx == 0;
+	}
+
+	void reset(struct udev_monitor * v)
+	{
+		if (m_ctx)
+			udev_monitor_unref(m_ctx);
+		m_ctx = v;
+	}
+
+	struct udev_monitor * get() const
+	{
+		return m_ctx;
+	}
+
+private:
+	struct udev_monitor * m_ctx;
+};
+
 inline void udev_check_error(int r)
 {
 	if (r != 0)

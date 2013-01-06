@@ -176,8 +176,7 @@ void usb_device::release_interface(uint8_t intfno) const
 {
 	assert(m_core);
 	int ioctl_arg = intfno;
-	if (ioctl(m_core->fd.get(), USBDEVFS_RELEASEINTERFACE, &ioctl_arg) < 0)
-		throw std::runtime_error("failed to claim interface");
+	ioctl(m_core->fd.get(), USBDEVFS_RELEASEINTERFACE, &ioctl_arg);
 }
 
 static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> const & core, unsigned char type, usb_endpoint_t ep, void * buffer, size_t size)
@@ -194,15 +193,20 @@ static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> cons
 		urb->buffer_length = size;
 		urb->usercontext = ctx.get();
 
+		std::set<detail::urb_context *>::iterator it = core->pending_urbs.insert(ctx.get()).first;
 		if (ioctl(core->fd.get(), USBDEVFS_SUBMITURB, urb) < 0)
+		{
+			core->pending_urbs.erase(it);
 			return async::raise<size_t>(std::runtime_error("cannot submit urb"));
+		}
 
 		return ctx->done.wait_for([core, ctx](cancel_level cl) -> bool {
 			if (cl >= cl_abort)
 				ioctl(core->fd.get(), USBDEVFS_DISCARDURB, &ctx->urb);
 			return true;
 		}).then([ctx]() -> task<size_t> {
-			// TODO: check status
+			if (ctx->urb.status < 0)
+				return async::raise<size_t>(std::runtime_error("transfer error"));
 			return async::value((size_t)ctx->urb.actual_length);
 		});
 	});

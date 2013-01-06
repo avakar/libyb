@@ -9,6 +9,7 @@
 #include "../../utils/detail/scoped_unix_fd.hpp"
 #include <string>
 #include <vector>
+#include <set>
 #include <linux/usbdevice_fs.h>
 
 namespace yb {
@@ -35,6 +36,8 @@ struct usb_device_core
 	std::string iSerialNumber;
 
 	std::vector<std::vector<std::string> > intfnames;
+
+	std::set<urb_context *> pending_urbs;
 };
 
 } // namespace detail
