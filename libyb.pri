@@ -48,6 +48,7 @@ unix:!macx:!symbian {
         $$PWD/libyb/async/detail/linux_timer.cpp \
         $$PWD/libyb/async/detail/linux_wait_context.cpp \
         $$PWD/libyb/usb/detail/linux_usb_context.cpp \
-        $$PWD/libyb/usb/detail/linux_usb_device.cpp
+        $$PWD/libyb/usb/detail/linux_usb_device.cpp \
+        $$PWD/libyb/utils/detail/pthread_mutex.cpp
     LIBS += -ludev
 }

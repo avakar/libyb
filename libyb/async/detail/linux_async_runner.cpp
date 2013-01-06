@@ -176,20 +176,16 @@ struct async_runner::impl
 		{
 			wait_ctx.clear();
 
+			for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
+				it->promise->perform_pending_cancels();
+
+			for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
 			{
-				scoped_mutex l(mutex);
+				assert(it->promise != 0);
 
-				for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
-					it->promise->perform_pending_cancels();
-
-				for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); ++it)
-				{
-					assert(it->promise != 0);
-
-					task_wait_memento_builder mb(wait_ctx);
-					it->promise->prepare_wait(wait_ctx);
-					it->m = mb.finish();
-				}
+				task_wait_memento_builder mb(wait_ctx);
+				it->promise->prepare_wait(wait_ctx);
+				it->m = mb.finish();
 			}
 
 			if (wait_ctx_impl.m_finished_tasks)
@@ -214,6 +210,9 @@ struct async_runner::impl
 					uint64_t val;
 					int r = read(control_event, &val, sizeof val);
 					assert(r >= 0);
+
+					scoped_mutex l(mutex);
+					promises.splice(promises.end(), new_promises);
 					continue;
 				}
 
@@ -235,7 +234,6 @@ struct async_runner::impl
 
 	void finish_wait(task_wait_finalization_context & ctx)
 	{
-		scoped_mutex l(mutex);
 		for (std::list<parallel_promise>::iterator it = promises.begin(); it != promises.end(); )
 		{
 			if (ctx.contains(it->m) && it->promise->finish_wait(ctx))
@@ -274,6 +272,7 @@ struct async_runner::impl
 
 	pthread_mutex_t mutex;
 	std::list<parallel_promise> promises;
+	std::list<parallel_promise> new_promises;
 	bool stopped;
 
 	pthread_t thread;
@@ -302,22 +301,22 @@ async_runner::submit_context::submit_context(async_runner & runner)
 	scoped_mutex l(m_runner.m_pimpl->mutex);
 
 	parallel_promise pp = {};
-	m_runner.m_pimpl->promises.push_back(std::move(pp));
+	m_runner.m_pimpl->new_promises.push_back(std::move(pp));
 
 	l.detach();
 }
 
 async_runner::submit_context::~submit_context()
 {
-	if (m_runner.m_pimpl->promises.back().promise == 0)
-		m_runner.m_pimpl->promises.pop_back();
+	if (m_runner.m_pimpl->new_promises.back().promise == 0)
+		m_runner.m_pimpl->new_promises.pop_back();
 	pthread_mutex_unlock(&m_runner.m_pimpl->mutex);
 }
 
 void async_runner::submit_context::submit(detail::async_promise_base * p)
 {
-	assert(m_runner.m_pimpl->promises.back().promise == 0);
-	m_runner.m_pimpl->promises.back().promise = p;
+	assert(m_runner.m_pimpl->new_promises.back().promise == 0);
+	m_runner.m_pimpl->new_promises.back().promise = p;
 	m_runner.m_pimpl->signal_control_event();
 }
 
