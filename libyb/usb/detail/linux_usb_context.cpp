@@ -66,7 +66,7 @@ struct usb_context::impl
 	std::map<std::string, std::shared_ptr<usb_device_core> > m_devices;
 	std::map<std::string, usb_device_interface> m_interfaces;
 
-	async_future<void> m_monitor_worker;
+	std::function<void (usb_plugin_event const &)> m_event_sink;
 
 	explicit impl(async_runner & runner)
 		: m_runner(runner)
@@ -75,7 +75,6 @@ struct usb_context::impl
 
 	~impl()
 	{
-		m_monitor_worker.wait(cl_quit);
 	}
 
 	std::shared_ptr<usb_device_core> handle_usb_device(
@@ -170,6 +169,12 @@ struct usb_context::impl
 		}
 
 		m_devices.insert(std::make_pair(std::move(path), core));
+
+		usb_plugin_event ev;
+		ev.action = usb_plugin_event::a_add;
+		ev.dev = usb_device(core);
+		m_event_sink(ev);
+
 		return core;
 	}
 
@@ -221,6 +226,10 @@ struct usb_context::impl
 						core->intfnames[i][intf_index].clear();
 
 					usb_device_interface intf(core, i, intf_index);
+					usb_plugin_event ev;
+					ev.action = usb_plugin_event::a_add;
+					ev.intf = intf;
+					m_event_sink(ev);
 					m_interfaces.insert(std::make_pair(path, intf));
 					break;
 				}
@@ -231,8 +240,30 @@ struct usb_context::impl
 	void remove_device(udev_device * dev)
 	{
 		std::string path = udev_device_get_syspath(dev);
-		m_devices.erase(path);
-		m_interfaces.erase(path);
+
+		{
+			std::map<std::string, usb_device_interface>::iterator it = m_interfaces.find(path);
+			if (it != m_interfaces.end())
+			{
+				usb_plugin_event ev;
+				ev.action = usb_plugin_event::a_remove;
+				ev.intf = it->second;
+				m_event_sink(ev);
+				m_interfaces.erase(it);
+			}
+		}
+
+		{
+			std::map<std::string, std::shared_ptr<usb_device_core> >::iterator it = m_devices.find(path);
+			if (it != m_devices.end())
+			{
+				usb_plugin_event ev;
+				ev.action = usb_plugin_event::a_remove;
+				ev.dev = usb_device(it->second);
+				m_event_sink(ev);
+				m_devices.erase(it);
+			}
+		}
 	}
 
 	void handle_monitor(short)
@@ -291,42 +322,23 @@ usb_context::usb_context(async_runner & runner)
 	udev_check_error(udev_monitor_filter_add_match_subsystem_devtype(m_pimpl->m_udev_monitor.get(), "usb", "usb_device"));
 	udev_check_error(udev_monitor_filter_add_match_subsystem_devtype(m_pimpl->m_udev_monitor.get(), "usb", "usb_interface"));
 	udev_check_error(udev_monitor_enable_receiving(m_pimpl->m_udev_monitor.get()));
-
-	m_pimpl->enumerate_all();
-
-	int fd = udev_monitor_get_fd(m_pimpl->m_udev_monitor.get());
-	m_pimpl->m_monitor_worker = runner.post(yb::loop(async::value((short)0), [this, fd](short revents, cancel_level cl) -> task<short> {
-		if (revents & POLLIN)
-			m_pimpl->handle_monitor(revents);
-		return cl >= cl_quit? nulltask: yb::make_linux_pollfd_task(fd, POLLIN, [](cancel_level){
-			return false;
-		});
-	}));
 }
 
 usb_context::~usb_context()
 {
 }
 
-task<void> usb_context::run()
+async_future<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
 {
-	return async::value();
-}
+	m_pimpl->m_event_sink = event_sink;
+	m_pimpl->enumerate_all();
 
-void usb_context::get_device_list(std::vector<usb_device> & devs, std::vector<usb_device_interface> & intfs) const
-{
-	std::vector<usb_device> new_devs;
-	std::vector<usb_device_interface> new_intfs;
-
-	{
-		scoped_pthread_lock l(m_pimpl->m_mutex);
-		for (std::map<std::string, std::shared_ptr<usb_device_core> >::const_iterator it = m_pimpl->m_devices.begin(); it != m_pimpl->m_devices.end(); ++it)
-			new_devs.push_back(usb_device(it->second));
-
-		for (std::map<std::string, usb_device_interface>::const_iterator it = m_pimpl->m_interfaces.begin(); it != m_pimpl->m_interfaces.end(); ++it)
-			new_intfs.push_back(it->second);
-	}
-
-	devs.swap(new_devs);
-	intfs.swap(new_intfs);
+	int fd = udev_monitor_get_fd(m_pimpl->m_udev_monitor.get());
+	return m_pimpl->m_runner.post(yb::loop(async::value((short)0), [this, fd](short revents, cancel_level cl) -> task<short> {
+		if (revents & POLLIN)
+			m_pimpl->handle_monitor(revents);
+		return cl >= cl_quit? nulltask: yb::make_linux_pollfd_task(fd, POLLIN, [](cancel_level){
+			return false;
+		});
+	}));
 }

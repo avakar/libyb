@@ -28,8 +28,6 @@ public:
 
 	async_future<void> run(std::function<void (usb_plugin_event const &)> const & event_sink);
 
-	void get_device_list(std::vector<usb_device> & devs, std::vector<usb_device_interface> & intfs) const;
-
 private:
 	struct impl;
 	std::unique_ptr<impl> m_pimpl;
