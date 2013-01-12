@@ -130,7 +130,11 @@ public:
 	async_future & operator=(async_future && o)
 	{
 		if (m_promise)
+		{
+			m_promise->cancel(cl_kill);
+			m_promise->wait();
 			m_promise->release();
+		}
 		m_promise = o.m_promise;
 		o.m_promise = 0;
 		m_exception = std::move(o.m_exception);
