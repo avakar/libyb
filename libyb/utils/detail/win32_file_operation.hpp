@@ -15,6 +15,8 @@ public:
 	size_t sync_ioctl(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
 
 private:
+	task<size_t> ioctl_with_affinity(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
+
 	detail::win32_overlapped m_overlapped;
 };
 

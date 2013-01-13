@@ -2,6 +2,7 @@
 #define LIBYB_ASYNC_DETAIL_WIN32_HANDLE_TASK_HPP
 
 #include "../task.hpp"
+#include "win32_affinity_task.hpp"
 #include "win32_wait_context.hpp"
 #include "../../utils/noncopyable.hpp"
 #include "../cancel_exception.hpp"
@@ -104,6 +105,12 @@ task<void> make_win32_handle_task(HANDLE handle, Canceller && canceller) throw()
 
 		return async::raise<void>();
 	}
+}
+
+namespace async {
+
+task<void> fix_affinity();
+
 }
 
 } // namespace yb

@@ -25,8 +25,10 @@ SOURCES += \
 
 win32 {
     SOURCES += \
+        $$PWD/libyb/async/detail/win32_affinity_task.cpp \
         $$PWD/libyb/async/detail/win32_async_channel.cpp \
         $$PWD/libyb/async/detail/win32_async_runner.cpp \
+        $$PWD/libyb/async/detail/win32_handle_task.cpp \
         $$PWD/libyb/async/detail/win32_serial_port.cpp \
         $$PWD/libyb/async/detail/win32_sync_runner.cpp \
         $$PWD/libyb/async/detail/win32_timer.cpp \

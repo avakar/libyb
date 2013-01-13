@@ -99,18 +99,32 @@ void usb_context::impl::refresh_device_list()
 		{
 			get_descriptor_ctx.get_device_descriptor(hFile.get(), dev->desc);
 
+			bool invalid_config_desc = false;
 			for (uint8_t i = 0; i < dev->desc.bNumConfigurations; ++i)
 			{
 				uint8_t config_desc_header[4];
-				get_descriptor_ctx.get_descriptor(hFile.get(), 2, i, 0, config_desc_header, sizeof config_desc_header);
+				size_t r = get_descriptor_ctx.get_descriptor_sync(hFile.get(), 2, i, 0, config_desc_header, sizeof config_desc_header);
+				if (r < 4)
+				{
+					invalid_config_desc = true;
+					break;
+				}
 
 				uint16_t wTotalLength = config_desc_header[2] | (config_desc_header[3] << 8);
 
 				std::vector<uint8_t> config_desc(wTotalLength);
-				get_descriptor_ctx.get_descriptor(hFile.get(), 2, i, 0, config_desc.data(), config_desc.size());
+				r = get_descriptor_ctx.get_descriptor_sync(hFile.get(), 2, i, 0, config_desc.data(), config_desc.size());
+				if (r != wTotalLength)
+				{
+					invalid_config_desc = true;
+					break;
+				}
 
 				dev->configs.push_back(parse_config_descriptor(config_desc));
 			}
+
+			if (invalid_config_desc)
+				continue;
 
 			dev->active_config = -1;
 			dev->active_config_index = dev->configs.size();
