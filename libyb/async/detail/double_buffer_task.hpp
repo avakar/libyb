@@ -13,7 +13,7 @@ class double_buffer_task
 {
 public:
 	explicit double_buffer_task(size_t count, std::function<task<R>(size_t)> const & create_fn, std::function<void(size_t, R const &)> const & collect_fn)
-		: m_task_count(count), m_active_tasks(m_active_tasks), m_head(0), m_cl(cl_none), m_create_fn(create_fn), m_collect_fn(collect_fn)
+		: m_task_count(count), m_active_tasks(count), m_head(0), m_cl(cl_none), m_create_fn(create_fn), m_collect_fn(collect_fn)
 	{
 		m_tasks.reset(new item[count]);
 		for (size_t i = 0; i < m_task_count; ++i)
