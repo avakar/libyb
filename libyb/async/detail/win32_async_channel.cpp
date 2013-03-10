@@ -57,3 +57,8 @@ void async_channel_base::reset()
 {
 	ResetEvent(m_pimpl->hDataReady);
 }
+
+bool async_channel_base::empty() const
+{
+	return WaitForSingleObject(m_pimpl->hDataReady, 0) == WAIT_TIMEOUT;
+}

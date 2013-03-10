@@ -32,6 +32,7 @@ public:
 	task<void> wait();
 	void set();
 	void reset();
+	bool empty() const;
 
 private:
 	struct impl;
@@ -82,6 +83,8 @@ public:
 		m_data.clear();
 		this->reset();
 	}
+
+	using async_channel_base::empty;
 
 private:
 	std::vector<T> m_data;
