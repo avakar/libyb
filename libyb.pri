@@ -21,6 +21,7 @@ SOURCES += \
     $$PWD/libyb/usb/usb_device.cpp \
     $$PWD/libyb/utils/ihex_file.cpp \
     $$PWD/libyb/utils/sparse_buffer.cpp \
+    $$PWD/libyb/utils/svf_file.cpp \
     $$PWD/libyb/utils/utf.cpp
 
 win32 {
