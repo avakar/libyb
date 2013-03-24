@@ -1,6 +1,7 @@
 #include "svf_file.hpp"
 #include <sstream>
 #include <cassert>
+#include <algorithm>
 using namespace yb;
 
 namespace {
@@ -267,6 +268,7 @@ static std::vector<uint8_t> parse_vector(parse_context & ctx, size_t size)
 	for (size_t i = 0; i < res.size(); i += 2)
 		res[i/2] = res[i] | (res[i+1] << 4);
 
+	res.resize(res.size() / 2);
 	res.resize((size + 7) / 8);
 	return res;
 }
@@ -562,6 +564,13 @@ static svf_xxr prepare_shift(svf_xxr const & head, svf_xxr const & body, svf_xxr
 	svf_xxr res = head;
 	join_xxr(res, body);
 	join_xxr(res, tail);
+
+	if (std::count(res.mask.begin(), res.mask.end(), 0) == res.mask.size())
+	{
+		res.tdo.clear();
+		res.mask.clear();
+	}
+
 	res.kind = body.kind;
 	return res;
 }
