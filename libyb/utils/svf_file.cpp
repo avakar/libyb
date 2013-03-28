@@ -2,6 +2,7 @@
 #include <sstream>
 #include <cassert>
 #include <algorithm>
+#include <stdexcept>
 using namespace yb;
 
 namespace {

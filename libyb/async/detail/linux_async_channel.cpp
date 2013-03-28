@@ -61,3 +61,11 @@ void async_channel_base::reset()
 	int r = read(m_pimpl->fd.get(), &val, sizeof val);
 	assert(r != -1 || errno == EAGAIN);
 }
+
+bool async_channel_base::empty() const
+{
+	pollfd fd = {};
+	fd.fd = m_pimpl->fd.get();
+	fd.events = POLLIN;
+	return poll(&fd, 1, 0) == 0;
+}
