@@ -6,7 +6,7 @@
 namespace yb {
 
 class win32_affinity_task
-	: task_base<void>, noncopyable
+	: public task_base<void>, noncopyable
 {
 public:
 	win32_affinity_task();
