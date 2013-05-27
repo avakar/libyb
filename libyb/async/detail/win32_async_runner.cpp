@@ -3,6 +3,8 @@
 #include "win32_wait_context.hpp"
 #include <list>
 #include <windows.h>
+#include <stdexcept>
+
 using namespace yb;
 using namespace yb::detail;
 

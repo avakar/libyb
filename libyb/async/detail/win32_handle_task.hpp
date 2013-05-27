@@ -13,7 +13,7 @@ namespace yb {
 // The canceller must not throw an exception
 template <typename Canceller>
 class win32_handle_task
-	: task_base<void>, noncopyable
+	: public task_base<void>, noncopyable
 {
 public:
 	win32_handle_task(HANDLE handle, Canceller const & canceller);

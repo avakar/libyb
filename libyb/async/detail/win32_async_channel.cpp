@@ -1,5 +1,7 @@
 #include "../async_channel.hpp"
 #include "win32_handle_task.hpp"
+#include <stdexcept>
+
 using namespace yb;
 using namespace yb::detail;
 
