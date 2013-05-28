@@ -1,6 +1,7 @@
 #include "../serial_port.hpp"
 #include "win32_handle_task.hpp"
 #include <windows.h>
+#include <stdexcept>
 using namespace yb;
 
 struct serial_port::impl

@@ -25,6 +25,10 @@ SOURCES += \
     $$PWD/libyb/utils/utf.cpp
 
 win32 {
+    *g++* {
+        QMAKE_CXXFLAGS += -std=c++0x -Wno-missing-field-initializers -include cmath
+    }
+
     SOURCES += \
         $$PWD/libyb/async/detail/win32_affinity_task.cpp \
         $$PWD/libyb/async/detail/win32_async_channel.cpp \
