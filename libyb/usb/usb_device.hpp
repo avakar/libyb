@@ -49,6 +49,7 @@ public:
 
 	task<size_t> bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size) const;
 	task<size_t> bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size) const;
+	task<size_t> bulk_write_zlp(usb_endpoint_t ep, uint8_t const * buffer, size_t size, size_t epsize) const;
 
 	task<size_t> control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size);
 	task<void> control_write(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t const * buffer, size_t size);

@@ -173,6 +173,26 @@ task<size_t> usb_device::bulk_write(usb_endpoint_t ep, uint8_t const * buffer, s
 	}
 }
 
+task<size_t> usb_device::bulk_write_zlp(usb_endpoint_t ep, uint8_t const * buffer, size_t size, size_t epsize) const
+{
+	if (size % epsize)
+		return this->bulk_write(ep, buffer, size);
+
+	try
+	{
+		std::shared_ptr<detail::usb_request_context> ctx(new detail::usb_request_context());
+		HANDLE hFile = m_core->hFile.get();
+		return ctx->bulk_write(hFile, ep, buffer, size).then([hFile, ctx, ep](size_t) -> task<size_t> {
+			static uint8_t const empty[] = { 0 };
+			return ctx->bulk_write(hFile, ep, empty, 0);
+		}).follow_with([ctx](size_t){});
+	}
+	catch (...)
+	{
+		return async::raise<size_t>();
+	}
+}
+
 task<size_t> usb_device::control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size)
 {
 	try
