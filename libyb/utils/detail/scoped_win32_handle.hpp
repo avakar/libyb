@@ -24,7 +24,7 @@ public:
 
 	~scoped_win32_handle()
 	{
-		if (this->empty())
+		if (!this->empty())
 			CloseHandle(m_handle);
 	}
 
