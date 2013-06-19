@@ -179,7 +179,8 @@ void usb_device::release_interface(uint8_t intfno) const
 	ioctl(m_core->fd.get(), USBDEVFS_RELEASEINTERFACE, &ioctl_arg);
 }
 
-static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> const & core, unsigned char type, usb_endpoint_t ep, void * buffer, size_t size)
+static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> const & core,
+	unsigned char type, usb_endpoint_t ep, void * buffer, size_t size, int flags)
 {
 	assert(core);
 
@@ -192,6 +193,7 @@ static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> cons
 		urb->buffer = buffer;
 		urb->buffer_length = size;
 		urb->usercontext = ctx.get();
+		urb->flags = flags;
 
 		std::set<detail::urb_context *>::iterator it = core->pending_urbs.insert(ctx.get()).first;
 		if (ioctl(core->fd.get(), USBDEVFS_SUBMITURB, urb) < 0)
@@ -214,12 +216,17 @@ static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> cons
 
 task<size_t> usb_device::bulk_read(usb_endpoint_t ep, uint8_t * buffer, size_t size) const
 {
-	return async_transfer(m_core, USBDEVFS_URB_TYPE_BULK, ep, buffer, size);
+	return async_transfer(m_core, USBDEVFS_URB_TYPE_BULK, ep, buffer, size, 0);
 }
 
 task<size_t> usb_device::bulk_write(usb_endpoint_t ep, uint8_t const * buffer, size_t size) const
 {
-	return async_transfer(m_core, USBDEVFS_URB_TYPE_BULK, ep, const_cast<uint8_t *>(buffer), size);
+	return async_transfer(m_core, USBDEVFS_URB_TYPE_BULK, ep, const_cast<uint8_t *>(buffer), size, 0);
+}
+
+task<size_t> usb_device::bulk_write_zlp(usb_endpoint_t ep, uint8_t const * buffer, size_t size, size_t /*epsize*/) const
+{
+	return async_transfer(m_core, USBDEVFS_URB_TYPE_BULK, ep, const_cast<uint8_t *>(buffer), size, USBDEVFS_URB_ZERO_PACKET);
 }
 
 task<size_t> usb_device::control_read(uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint8_t * buffer, size_t size)
@@ -235,7 +242,7 @@ task<size_t> usb_device::control_read(uint8_t bmRequestType, uint8_t bRequest, u
 	v[6] = size;
 	v[7] = size >> 8;
 
-	return async_transfer(m_core, USBDEVFS_URB_TYPE_CONTROL, 0x80, v.data(), size + 8).then([ctx, buffer](size_t r) {
+	return async_transfer(m_core, USBDEVFS_URB_TYPE_CONTROL, 0x80, v.data(), size + 8, 0).then([ctx, buffer](size_t r) {
 		std::copy(ctx->begin() + 8, ctx->begin() + 8 + r, buffer);
 		return async::value(r);
 	});
@@ -255,7 +262,7 @@ task<void> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, ui
 	v[7] = size >> 8;
 	std::copy(buffer, buffer + size, v.data() + 8);
 
-	return async_transfer(m_core, USBDEVFS_URB_TYPE_CONTROL, 0x00, v.data(), size + 8).then([ctx](size_t) {});
+	return async_transfer(m_core, USBDEVFS_URB_TYPE_CONTROL, 0x00, v.data(), size + 8, 0).then([ctx](size_t) {});
 }
 
 usb_interface const & usb_device_interface::descriptor() const
