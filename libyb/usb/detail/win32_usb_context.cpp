@@ -45,6 +45,8 @@ usb_context::~usb_context()
 async_future<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
 {
 	m_pimpl->m_event_sink = event_sink;
+	m_pimpl->refresh_device_list();
+
 	return m_pimpl->m_runner.post(yb::loop([this](cancel_level cl) -> task<void> {
 		return cl >= cl_quit? nulltask: m_pimpl->run_one();
 	}));
