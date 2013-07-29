@@ -3,6 +3,7 @@
 
 #include "circular_buffer.hpp"
 #include "../cancel_exception.hpp"
+#include "../../utils/except.hpp"
 
 namespace yb {
 
@@ -96,7 +97,7 @@ public:
 	{
 		this->cancel(cl_kill);
 		assert(!m_buffer);
-		return std::copy_exception(task_cancelled());
+		return yb::make_exception_ptr(task_cancelled());
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)

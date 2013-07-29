@@ -1,5 +1,6 @@
 #include "../serial_port.hpp"
 #include "win32_handle_task.hpp"
+#include "../../utils/except.hpp"
 #include <windows.h>
 #include <stdexcept>
 using namespace yb;
@@ -129,7 +130,7 @@ task<void> serial_port::open(string_ref const & name, settings const & s)
 		DWORD dwThreadId;
 		HANDLE hThread = CreateThread(0, 0, &open_thread, params.get(), 0, &dwThreadId);
 		if (!hThread)
-			return std::copy_exception(std::runtime_error("failed to create the open thread"));
+			return yb::make_exception_ptr(std::runtime_error("failed to create the open thread"));
 
 		open_thread_params * params2 = params.release();
 

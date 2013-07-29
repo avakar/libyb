@@ -43,7 +43,7 @@ static task<void> send_escape_seq_write_iter(std::shared_ptr<send_escape_context
 
 task<void> yb::send_generic_escape_seq(stream & sp, int cycle_length_ms, uint8_t const * escseq, size_t escseq_len, uint8_t const * respseq, size_t respseq_len)
 {
-	std::shared_ptr<send_escape_context> ctx = std::make_shared<send_escape_context>(sp, cycle_length_ms, escseq, escseq_len, respseq, respseq_len);
+	std::shared_ptr<send_escape_context> ctx = std::shared_ptr<send_escape_context>(new send_escape_context(sp, cycle_length_ms, escseq, escseq_len, respseq, respseq_len));
 
 	task<void> read_task = loop<size_t>(async::value((size_t)0), [ctx](size_t r, cancel_level cl) -> task<size_t> {
 		if (ctx->respptr)

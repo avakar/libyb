@@ -5,6 +5,7 @@
 #include "win32_affinity_task.hpp"
 #include "win32_wait_context.hpp"
 #include "../../utils/noncopyable.hpp"
+#include "../../utils/except.hpp"
 #include "../cancel_exception.hpp"
 #include <windows.h>
 
@@ -76,7 +77,7 @@ task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 	}
 	else
 	{
-		return task_result<void>(std::copy_exception(task_cancelled()));
+		return task_result<void>(yb::make_exception_ptr(task_cancelled()));
 	}
 }
 

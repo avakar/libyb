@@ -1,6 +1,8 @@
 #ifndef LIBYB_ASYNC_DETAIL_PROMISE_TASK_HPP
 #define LIBYB_ASYNC_DETAIL_PROMISE_TASK_HPP
 
+#include "../../utils/except.hpp"
+
 namespace yb {
 namespace detail {
 
@@ -37,7 +39,7 @@ public:
 		if (m_buffer)
 			return task_result<T>(m_buffer->front());
 		else
-			return task_result<T>(std::copy_exception(task_cancelled()));
+			return task_result<T>(yb::make_exception_ptr(task_cancelled()));
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)

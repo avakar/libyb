@@ -1,5 +1,6 @@
 #include "win32_affinity_task.hpp"
 #include "../cancel_exception.hpp"
+#include "../../utils/except.hpp"
 using namespace yb;
 
 win32_affinity_task::win32_affinity_task()
@@ -14,7 +15,7 @@ void win32_affinity_task::cancel(cancel_level cl) throw()
 
 task_result<void> win32_affinity_task::cancel_and_wait() throw()
 {
-	return task_result<void>(std::copy_exception(task_cancelled(cl_kill)));
+	return task_result<void>(yb::make_exception_ptr(task_cancelled(cl_kill)));
 }
 
 void win32_affinity_task::prepare_wait(task_wait_preparation_context & ctx)
