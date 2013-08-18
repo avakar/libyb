@@ -2,7 +2,7 @@
 #define LIBYB_USB_USB_CONTEXT_HPP
 
 #include "usb_device.hpp"
-#include "../async/async_runner.hpp"
+#include "../async/runner.hpp"
 #include "../utils/noncopyable.hpp"
 #include <vector>
 #include <memory>
@@ -23,10 +23,10 @@ class usb_context
 	: noncopyable
 {
 public:
-	explicit usb_context(async_runner & runner);
+	explicit usb_context(runner & r);
 	~usb_context();
 
-	async_future<void> run(std::function<void (usb_plugin_event const &)> const & event_sink);
+	task<void> run(std::function<void (usb_plugin_event const &)> const & event_sink);
 
 private:
 	struct impl;

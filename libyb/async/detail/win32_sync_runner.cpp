@@ -1,30 +1,167 @@
 #include "../sync_runner.hpp"
+#include "../../utils/detail/win32_mutex.hpp"
 #include "win32_wait_context.hpp"
+#include <stdexcept>
+#include <list>
+#include <cassert>
+#include <windows.h>
 using namespace yb;
 
-void sync_runner::poll_one(task_wait_preparation_context & wait_ctx)
+struct sync_runner::impl
 {
-	task_wait_preparation_context_impl & wait_ctx_impl = *wait_ctx.get();
-
-	wait_ctx.clear();
-	m_parallel_tasks.prepare_wait(wait_ctx);
-
-	if (wait_ctx_impl.m_finished_tasks)
+	struct task_entry
 	{
-		task_wait_finalization_context finish_ctx;
-		finish_ctx.finished_tasks = wait_ctx_impl.m_finished_tasks;
-		m_parallel_tasks.finish_wait(finish_ctx);
+		task_wait_memento memento;
+		detail::prepared_task * pt;
+	};
+
+	detail::win32_mutex m_mutex;
+	HANDLE m_update_event;
+	DWORD m_associated_thread;
+	std::list<task_entry> m_tasks;
+};
+
+sync_runner::sync_runner()
+	: m_pimpl(new impl())
+{
+	m_pimpl->m_update_event = CreateEvent(0, FALSE, FALSE, 0);
+	if (!m_pimpl->m_update_event)
+		throw std::runtime_error("Failed to create an event");
+	m_pimpl->m_associated_thread = 0;
+}
+
+sync_runner::~sync_runner()
+{
+	for (std::list<impl::task_entry>::iterator it = m_pimpl->m_tasks.begin(), eit = m_pimpl->m_tasks.end(); it != eit; ++it)
+	{
+		it->pt->cancel_and_wait();
+		it->pt->detach_event_sink();
+	}
+
+	CloseHandle(m_pimpl->m_update_event);
+}
+
+void sync_runner::associate_current_thread()
+{
+	assert(m_pimpl->m_associated_thread == 0);
+	m_pimpl->m_associated_thread = ::GetCurrentThreadId();
+}
+
+void sync_runner::run_until(detail::prepared_task * focused_pt)
+{
+	task_wait_preparation_context prep_ctx;
+	task_wait_preparation_context_impl * prep_ctx_impl = prep_ctx.get();
+
+	task_wait_finalization_context fin_ctx;
+	fin_ctx.prep_ctx = &prep_ctx;
+
+	bool done = false;
+	while (!done && !m_pimpl->m_tasks.empty())
+	{
+		for (impl::task_entry & pe: m_pimpl->m_tasks)
+			pe.pt->apply_cancel();
+
+		prep_ctx.clear();
+		prep_ctx_impl->m_handles.push_back(m_pimpl->m_update_event);
+
+		for (impl::task_entry & pe: m_pimpl->m_tasks)
+		{
+			task_wait_memento_builder mb(prep_ctx);
+			pe.pt->prepare_wait(prep_ctx);
+			pe.memento = mb.finish();
+		}
+
+		if (prep_ctx_impl->m_finished_tasks)
+		{
+			fin_ctx.selected_poll_item = 0;
+			for (std::list<impl::task_entry>::iterator it = m_pimpl->m_tasks.begin(), eit = m_pimpl->m_tasks.end(); it != eit;)
+			{
+				impl::task_entry & pe = *it;
+
+				if (pe.memento.finished_task_count)
+				{
+					fin_ctx.finished_tasks = pe.memento.finished_task_count;
+					if (pe.pt->finish_wait(fin_ctx))
+					{
+						if (pe.pt == focused_pt)
+							done = true;
+						pe.pt->detach_event_sink();
+						it = m_pimpl->m_tasks.erase(it);
+					}
+					else
+					{
+						++it;
+					}
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+		else
+		{
+			DWORD res = WaitForMultipleObjects(prep_ctx_impl->m_handles.size(), prep_ctx_impl->m_handles.data(), FALSE, INFINITE);
+			if (res != WAIT_OBJECT_0)
+			{
+				size_t selected = res - WAIT_OBJECT_0;
+				fin_ctx.finished_tasks = 0;
+				for (std::list<impl::task_entry>::iterator it = m_pimpl->m_tasks.begin(), eit = m_pimpl->m_tasks.end(); it != eit; ++it)
+				{
+					impl::task_entry & pe = *it;
+					if (pe.memento.poll_item_first <= selected && pe.memento.poll_item_last > selected)
+					{
+						fin_ctx.selected_poll_item = selected - pe.memento.poll_item_first;
+						if (pe.pt->finish_wait(fin_ctx))
+						{
+							if (pe.pt == focused_pt)
+								done = true;
+							pe.pt->detach_event_sink();
+							m_pimpl->m_tasks.erase(it);
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+void sync_runner::submit(detail::prepared_task * pt)
+{
+	impl::task_entry te;
+	te.pt = pt;
+
+	detail::scoped_win32_lock l(m_pimpl->m_mutex);
+	m_pimpl->m_tasks.push_back(te);
+	pt->attach_event_sink(*this);
+	::SetEvent(m_pimpl->m_update_event);
+}
+
+void sync_runner::cancel(detail::prepared_task *, cancel_level) throw()
+{
+	::SetEvent(m_pimpl->m_update_event);
+}
+
+void sync_runner::cancel_and_wait(detail::prepared_task * pt) throw()
+{
+	if (m_pimpl->m_associated_thread == ::GetCurrentThreadId())
+	{
+		for (std::list<impl::task_entry>::iterator it = m_pimpl->m_tasks.begin(), eit = m_pimpl->m_tasks.end(); it != eit; ++it)
+		{
+			if (it->pt == pt)
+			{
+				m_pimpl->m_tasks.erase(it);
+				break;
+			}
+		}
+
+		pt->cancel_and_wait();
+		pt->detach_event_sink(); 
 	}
 	else
 	{
-		assert(!wait_ctx_impl.m_handles.empty());
-
-		DWORD dwRes = WaitForMultipleObjects(wait_ctx_impl.m_handles.size(), wait_ctx_impl.m_handles.data(), FALSE, INFINITE);
-		assert(dwRes >= WAIT_OBJECT_0 && dwRes < WAIT_OBJECT_0 + wait_ctx_impl.m_handles.size());
-
-		task_wait_finalization_context finish_ctx;
-		finish_ctx.finished_tasks = false;
-		finish_ctx.selected_poll_item = dwRes - WAIT_OBJECT_0;
-		m_parallel_tasks.finish_wait(finish_ctx);
+		pt->request_cancel(cl_kill);
+		pt->shadow_wait();
 	}
 }

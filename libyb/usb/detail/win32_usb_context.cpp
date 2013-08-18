@@ -1,7 +1,7 @@
 #include "../usb_context.hpp"
 #include "win32_usb_device_core.hpp"
 #include "usb_request_context.hpp"
-#include "../../async/sync_runner.hpp"
+#include "../../async/async_runner.hpp"
 #include "../../async/timer.hpp"
 #include <map>
 #include <memory>
@@ -10,7 +10,7 @@ using namespace yb;
 struct usb_context::impl
 	: noncopyable
 {
-	async_runner & m_runner;
+	runner & m_runner;
 
 	std::vector<std::shared_ptr<detail::usb_device_core>> m_devices;
 	std::map<size_t, std::weak_ptr<detail::usb_device_core>> m_device_repository;
@@ -18,8 +18,8 @@ struct usb_context::impl
 	timer m_refresh_timer;
 	std::function<void (usb_plugin_event const &)> m_event_sink;
 
-	impl(async_runner & runner)
-		: m_runner(runner), m_devices(LIBUSB_MAX_NUMBER_OF_DEVICES)
+	impl(runner & r)
+		: m_runner(r), m_devices(LIBUSB_MAX_NUMBER_OF_DEVICES)
 	{
 	}
 
@@ -33,8 +33,8 @@ struct usb_context::impl
 	void refresh_device_list();
 };
 
-usb_context::usb_context(async_runner & runner)
-	: m_pimpl(new impl(runner))
+usb_context::usb_context(runner & r)
+	: m_pimpl(new impl(r))
 {
 }
 
@@ -42,7 +42,7 @@ usb_context::~usb_context()
 {
 }
 
-async_future<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
+task<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
 {
 	m_pimpl->m_event_sink = event_sink;
 	m_pimpl->refresh_device_list();

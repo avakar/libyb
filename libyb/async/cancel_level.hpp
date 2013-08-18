@@ -14,9 +14,14 @@ enum cancel_level_constant_t
 class cancel_level
 {
 public:
-	cancel_level(cancel_level_constant_t level = cl_none)
+	cancel_level(int level = cl_none)
 		: m_level(level)
 	{
+	}
+
+	int get() const
+	{
+		return m_level;
 	}
 
 	friend bool operator==(cancel_level const & lhs, cancel_level const & rhs)
@@ -50,7 +55,7 @@ public:
 	}
 
 private:
-	cancel_level_constant_t m_level;
+	int m_level;
 };
 
 } // namespace yb
