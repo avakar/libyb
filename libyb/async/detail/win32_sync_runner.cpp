@@ -57,6 +57,8 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
 	task_wait_finalization_context fin_ctx;
 	fin_ctx.prep_ctx = &prep_ctx;
 
+	detail::scoped_win32_lock l(m_pimpl->m_mutex);
+
 	bool done = false;
 	while (!done && !m_pimpl->m_tasks.empty())
 	{
@@ -103,7 +105,11 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
 		}
 		else
 		{
+			::ResetEvent(m_pimpl->m_update_event);
+			m_pimpl->m_mutex.unlock();
 			DWORD res = WaitForMultipleObjects(prep_ctx_impl->m_handles.size(), prep_ctx_impl->m_handles.data(), FALSE, INFINITE);
+			m_pimpl->m_mutex.lock();
+
 			if (res != WAIT_OBJECT_0)
 			{
 				size_t selected = res - WAIT_OBJECT_0;
@@ -142,6 +148,7 @@ void sync_runner::submit(detail::prepared_task * pt)
 
 void sync_runner::cancel(detail::prepared_task *, cancel_level) throw()
 {
+	detail::scoped_win32_lock l(m_pimpl->m_mutex);
 	::SetEvent(m_pimpl->m_update_event);
 }
 
