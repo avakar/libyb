@@ -1,5 +1,6 @@
 #include "../async_channel.hpp"
 #include "win32_handle_task.hpp"
+#include "../../utils/detail/win32_mutex.hpp"
 #include <stdexcept>
 
 using namespace yb;
@@ -12,28 +13,26 @@ struct async_channel_base::impl
 		hDataReady = CreateEvent(0, TRUE, FALSE, 0);
 		if (!hDataReady)
 			throw std::runtime_error("couldn't create event");
-		InitializeCriticalSection(&cs);
 	}
 
 	~impl()
 	{
-		DeleteCriticalSection(&cs);
 		CloseHandle(hDataReady);
 	}
 
-	CRITICAL_SECTION cs;
+	win32_mutex cs;
 	HANDLE hDataReady;
 };
 
 async_channel_base::scoped_lock::scoped_lock(async_channel_base * ch)
 	: m_ch(ch)
 {
-	EnterCriticalSection(&m_ch->m_pimpl->cs);
+	m_ch->m_pimpl->cs.lock();
 }
 
 async_channel_base::scoped_lock::~scoped_lock()
 {
-	LeaveCriticalSection(&m_ch->m_pimpl->cs);
+	m_ch->m_pimpl->cs.unlock();
 }
 
 async_channel_base::async_channel_base()

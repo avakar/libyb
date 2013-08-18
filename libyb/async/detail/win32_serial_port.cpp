@@ -1,6 +1,7 @@
 #include "../serial_port.hpp"
 #include "win32_handle_task.hpp"
 #include "../../utils/except.hpp"
+#include "../../utils/detail/win32_mutex.hpp"
 #include <windows.h>
 #include <stdexcept>
 using namespace yb;
@@ -50,15 +51,13 @@ struct open_thread_params
 	explicit open_thread_params()
 		: m_dcb(), m_hFile(INVALID_HANDLE_VALUE), m_state(st_running)
 	{
-		InitializeCriticalSection(&cs);
 	}
 
 	~open_thread_params()
 	{
-		DeleteCriticalSection(&cs);
 	}
 
-	CRITICAL_SECTION cs;
+	detail::win32_mutex cs;
 	std::string m_name;
 	DCB m_dcb;
 
@@ -87,20 +86,22 @@ static DWORD CALLBACK open_thread(void * param)
 	SetCommTimeouts(hFile, &ct);
 
 	bool delete_params = false;
-	EnterCriticalSection(&params->cs);
-	if (params->m_state == open_thread_params::st_cancelled)
+
 	{
-		delete_params = true;
-		if (hFile != INVALID_HANDLE_VALUE)
-			CloseHandle(hFile);
+		detail::scoped_win32_lock l(params->cs);
+		if (params->m_state == open_thread_params::st_cancelled)
+		{
+			delete_params = true;
+			if (hFile != INVALID_HANDLE_VALUE)
+				CloseHandle(hFile);
+		}
+		else
+		{
+			params->m_hFile = hFile;
+			params->dwError = GetLastError();
+			params->m_state = open_thread_params::st_finished;
+		}
 	}
-	else
-	{
-		params->m_hFile = hFile;
-		params->dwError = GetLastError();
-		params->m_state = open_thread_params::st_finished;
-	}
-	LeaveCriticalSection(&params->cs);
 
 	if (delete_params)
 		delete params;
@@ -139,19 +140,21 @@ task<void> serial_port::open(string_ref const & name, settings const & s)
 				return true;
 
 			bool cancelled = false;
-			EnterCriticalSection(&params2->cs);
-			if (params2->m_state == open_thread_params::st_running)
+
 			{
-				if (HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll"))
+				detail::scoped_win32_lock l(params2->cs);
+				if (params2->m_state == open_thread_params::st_running)
 				{
-					typedef BOOL WINAPI CancelSynchronousIo_t(HANDLE hThread);
-					if (CancelSynchronousIo_t * CancelSynchronousIo = (CancelSynchronousIo_t *)GetProcAddress(hKernel32, "CancelSynchronousIo"))
-						CancelSynchronousIo(hThread);
+					if (HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll"))
+					{
+						typedef BOOL WINAPI CancelSynchronousIo_t(HANDLE hThread);
+						if (CancelSynchronousIo_t * CancelSynchronousIo = (CancelSynchronousIo_t *)GetProcAddress(hKernel32, "CancelSynchronousIo"))
+							CancelSynchronousIo(hThread);
+					}
+					params2->m_state = open_thread_params::st_cancelled;
+					cancelled = true;
 				}
-				params2->m_state = open_thread_params::st_cancelled;
-				cancelled = true;
 			}
-			LeaveCriticalSection(&params2->cs);
 
 			if (cancelled)
 				CloseHandle(hThread);
