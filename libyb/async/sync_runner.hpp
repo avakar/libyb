@@ -11,7 +11,7 @@ class sync_runner
 	, private detail::prepared_task_event_sink
 {
 public:
-	sync_runner();
+	explicit sync_runner(bool associate_thread_now = true);
 	~sync_runner();
 
 	void associate_current_thread();

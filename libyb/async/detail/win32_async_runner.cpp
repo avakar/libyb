@@ -11,12 +11,18 @@ struct async_runner::impl
 	promise<void> m_stop_promise;
 	HANDLE m_thread_handle;
 
+	impl()
+		: m_runner(/*associate_thread_now=*/false)
+	{
+	}
+
 	static DWORD CALLBACK thread_proc(LPVOID param);
 };
 
 DWORD CALLBACK async_runner::impl::thread_proc(LPVOID param)
 {
 	impl * pimpl = static_cast<impl *>(param);
+	pimpl->m_runner.associate_current_thread();
 	pimpl->m_runner.run(pimpl->m_stop_promise.wait_for());
 	return 0;
 }

@@ -21,13 +21,13 @@ struct sync_runner::impl
 	std::list<task_entry> m_tasks;
 };
 
-sync_runner::sync_runner()
+sync_runner::sync_runner(bool associate_thread_now)
 	: m_pimpl(new impl())
 {
 	m_pimpl->m_update_event = CreateEvent(0, FALSE, FALSE, 0);
 	if (!m_pimpl->m_update_event)
 		throw std::runtime_error("Failed to create an event");
-	m_pimpl->m_associated_thread = 0;
+	m_pimpl->m_associated_thread = associate_thread_now? ::GetCurrentThreadId(): 0;
 }
 
 sync_runner::~sync_runner()
@@ -49,6 +49,8 @@ void sync_runner::associate_current_thread()
 
 void sync_runner::run_until(detail::prepared_task * focused_pt)
 {
+	assert(m_pimpl->m_associated_thread == GetCurrentThreadId());
+
 	task_wait_preparation_context prep_ctx;
 	task_wait_preparation_context_impl * prep_ctx_impl = prep_ctx.get();
 
@@ -145,6 +147,8 @@ void sync_runner::cancel(detail::prepared_task *, cancel_level) throw()
 
 void sync_runner::cancel_and_wait(detail::prepared_task * pt) throw()
 {
+	assert(m_pimpl->m_associated_thread != 0);
+
 	if (m_pimpl->m_associated_thread == ::GetCurrentThreadId())
 	{
 		for (std::list<impl::task_entry>::iterator it = m_pimpl->m_tasks.begin(), eit = m_pimpl->m_tasks.end(); it != eit; ++it)
