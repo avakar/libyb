@@ -220,6 +220,8 @@ task<R> raise()
 	return task<R>(std::current_exception());
 }
 
+task<void> exit_guard(cancel_level cancel_threshold = cl_quit);
+
 } // namespace async
 
 } // namespace yb
