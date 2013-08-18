@@ -3,53 +3,147 @@
 #include "usb_request_context.hpp"
 #include "../../async/async_runner.hpp"
 #include "../../async/timer.hpp"
+#include "../../utils/detail/win32_mutex.hpp"
 #include <map>
+#include <list>
+#include <array>
 #include <memory>
 using namespace yb;
 
 struct usb_context::impl
 	: noncopyable
 {
+	struct monitor_entry
+	{
+		std::function<void (usb_plugin_event const &)> event_sink;
+		int action_mask;
+	};
+
 	runner & m_runner;
 
-	std::vector<std::shared_ptr<detail::usb_device_core>> m_devices;
+	std::array<std::shared_ptr<detail::usb_device_core>, LIBUSB_MAX_NUMBER_OF_DEVICES> m_devices;
 	std::map<size_t, std::weak_ptr<detail::usb_device_core>> m_device_repository;
 
 	timer m_refresh_timer;
-	std::function<void (usb_plugin_event const &)> m_event_sink;
+	task<void> m_refresh_loop;
 
 	impl(runner & r)
-		: m_runner(r), m_devices(LIBUSB_MAX_NUMBER_OF_DEVICES)
+		: m_runner(r)
 	{
 	}
 
-	task<void> run_one()
-	{
-		return m_refresh_timer.wait_ms(1000).then([this] {
-			this->refresh_device_list();
-		});
-	}
+	task<void> run_one();
 
+	detail::win32_mutex m_mutex;
+	std::list<monitor_entry> m_monitors;
+
+	void monitor_current(usb_plugin_event::action_t action, std::function<void (usb_plugin_event const &)> const & event_sink);
 	void refresh_device_list();
+	void emit_events(usb_plugin_event const & ev);
 };
+
+struct usb_monitor::impl
+{
+	usb_context::impl * ctx_pimpl;
+	std::list<usb_context::impl::monitor_entry>::iterator me_iter;
+};
+
+usb_monitor::usb_monitor(std::unique_ptr<impl> && pimpl)
+	: m_pimpl(std::move(pimpl))
+{
+}
+
+usb_monitor::usb_monitor(usb_monitor && o)
+	: m_pimpl(std::move(o.m_pimpl))
+{
+}
+
+usb_monitor::~usb_monitor()
+{
+	if (m_pimpl.get())
+	{
+		detail::scoped_win32_lock l(m_pimpl->ctx_pimpl->m_mutex);
+		m_pimpl->ctx_pimpl->m_monitors.erase(m_pimpl->me_iter);
+	}
+}
 
 usb_context::usb_context(runner & r)
 	: m_pimpl(new impl(r))
 {
+	m_pimpl->refresh_device_list();
+	m_pimpl->m_refresh_loop = m_pimpl->m_runner.post(yb::loop([this](cancel_level cl) -> task<void> {
+		return cl >= cl_quit? nulltask: m_pimpl->run_one();
+	}));
 }
 
 usb_context::~usb_context()
 {
 }
 
-task<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
+std::vector<usb_device> usb_context::list_devices()
 {
-	m_pimpl->m_event_sink = event_sink;
-	m_pimpl->refresh_device_list();
+	std::vector<usb_device> res;
 
-	return m_pimpl->m_runner.post(yb::loop([this](cancel_level cl) -> task<void> {
-		return cl >= cl_quit? nulltask: m_pimpl->run_one();
-	}));
+	{
+		detail::scoped_win32_lock l(m_pimpl->m_mutex);
+		for (size_t i = 0; i < m_pimpl->m_devices.size(); ++i)
+		{
+			if (m_pimpl->m_devices[i].get())
+				res.push_back(usb_device(m_pimpl->m_devices[i]));
+		}
+	}
+
+	return res;
+}
+
+usb_monitor usb_context::monitor(
+	std::function<void (usb_plugin_event const &)> const & event_sink,
+	int action_mask)
+{
+	std::unique_ptr<usb_monitor::impl> pimpl(new usb_monitor::impl());
+	pimpl->ctx_pimpl = m_pimpl.get();
+
+	detail::scoped_win32_lock l(m_pimpl->m_mutex);
+
+	impl::monitor_entry me;
+	me.event_sink = event_sink;
+	me.action_mask = action_mask;
+	m_pimpl->m_monitors.push_back(std::move(me));
+	pimpl->me_iter = std::prev(m_pimpl->m_monitors.end());
+
+	usb_monitor res(std::move(pimpl));
+
+	if (action_mask & usb_plugin_event::a_initial)
+		m_pimpl->monitor_current(usb_plugin_event::a_initial, event_sink);
+
+	return std::move(res);
+}
+
+task<void> usb_context::impl::run_one()
+{
+	return m_refresh_timer.wait_ms(1000).then([this] {
+		detail::scoped_win32_lock l(m_mutex);
+		this->refresh_device_list();
+	});
+}
+
+void usb_context::impl::monitor_current(usb_plugin_event::action_t action, std::function<void (usb_plugin_event const &)> const & event_sink)
+{
+	for (size_t i = 0; i < m_devices.size(); ++i)
+	{
+		std::shared_ptr<detail::usb_device_core> const & core = m_devices[i];
+		if (core.get() == nullptr)
+			continue;
+
+		event_sink(usb_plugin_event(usb_plugin_event::a_initial, usb_device(core)));
+
+		if (core->active_config_index < core->configs.size())
+		{
+			usb_config_descriptor * config = &core->configs[core->active_config_index];
+			for (size_t i = 0; i < config->interfaces.size(); ++i)
+				event_sink(usb_plugin_event(action, usb_device_interface(core, core->active_config_index, i)));
+		}
+	}
 }
 
 void usb_context::impl::refresh_device_list()
@@ -76,18 +170,10 @@ void usb_context::impl::refresh_device_list()
 				{
 					usb_config_descriptor * config = &core->configs[core->active_config_index];
 					for (size_t i = 0; i < config->interfaces.size(); ++i)
-					{
-						usb_plugin_event pe;
-						pe.action = usb_plugin_event::a_remove;
-						pe.intf = usb_device_interface(core, core->active_config_index, i);
-						m_event_sink(pe);
-					}
+						this->emit_events(usb_plugin_event(usb_plugin_event::a_remove, usb_device_interface(core, core->active_config_index, i)));
 				}
 
-				usb_plugin_event dp;
-				dp.action = usb_plugin_event::a_remove;
-				dp.dev = usb_device(core);
-				m_event_sink(dp);
+				this->emit_events(usb_plugin_event(usb_plugin_event::a_remove, usb_device(core)));
 			}
 			continue;
 		}
@@ -162,11 +248,7 @@ void usb_context::impl::refresh_device_list()
 
 		repo_dev = dev;
 		m_devices[i] = dev;
-
-		usb_plugin_event dp;
-		dp.action = usb_plugin_event::a_add;
-		dp.dev = usb_device(dev);
-		m_event_sink(dp);
+		this->emit_events(usb_plugin_event(usb_plugin_event::a_add, usb_device(dev)));
 	}
 
 	for (size_t i = 0; i < m_devices.size(); ++i)
@@ -185,12 +267,7 @@ void usb_context::impl::refresh_device_list()
 		{
 			usb_config_descriptor * config = &core->configs[core->active_config_index];
 			for (size_t i = 0; i < config->interfaces.size(); ++i)
-			{
-				usb_plugin_event pe;
-				pe.action = usb_plugin_event::a_remove;
-				pe.intf = usb_device_interface(core, core->active_config_index, i);
-				m_event_sink(pe);
-			}
+				this->emit_events(usb_plugin_event(usb_plugin_event::a_remove, usb_device_interface(core, core->active_config_index, i)));
 		}
 
 		core->active_config = active_config;
@@ -208,12 +285,16 @@ void usb_context::impl::refresh_device_list()
 		{
 			usb_config_descriptor * config = &core->configs[core->active_config_index];
 			for (size_t i = 0; i < config->interfaces.size(); ++i)
-			{
-				usb_plugin_event pe;
-				pe.action = usb_plugin_event::a_add;
-				pe.intf = usb_device_interface(core, core->active_config_index, i);
-				m_event_sink(pe);
-			}
+				this->emit_events(usb_plugin_event(usb_plugin_event::a_add, usb_device_interface(core, core->active_config_index, i)));
 		}
+	}
+}
+
+void usb_context::impl::emit_events(usb_plugin_event const & ev)
+{
+	for (std::list<monitor_entry>::const_iterator it = m_monitors.begin(), eit = m_monitors.end(); it != eit; ++it)
+	{
+		if (it->action_mask & ev.action)
+			it->event_sink(ev);
 	}
 }
