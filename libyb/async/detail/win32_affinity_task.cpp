@@ -23,7 +23,7 @@ void win32_affinity_task::prepare_wait(task_wait_preparation_context & ctx)
 	ctx.set_finished();
 }
 
-task<void> win32_affinity_task::finish_wait(task_wait_finalization_context & ctx) throw()
+task<void> win32_affinity_task::finish_wait(task_wait_finalization_context &) throw()
 {
 	return m_cl != cl_none? async::raise<void>(task_cancelled(m_cl)): async::value();
 }

@@ -143,7 +143,7 @@ void shadow_task<R>::prepare_wait(task_wait_preparation_context & ctx)
 }
 
 template <typename R>
-task<R> shadow_task<R>::finish_wait(task_wait_finalization_context & ctx) throw()
+task<R> shadow_task<R>::finish_wait(task_wait_finalization_context &) throw()
 {
 	return task<R>(m_pt->fetch_result());
 }

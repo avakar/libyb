@@ -27,7 +27,7 @@ void exit_guard_task::prepare_wait(task_wait_preparation_context & ctx)
 		ctx.set_finished();
 }
 
-task<void> exit_guard_task::finish_wait(task_wait_finalization_context & ctx) throw()
+task<void> exit_guard_task::finish_wait(task_wait_finalization_context &) throw()
 {
 	return async::value();
 }
