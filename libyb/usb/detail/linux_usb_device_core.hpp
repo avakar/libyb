@@ -29,7 +29,7 @@ struct usb_device_core
 	std::string syspath;
 	usb_device_descriptor desc;
 	std::vector<usb_config_descriptor> configs;
-	async_future<void> dispatch_loop;
+    task<void> dispatch_loop;
 
 	std::string iProduct;
 	std::string iManufacturer;

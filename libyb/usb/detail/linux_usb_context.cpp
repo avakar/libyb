@@ -57,7 +57,7 @@ static task<void> dispatch_loop(std::shared_ptr<usb_device_core> const & core)
 
 struct usb_context::impl
 {
-	async_runner & m_runner;
+    runner & m_runner;
 	pthread_mutex m_mutex;
 
 	scoped_udev m_udev;
@@ -68,8 +68,8 @@ struct usb_context::impl
 
 	std::function<void (usb_plugin_event const &)> m_event_sink;
 
-	explicit impl(async_runner & runner)
-		: m_runner(runner)
+    explicit impl(runner & r)
+        : m_runner(r)
 	{
 	}
 
@@ -309,8 +309,8 @@ struct usb_context::impl
 	}
 };
 
-usb_context::usb_context(async_runner & runner)
-	: m_pimpl(new impl(runner))
+usb_context::usb_context(runner & r)
+    : m_pimpl(new impl(r))
 {
 	m_pimpl->m_udev.reset(udev_new());
 	if (m_pimpl->m_udev.empty())
@@ -328,7 +328,7 @@ usb_context::~usb_context()
 {
 }
 
-async_future<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
+task<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
 {
 	m_pimpl->m_event_sink = event_sink;
 	m_pimpl->enumerate_all();

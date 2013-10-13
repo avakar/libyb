@@ -1,6 +1,7 @@
 #ifndef LIBYB_UTILS_SVF_PARSER_HPP
 #define LIBYB_UTILS_SVF_PARSER_HPP
 
+#include <limits>
 #include <iostream>
 #include <vector>
 #include <string>

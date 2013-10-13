@@ -6,7 +6,7 @@
 namespace yb {
 
 template <typename R>
-task<R> runner::post(task<R> && t)
+task<R> runner::post(task<R> && t) throw()
 {
 	if (t.has_result())
 		return std::move(t);
@@ -25,7 +25,7 @@ task<R> runner::post(task<R> && t)
 }
 
 template <typename R>
-task_result<R> runner::try_run(task<R> && t)
+task_result<R> runner::try_run(task<R> && t) throw()
 {
 	if (t.has_result())
 		return t.get_result();
@@ -44,7 +44,7 @@ task_result<R> runner::try_run(task<R> && t)
 }
 
 template <typename R>
-R runner::run(task<R> && t)
+R runner::run(task<R> && t) throw()
 {
 	return this->try_run(std::move(t)).get();
 }
