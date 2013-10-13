@@ -11,19 +11,15 @@ class runner
 {
 public:
 	template <typename R>
-	task<R> post(task<R> && t);
+	task<R> post(task<R> && t) throw();
 
 	template <typename R>
-	void post_detached(task<R> && t);
+	task_result<R> try_run(task<R> && t) throw();
 
 	template <typename R>
-	task_result<R> try_run(task<R> && t);
+	R run(task<R> && t) throw();
 
-	template <typename R>
-	R run(task<R> && t);
-
-	void run();
-
+protected:
 	virtual void submit(detail::prepared_task * pt) = 0;
 	virtual void run_until(detail::prepared_task * pt) = 0;
 };

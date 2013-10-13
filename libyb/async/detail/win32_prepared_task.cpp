@@ -46,12 +46,20 @@ void prepared_task::release()
 
 void prepared_task::request_cancel(cancel_level cl)
 {
-	detail::scoped_win32_lock l(m_pimpl->m_mutex);
-	if (m_pimpl->m_requested_cl < cl.get())
+	cancel_level guess_cl = cl_none;
+	while (guess_cl < cl)
 	{
-		m_pimpl->m_requested_cl = cl.get();
-		if (m_pimpl->m_runner)
-			m_pimpl->m_runner->cancel(this, cl);
+		cancel_level previous_cl = ::InterlockedCompareExchange(&m_pimpl->m_requested_cl, cl, guess_cl);
+		if (previous_cl == guess_cl)
+		{
+			// We managed to increase the cancel level, signal the runner
+			// to apply it.
+			detail::scoped_win32_lock l(m_pimpl->m_mutex);
+			if (m_pimpl->m_runner)
+				m_pimpl->m_runner->cancel(this);
+			return;
+		}
+		guess_cl = previous_cl;
 	}
 }
 
@@ -94,8 +102,8 @@ void prepared_task::detach_event_sink() throw()
 
 cancel_level prepared_task::requested_cancel_level() const
 {
-	detail::scoped_win32_lock l(m_pimpl->m_mutex);
-	return cancel_level(m_pimpl->m_requested_cl);
+	LONG const volatile & cl = m_pimpl->m_requested_cl;
+	return cancel_level(cl);
 }
 
 void prepared_task::mark_finished()

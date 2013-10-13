@@ -11,7 +11,7 @@ class prepared_task;
 
 struct prepared_task_event_sink
 {
-	virtual void cancel(prepared_task * promise, cancel_level cl) throw() = 0;
+	virtual void cancel(prepared_task * promise) throw() = 0;
 	virtual void cancel_and_wait(prepared_task * promise) throw() = 0;
 };
 

@@ -50,5 +50,5 @@ void async_runner::submit(detail::prepared_task * pt)
 
 void async_runner::run_until(detail::prepared_task * pt)
 {
-	m_pimpl->m_runner.run_until(pt);
+	pt->shadow_wait();
 }

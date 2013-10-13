@@ -62,14 +62,15 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
 	bool done = false;
 	while (!done && !m_pimpl->m_tasks.empty())
 	{
-		for (impl::task_entry & pe: m_pimpl->m_tasks)
-			pe.pt->apply_cancel();
+		for (auto it = m_pimpl->m_tasks.begin(); it != m_pimpl->m_tasks.end(); ++it)
+			it->pt->apply_cancel();
 
 		prep_ctx.clear();
 		prep_ctx_impl->m_handles.push_back(m_pimpl->m_update_event);
 
-		for (impl::task_entry & pe: m_pimpl->m_tasks)
+		for (auto it = m_pimpl->m_tasks.begin(); it != m_pimpl->m_tasks.end(); ++it)
 		{
+			impl::task_entry & pe = *it;
 			task_wait_memento_builder mb(prep_ctx);
 			pe.pt->prepare_wait(prep_ctx);
 			pe.memento = mb.finish();
@@ -119,7 +120,8 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
 					impl::task_entry & pe = *it;
 					if (pe.memento.poll_item_first <= selected && pe.memento.poll_item_last > selected)
 					{
-						fin_ctx.selected_poll_item = selected - pe.memento.poll_item_first;
+						//fin_ctx.selected_poll_item = selected - pe.memento.poll_item_first;
+						fin_ctx.selected_poll_item = selected;
 						if (pe.pt->finish_wait(fin_ctx))
 						{
 							if (pe.pt == focused_pt)
@@ -146,9 +148,8 @@ void sync_runner::submit(detail::prepared_task * pt)
 	::SetEvent(m_pimpl->m_update_event);
 }
 
-void sync_runner::cancel(detail::prepared_task *, cancel_level) throw()
+void sync_runner::cancel(detail::prepared_task *) throw()
 {
-	detail::scoped_win32_lock l(m_pimpl->m_mutex);
 	::SetEvent(m_pimpl->m_update_event);
 }
 

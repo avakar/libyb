@@ -11,6 +11,7 @@ SOURCES += \
     $$PWD/libyb/async/stream.cpp \
     $$PWD/libyb/async/stream_device.cpp \
     $$PWD/libyb/async/timer.cpp \
+    $$PWD/libyb/async/detail/exit_guard_task.cpp \
     $$PWD/libyb/async/detail/parallel_composition_task.cpp \
     $$PWD/libyb/async/detail/task_impl.cpp \
     $$PWD/libyb/shupito/escape_sequence.cpp \
@@ -34,6 +35,7 @@ win32 {
         $$PWD/libyb/async/detail/win32_async_channel.cpp \
         $$PWD/libyb/async/detail/win32_async_runner.cpp \
         $$PWD/libyb/async/detail/win32_handle_task.cpp \
+        $$PWD/libyb/async/detail/win32_prepared_task.cpp \
         $$PWD/libyb/async/detail/win32_serial_port.cpp \
         $$PWD/libyb/async/detail/win32_sync_runner.cpp \
         $$PWD/libyb/async/detail/win32_timer.cpp \
@@ -42,6 +44,7 @@ win32 {
         $$PWD/libyb/usb/detail/win32_usb_context.cpp \
         $$PWD/libyb/usb/detail/win32_usb_device.cpp \
         $$PWD/libyb/utils/detail/win32_file_operation.cpp \
+        $$PWD/libyb/utils/detail/win32_mutex.cpp \
         $$PWD/libyb/utils/detail/win32_overlapped.cpp
 }
 

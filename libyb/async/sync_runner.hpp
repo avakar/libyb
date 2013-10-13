@@ -20,7 +20,7 @@ public:
 	void submit(detail::prepared_task * pt) override;
 
 private:
-	void cancel(detail::prepared_task * pt, cancel_level cl) throw() override;
+	void cancel(detail::prepared_task * pt) throw() override;
 	void cancel_and_wait(detail::prepared_task * pt) throw() override;
 
 	struct impl;

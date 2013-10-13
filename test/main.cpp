@@ -42,6 +42,7 @@ TEST_CASE(SeqCompTask, "seqcomp_task")
 
 TEST_CASE(TimerTask, "timer_task")
 {
+	yb::sync_runner sr;
 	yb::timer tmr;
 
 	alloc_mocker m;
@@ -51,7 +52,7 @@ TEST_CASE(TimerTask, "timer_task")
 
 		{
 			yb::task<void> t = tmr.wait_ms(1);
-			r = yb::sync_runner().try_run(std::move(t));
+			r = sr.try_run(std::move(t));
 		}
 
 		assert(!m.good() || !r.has_exception());
@@ -102,7 +103,7 @@ TEST_CASE(ReadDescriptorTask, "signal_task")
 	yb::stream_device dev;
 
 	yb::sync_runner runner;
-	yb::sync_future<void> f = runner.post(dev.run(sp));
+	yb::task<void> f = runner.post(dev.run(sp));
 
 	yb::device_descriptor dd = runner.run(yb::read_device_descriptor(dev));
 	assert(dd.device_guid() == "01020304-0506-0708-090a-0b0c0d0e0f10");
@@ -127,7 +128,7 @@ TEST_CASE(ReadDescriptorTask_AsyncRunner, "signal_task async_runner")
 
 	yb::async_runner runner;
 
-	yb::async_future<void> f = runner.post(dev.run(sp));
+	yb::task<void> f = runner.post(dev.run(sp));
 
 	yb::device_descriptor dd = runner.run(yb::read_device_descriptor(dev));
 	assert(dd.device_guid() == "01020304-0506-0708-090a-0b0c0d0e0f10");
