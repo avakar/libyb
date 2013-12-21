@@ -4,6 +4,7 @@
 #include "../task_base.hpp"
 #include "../task.hpp"
 #include "wait_context.hpp"
+#include <algorithm>
 
 namespace yb {
 namespace detail {

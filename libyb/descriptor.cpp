@@ -1,5 +1,6 @@
 #include "descriptor.hpp"
 #include <stdexcept>
+#include <algorithm>
 
 static std::string make_guid(uint8_t const * p)
 {
