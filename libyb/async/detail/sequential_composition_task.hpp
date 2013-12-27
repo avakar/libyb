@@ -55,7 +55,7 @@ task_result<R> sequential_composition_task<R, S, F>::cancel_and_wait() throw()
 	task_result<S> s = m_task.cancel_and_wait();
 	try
 	{
-		task<R> r = m_next(s);
+		task<R> r = m_next(std::move(s));
 		if (r.has_task())
 			return r.cancel_and_wait();
 

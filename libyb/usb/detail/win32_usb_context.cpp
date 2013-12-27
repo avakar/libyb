@@ -157,7 +157,7 @@ void usb_context::impl::refresh_device_list()
 	for (size_t i = 1; i < LIBUSB_MAX_NUMBER_OF_DEVICES; ++i)
 	{
 		WCHAR devname[32];
-		wsprintf(devname, L"\\\\.\\libusb0-%04d", i);
+		swprintf(devname, 32, L"\\\\.\\libusb0-%04d", i);
 
 		detail::scoped_win32_handle hFile(CreateFileW(devname, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL));
 		if (hFile.empty())
