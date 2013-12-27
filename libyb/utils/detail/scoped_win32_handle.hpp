@@ -52,6 +52,13 @@ public:
 		return handle;
 	}
 
+	void reset(HANDLE h)
+	{
+		if (!this->empty())
+			CloseHandle(m_handle);
+		m_handle = h;
+	}
+
 private:
 	HANDLE m_handle;
 };
