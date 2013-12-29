@@ -4,6 +4,7 @@
 using namespace yb;
 
 win32_affinity_task::win32_affinity_task()
+	: m_cl(cl_none)
 {
 }
 
