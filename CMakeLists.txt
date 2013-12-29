@@ -36,6 +36,7 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/win32_async_runner.cpp
 	libyb/async/detail/win32_handle_task.cpp
 	libyb/async/detail/win32_prepared_task.cpp
+	libyb/async/detail/win32_resumable.cpp
 	libyb/async/detail/win32_serial_port.cpp
 	libyb/async/detail/win32_sync_runner.cpp
 	libyb/async/detail/win32_timer.cpp
