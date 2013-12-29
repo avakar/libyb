@@ -341,6 +341,13 @@ task<R> task<R>::follow_with(F f)
 	});
 }
 
+template <typename R>
+template <typename P>
+task<R> task<R>::keep_alive(P && p)
+{
+	return this->follow_with([p](task_result<R> const &) {});
+}
+
 template <>
 template <typename F>
 task<void> task<void>::follow_with(F f)

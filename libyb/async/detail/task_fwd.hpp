@@ -125,6 +125,9 @@ public:
 	template <typename F>
 	task<R> follow_with(F f);
 
+	template <typename P>
+	task<R> keep_alive(P && p);
+
 	task<R> abort_on(cancel_level cl, cancel_level abort_cl = cl_abort);
 
 	// task<void> only
