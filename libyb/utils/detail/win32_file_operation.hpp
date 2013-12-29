@@ -14,8 +14,13 @@ public:
 	task<size_t> ioctl(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
 	size_t sync_ioctl(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
 
+	task<size_t> read(HANDLE hFile, void * buffer, size_t size);
+	task<size_t> write(HANDLE hFile, void const * buffer, size_t size);
+
 private:
 	task<size_t> ioctl_with_affinity(HANDLE hFile, DWORD dwControlCode, void const * in_data, size_t in_len, void * out_data, size_t out_len);
+	task<size_t> read_with_affinity(HANDLE hFile, void * buffer, size_t size);
+	task<size_t> write_with_affinity(HANDLE hFile, void const * buffer, size_t size);
 
 	detail::win32_overlapped m_overlapped;
 };
