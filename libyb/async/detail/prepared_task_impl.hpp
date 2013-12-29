@@ -139,7 +139,7 @@ task_result<R> shadow_task<R>::cancel_and_wait() throw()
 template <typename R>
 void shadow_task<R>::prepare_wait(task_wait_preparation_context & ctx)
 {
-	m_pt->prepare_wait(ctx);
+	m_pt->shadow_prepare_wait(ctx);
 }
 
 template <typename R>
