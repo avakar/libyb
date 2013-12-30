@@ -34,6 +34,7 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/win32_affinity_task.cpp
 	libyb/async/detail/win32_async_channel.cpp
 	libyb/async/detail/win32_async_runner.cpp
+	libyb/async/detail/win32_console_stream.cpp
 	libyb/async/detail/win32_handle_task.cpp
 	libyb/async/detail/win32_prepared_task.cpp
 	libyb/async/detail/win32_resumable.cpp
