@@ -10,13 +10,7 @@
 namespace yb {
 
 template <typename R>
-task<R>::task()
-	: m_kind(k_empty)
-{
-}
-
-template <typename R>
-task<R>::task(nulltask_t)
+task<R>::task() throw()
 	: m_kind(k_empty)
 {
 }
@@ -41,17 +35,10 @@ task<R>::task(task<R> && o)
 }
 
 template <typename R>
-task<R>::task(task_base<result_type> * impl)
+task<R>::task(task_base<result_type> * impl) throw()
 	: m_kind(k_task)
 {
 	new(&m_storage) task_base_ptr(impl);
-}
-
-template <typename R>
-task<R>::task(std::unique_ptr<task_base<result_type> > impl)
-	: m_kind(k_task)
-{
-	new(&m_storage) task_base_ptr(impl.release());
 }
 
 template <typename R>
@@ -69,7 +56,7 @@ task<R>::task(task_result<result_type> && r)
 }
 
 template <typename R>
-task<R>::task(std::exception_ptr exc)
+task<R>::task(std::exception_ptr exc) throw()
 	: m_kind(k_result)
 {
 	new(&m_storage) task_result<R>(std::move(exc));
@@ -105,25 +92,13 @@ void task<R>::clear() throw()
 }
 
 template <typename R>
-void task<R>::normalize() throw()
-{
-	while (m_kind == k_task)
-	{
-		task<R> n = this->as_task()->run();
-		if (n.empty())
-			break;
-		*this = n;
-	}
-}
-
-template <typename R>
 bool task<R>::empty() const
 {
 	return m_kind == k_empty;
 }
 
 template <typename R>
-task<R> & task<R>::operator=(task<R> && o)
+task<R> & task<R>::operator=(task<R> && o) throw()
 {
 	this->clear();
 	kind_t new_kind = o.m_kind;

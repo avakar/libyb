@@ -72,12 +72,6 @@ class task_wait_finalization_context;
 template <typename R>
 class task_base;
 
-struct nulltask_t
-{
-};
-
-static nulltask_t nulltask;
-
 template <typename R>
 class task
 	: noncopyable
@@ -85,21 +79,18 @@ class task
 public:
 	typedef R result_type;
 
-	task();
-	task(nulltask_t);
-	task(task && o);
-	explicit task(task_base<result_type> * impl);
-	explicit task(std::unique_ptr<task_base<result_type> > impl);
+	task() throw();
+	task(std::exception_ptr exc) throw();
 	explicit task(task_result<result_type> const & value);
 	explicit task(task_result<result_type> && value);
-	task(std::exception_ptr exc);
+	explicit task(task_base<result_type> * impl) throw();
+
+	task(task && o);
 	~task();
 
-	task & operator=(task && o);
+	task & operator=(task && o) throw();
 
 	void clear() throw();
-
-	void normalize() throw();
 
 	bool empty() const;
 	bool has_task() const;
@@ -226,6 +217,17 @@ task<R> raise()
 task<void> exit_guard(cancel_level cancel_threshold = cl_quit);
 
 } // namespace async
+
+struct nulltask_t
+{
+	template <typename T>
+	operator task<T>() const
+	{
+		return task<T>();
+	}
+};
+
+static nulltask_t nulltask;
 
 } // namespace yb
 
