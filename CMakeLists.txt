@@ -144,6 +144,7 @@ set(SOURCES ${SOURCES}
 	)
 endif (WIN32)
 
+add_definitions(-D_SCL_SECURE_NO_WARNINGS)
 add_library(yb STATIC ${SOURCES})
 
 install(TARGETS yb ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
