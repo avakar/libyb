@@ -9,6 +9,22 @@
 
 namespace yb {
 
+namespace detail {
+
+template <typename T>
+struct is_task
+	: std::false_type
+{
+};
+
+template <typename T>
+struct is_task<task<T>>
+	: std::true_type
+{
+};
+
+} // namespace detail
+
 template <typename R>
 task<R>::task() throw()
 	: m_kind(k_empty)

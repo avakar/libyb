@@ -19,18 +19,6 @@ class task;
 namespace detail {
 
 template <typename T>
-struct is_task
-	: std::false_type
-{
-};
-
-template <typename T>
-struct is_task<task<T>>
-	: std::true_type
-{
-};
-
-template <typename T>
 struct unwrap_task
 {
 	typedef T type;
