@@ -11,7 +11,7 @@ class promise_task_impl
 	: public task_base<T>
 {
 public:
-	explicit promise_task_impl(shared_circular_buffer<task_result<T>, 1> * buffer)
+	explicit promise_task_impl(shared_circular_buffer<task<T>, 1> * buffer)
 		: m_buffer(buffer)
 	{
 		m_buffer->addref();
@@ -32,14 +32,14 @@ public:
 		}
 	}
 
-	task_result<T> cancel_and_wait() throw()
+	task<T> cancel_and_wait() throw()
 	{
 		this->cancel(cl_kill);
 
 		if (m_buffer)
-			return task_result<T>(m_buffer->front());
+			return std::move(m_buffer->front());
 		else
-			return task_result<T>(yb::make_exception_ptr(task_cancelled()));
+			return task<T>::from_exception(yb::make_exception_ptr(task_cancelled()));
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
@@ -51,13 +51,13 @@ public:
 	task<T> finish_wait(task_wait_finalization_context &) throw()
 	{
 		if (m_buffer)
-			return async::result(m_buffer->front());
+			return std::move(m_buffer->front());
 		else
 			return async::raise<T>(task_cancelled());
 	}
 
 private:
-	shared_circular_buffer<task_result<T>, 1> * m_buffer;
+	shared_circular_buffer<task<T>, 1> * m_buffer;
 
 	promise_task_impl(promise_task_impl const &);
 	promise_task_impl & operator=(promise_task_impl const &);

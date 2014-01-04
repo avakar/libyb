@@ -14,7 +14,7 @@ class prepared_task_impl
 public:
 	prepared_task_impl(task<R> && t);
 
-	task_result<R> fetch_result() throw();
+	task<R> fetch_result() throw();
 
     void apply_cancel() throw() override;
 	void prepare_wait(task_wait_preparation_context & prep_ctx) override;
@@ -52,7 +52,7 @@ public:
 	~shadow_task();
 
 	void cancel(cancel_level cl) throw() override;
-	task_result<R> cancel_and_wait() throw() override;
+	task<R> cancel_and_wait() throw() override;
 	void prepare_wait(task_wait_preparation_context & ctx) override;
 	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override;
 
@@ -70,9 +70,9 @@ prepared_task_impl<R>::prepared_task_impl(task<R> && t)
 }
 
 template <typename R>
-task_result<R> prepared_task_impl<R>::fetch_result() throw()
+task<R> prepared_task_impl<R>::fetch_result() throw()
 {
-	return m_task.get_result();
+	return std::move(m_task);
 }
 
 template <typename R>
@@ -97,7 +97,7 @@ bool prepared_task_impl<R>::finish_wait(task_wait_finalization_context & fin_ctx
 {
 	m_task.finish_wait(fin_ctx);
 
-	bool done = m_task.has_result();
+	bool done = m_task.has_value() || m_task.has_exception();
 	if (done)
 		this->mark_finished();
 	return done;
@@ -130,7 +130,7 @@ void shadow_task<R>::cancel(cancel_level cl) throw()
 }
 
 template <typename R>
-task_result<R> shadow_task<R>::cancel_and_wait() throw()
+task<R> shadow_task<R>::cancel_and_wait() throw()
 {
 	m_pt->shadow_cancel_and_wait();
 	return m_pt->fetch_result();

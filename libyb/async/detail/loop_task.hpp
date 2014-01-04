@@ -34,7 +34,7 @@ public:
 	loop_task(task<S> && t, F const & f, loop_state<T> && state);
 
 	void cancel(cancel_level cl) throw();
-	task_result<void> cancel_and_wait() throw();
+	task<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
 
@@ -51,31 +51,31 @@ namespace yb {
 namespace detail {
 
 template <typename R, typename F, typename T>
-task<R> invoke_loop_body2(F & f, task_result<R> && r, loop_state<T> & state, cancel_level cl)
+task<R> invoke_loop_body2(F & f, task<R> && r, loop_state<T> & state, cancel_level cl)
 {
 	return f(r.get(), state.m_state, cl);
 }
 
 template <typename F, typename T>
-task<void> invoke_loop_body2(F & f, task_result<void> &&, loop_state<T> & state, cancel_level cl)
+task<void> invoke_loop_body2(F & f, task<void> &&, loop_state<T> & state, cancel_level cl)
 {
 	return f(state.m_state, cl);
 }
 
 template <typename R, typename F>
-task<R> invoke_loop_body2(F & f, task_result<R> && r, loop_state<void> &, cancel_level cl)
+task<R> invoke_loop_body2(F & f, task<R> && r, loop_state<void> &, cancel_level cl)
 {
 	return f(r.get(), cl);
 }
 
 template <typename F>
-task<void> invoke_loop_body2(F & f, task_result<void> &&, loop_state<void> &, cancel_level cl)
+task<void> invoke_loop_body2(F & f, task<void> &&, loop_state<void> &, cancel_level cl)
 {
 	return f(cl);
 }
 
 template <typename R, typename F, typename T>
-task<R> invoke_loop_body(F & f, task_result<R> && r, loop_state<T> & state, cancel_level cl)
+task<R> invoke_loop_body(F & f, task<R> && r, loop_state<T> & state, cancel_level cl)
 {
 	try
 	{
@@ -120,17 +120,17 @@ void loop_task<S, F, T>::cancel(cancel_level cl) throw()
 }
 
 template <typename S, typename F, typename T>
-task_result<void> loop_task<S, F, T>::cancel_and_wait() throw()
+task<void> loop_task<S, F, T>::cancel_and_wait() throw()
 {
 	while (!m_task.empty())
 	{
-		task_result<S> r = m_task.cancel_and_wait();
+		task<S> r = m_task.cancel_and_wait();
 		if (r.has_exception())
-			return r.exception();
+			return task<void>::from_exception(r.exception());
 		m_task = invoke_loop_body(m_f, std::move(r), *this, cl_kill);
 	}
 
-	return task_result<void>();
+	return task<void>::from_value();
 }
 
 template <typename S, typename F, typename T>
@@ -143,12 +143,11 @@ template <typename S, typename F, typename T>
 task<void> loop_task<S, F, T>::finish_wait(task_wait_finalization_context & ctx) throw()
 {
 	m_task.finish_wait(ctx);
-	while (m_task.has_result())
+	while (m_task.has_value() || m_task.has_exception())
 	{
-		task_result<S> r = m_task.get_result();
-		if (r.has_exception())
-			return async::raise<void>(r.exception());
-		m_task = invoke_loop_body(m_f, std::move(r), *this, m_cancel_level);
+		if (m_task.has_exception())
+			return task<void>::from_exception(m_task.exception());
+		m_task = invoke_loop_body(m_f, std::move(m_task), *this, m_cancel_level);
 		if (m_task.empty())
 			return async::value();
 	}
@@ -159,25 +158,24 @@ task<void> loop_task<S, F, T>::finish_wait(task_wait_finalization_context & ctx)
 template <typename S, typename T, typename F>
 task<void> loop(task<S> && t, loop_state<T> & state, F && f)
 {
-	while (t.has_result())
+	while (t.has_value() || t.has_exception())
 	{
-		task_result<S> r = t.get_result();
-		if (r.has_exception())
-			return async::raise<void>(r.exception());
-		t = detail::invoke_loop_body(f, std::move(r), state, cl_none);
+		if (t.has_exception())
+			return task<void>::from_exception(t.exception());
+		t = detail::invoke_loop_body(f, std::move(t), state, cl_none);
 		if (t.empty())
 			return async::value();
 	}
 
 	try
 	{
-		return task<void>(new detail::loop_task<S, F, T>(std::move(t), std::move(f), std::move(state)));
+		return task<void>::from_task(new detail::loop_task<S, F, T>(std::move(t), std::move(f), std::move(state)));
 	}
 	catch (...)
 	{
 		while (!t.empty())
 		{
-			task_result<S> r = t.cancel_and_wait();
+			task<S> r = t.cancel_and_wait();
 			if (r.has_exception())
 				return async::raise<void>(r.exception());
 			t = detail::invoke_loop_body(f, std::move(r), state, cl_none);

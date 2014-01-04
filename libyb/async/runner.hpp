@@ -14,7 +14,7 @@ public:
 	task<R> post(task<R> && t) throw();
 
 	template <typename R>
-	task_result<R> try_run(task<R> && t) throw();
+	task<R> try_run(task<R> && t) throw();
 
 	template <typename R>
 	R run(task<R> && t) throw();

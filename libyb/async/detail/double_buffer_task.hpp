@@ -28,13 +28,13 @@ public:
 			m_tasks[(m_head+i) % m_task_count].t.cancel(cl);
 	}
 
-	task_result<void> cancel_and_wait() throw() override
+	task<void> cancel_and_wait() throw() override
 	{
 		m_cl = cl_kill;
 		for (size_t i = 0; i < m_active_tasks; ++i)
 		{
 			size_t idx = (m_head+i) % m_task_count;
-			task_result<R> r = m_tasks[idx].t.cancel_and_wait();
+			task<R> r = m_tasks[idx].t.cancel_and_wait();
 			if (r.has_value())
 			{
 				try
@@ -54,7 +54,7 @@ public:
 			}
 		}
 
-		return m_exc == nullptr? task_result<void>(): task_result<void>(m_exc);
+		return m_exc == nullptr? task<void>::from_value(): task<void>::from_exception(m_exc);
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx) override
@@ -90,7 +90,7 @@ private:
 		{
 			task<R> & t = m_tasks[m_head].t;
 
-			task_result<R> r = t.get_result();
+			task<R> r = t.get_result();
 			if (r.has_value())
 			{
 				try

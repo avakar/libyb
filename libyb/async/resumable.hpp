@@ -20,11 +20,11 @@ public:
 	T operator%(yb::task<T> && t)
 	{
 		yb::task<T> res;
-		this->run(t.continue_with([&res](yb::task_result<T> r) {
+		this->run(t.continue_with([&res](yb::task<T> r) {
 			res = yb::task<T>(std::move(r));
 			return yb::async::value();
 		}));
-		return res.get_result().get();
+		return res.get();
 	}
 
 private:

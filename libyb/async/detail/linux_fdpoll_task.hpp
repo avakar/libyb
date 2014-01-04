@@ -28,7 +28,7 @@ public:
 			m_fd = -1;
 	}
 
-	task_result<short> cancel_and_wait() throw()
+	task<short> cancel_and_wait() throw()
 	{
 		if (m_fd != -1 && !m_canceller(cl_kill))
 			m_fd = -1;
@@ -43,11 +43,11 @@ public:
 			int r = poll(&pf, 1, -1);
 			assert(r == 1); // TODO: under what circumstances can poll fail?
 
-			return task_result<short>(pf.revents);
+			return task<short>::from_value(pf.revents);
 		}
 		else
 		{
-			return task_result<short>(std::copy_exception(task_cancelled()));
+			return task<short>::from_exception(std::copy_exception(task_cancelled()));
 		}
 	}
 

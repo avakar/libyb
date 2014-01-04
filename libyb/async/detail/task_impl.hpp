@@ -23,7 +23,73 @@ struct is_task<task<T>>
 {
 };
 
+
+template <typename R>
+static task<R &> task_value_traits<R &>::from_value(R & u)
+{
+	task<R &> res;
+	reinterpret_cast<R *&>(res.m_storage) = &u;
+	res.m_kind = task<R &>::k_value;
+	return std::move(res);
+}
+
+template <typename R>
+void task_value_traits<R &>::move_from(task<R &> & other)
+{
+	task<R &> * self = static_cast<task<R &> *>(this);
+	reinterpret_cast<R *&>(self->m_storage) = reinterpret_cast<R *&>(other.m_storage);
+}
+
+template <typename R>
+R & task_value_traits<R &>::get_value()
+{
+	task<R &> * self = static_cast<task<R &> *>(this);
+	return *reinterpret_cast<R *&>(self->m_storage);
+}
+
+template <typename R>
+void task_value_traits<R &>::clear_value()
+{
+}
+
+template <typename R>
+template <typename U>
+static task<R> task_value_traits<R>::from_value(U && u)
+{
+	task<R> res;
+	new(&res.m_storage) R(std::forward<U>(u));
+	res.m_kind = task<R>::k_value;
+	return std::move(res);
+}
+
+template <typename R>
+R task_value_traits<R>::get_value()
+{
+	task<R> * self = static_cast<task<R> *>(this);
+	return reinterpret_cast<R &&>(self->m_storage);
+}
+
+template <typename R>
+void task_value_traits<R>::move_from(task<R> & other)
+{
+	task<R> * self = static_cast<task<R> *>(this);
+	new(&self->m_storage) R(reinterpret_cast<R &&>(other.m_storage));
+}
+
+template <typename R>
+void task_value_traits<R>::clear_value()
+{
+	task<R> * self = static_cast<task<R> *>(this);
+	reinterpret_cast<R &>(self->m_storage).~R();
+}
+
 } // namespace detail
+
+template <typename T>
+nulltask_t::operator task<T>() const
+{
+	return task<T>();
+}
 
 template <typename R>
 task<R>::task() throw()
@@ -32,50 +98,48 @@ task<R>::task() throw()
 }
 
 template <typename R>
-task<R>::task(task<R> && o)
-	: m_kind(o.m_kind)
+task<R> task<R>::from_exception(std::exception_ptr exc) throw()
 {
-	switch (m_kind)
+	task<R> res;
+	new(&res.m_storage) std::exception_ptr(std::move(exc));
+	res.m_kind = k_exception;
+	return std::move(res);
+}
+
+template <typename R>
+task<R> task<R>::from_task(task_base<result_type> * task_impl) throw()
+{
+	task<R> res;
+	new(&res.m_storage) task_base<result_type>*(task_impl);
+	res.m_kind = k_task;
+	return std::move(res);
+}
+
+template <typename R>
+task<R>::task(task<R> && o)
+	: m_kind(k_empty)
+{
+	switch (o.m_kind)
 	{
-	case k_result:
-		new(&m_storage) task_result<R>(std::move(o.as_result()));
+	case k_value:
+		this->move_from(o);
+		m_kind = k_value;
+		break;
+	case k_exception:
+		new (&m_storage) std::exception_ptr(o.exception());
+		m_kind = k_exception;
 		break;
 	case k_task:
 		new(&m_storage) task_base_ptr(o.as_task());
-		o.as_task().~task_base_ptr();
+		m_kind = k_task;
+		this->as_task().~task_base_ptr();
 		o.m_kind = k_empty;
-		break;
+		return;
 	case k_empty:
 		break;
 	}
-}
 
-template <typename R>
-task<R>::task(task_base<result_type> * impl) throw()
-	: m_kind(k_task)
-{
-	new(&m_storage) task_base_ptr(impl);
-}
-
-template <typename R>
-task<R>::task(task_result<result_type> const & r)
-	: m_kind(k_result)
-{
-	new(&m_storage) task_result<R>(r);
-}
-
-template <typename R>
-task<R>::task(task_result<result_type> && r)
-	: m_kind(k_result)
-{
-	new(&m_storage) task_result<R>(std::move(r));
-}
-
-template <typename R>
-task<R>::task(std::exception_ptr exc) throw()
-	: m_kind(k_result)
-{
-	new(&m_storage) task_result<R>(std::move(exc));
+	o.clear();
 }
 
 template <typename R>
@@ -97,8 +161,11 @@ void task<R>::clear() throw()
 		}
 		this->as_task().~task_base_ptr();
 		break;
-	case k_result:
-		this->as_result().~task_result();
+	case k_exception:
+		reinterpret_cast<std::exception_ptr &>(this->m_storage).~exception_ptr();
+		break;
+	case k_value:
+		this->clear_value();
 		break;
 	case k_empty:
 		break;
@@ -114,28 +181,66 @@ bool task<R>::empty() const
 }
 
 template <typename R>
+bool task<R>::has_value() const
+{
+	return m_kind == k_value;
+}
+
+template <typename R>
+bool task<R>::has_exception() const
+{
+	return m_kind == k_exception;
+}
+
+template <typename R>
+R task<R>::get()
+{
+	this->rethrow();
+
+	assert(m_kind == k_value);
+	return this->get_value();
+}
+
+template <typename R>
+std::exception_ptr task<R>::exception() const throw()
+{
+	assert(m_kind == k_exception);
+	return reinterpret_cast<std::exception_ptr const &>(this->m_storage);
+}
+
+template <typename R>
+void task<R>::rethrow()
+{
+	assert(m_kind == k_value || m_kind == k_exception);
+	if (m_kind == k_exception)
+		std::rethrow_exception(reinterpret_cast<std::exception_ptr const &>(this->m_storage));
+}
+
+template <typename R>
 task<R> & task<R>::operator=(task<R> && o) throw()
 {
 	this->clear();
-	kind_t new_kind = o.m_kind;
 
 	switch (o.m_kind)
 	{
 	case k_task:
 		new(&m_storage) task_base_ptr(o.as_task());
-		o.as_task().~task_base_ptr();
+		m_kind = k_task;
+		reinterpret_cast<task_base_ptr &>(o.m_storage).~task_base_ptr();
 		o.m_kind = k_empty;
+		return *this;
+	case k_value:
+		this->move_from(o);
 		break;
-
-	case k_result:
-		new(&m_storage) task_result<R>(std::move(o.as_result()));
+	case k_exception:
+		new(&m_storage) std::exception_ptr(o.exception());
 		break;
-
 	case k_empty:
 		break;
 	}
 
-	m_kind = new_kind;
+	m_kind = o.m_kind;
+	o.clear();
 	return *this;
 }
 
@@ -143,19 +248,6 @@ template <typename R>
 bool task<R>::has_task() const
 {
 	return m_kind == k_task;
-}
-
-template <typename R>
-bool task<R>::has_result() const
-{
-	return m_kind == k_result;
-}
-
-template <typename R>
-task_result<R> task<R>::get_result()
-{
-	assert(this->has_result());
-	return std::move(this->as_result());
 }
 
 template <typename R>
@@ -197,14 +289,14 @@ void task<R>::cancel(cancel_level cl)
 }
 
 template <typename R>
-task_result<R> task<R>::cancel_and_wait()
+task<R> task<R>::cancel_and_wait()
 {
 	assert(!this->empty());
 
 	if (m_kind == k_task)
 	{
 		task_base_ptr p = this->as_task();
-		task_result<R> r = p->cancel_and_wait();
+		task<R> r = p->cancel_and_wait();
 		delete p;
 
 		this->as_task().~task_base_ptr();
@@ -212,27 +304,27 @@ task_result<R> task<R>::cancel_and_wait()
 		return std::move(r);
 	}
 
-	assert(m_kind == k_result);
-	return std::move(this->as_result());
+	assert(m_kind == k_value || m_kind == k_exception);
+	return std::move(*this);
 }
 
 template <typename R>
 template <typename F>
-auto task<R>::continue_with(F f) -> decltype(f(*(task_result<R>*)0))
+auto task<R>::continue_with(F f) -> decltype(f(std::move(*(task<R>*)0)))
 {
-	typedef decltype(f(*(task_result<R>*)0)) T;
+	typedef decltype(f(std::move(*(task<R>*)0))) T;
 	typedef typename T::result_type S;
 
 	try
 	{
-		if (this->has_result())
-			return f(std::move(this->as_result()));
+		if (this->has_value() || this->has_exception())
+			return f(std::move(*this));
 		else
-			return task<S>(new detail::sequential_composition_task<S, R, F>(std::move(*this), std::move(f)));
+			return task<S>::from_task(new detail::sequential_composition_task<S, R, F>(std::move(*this), std::move(f)));
 	}
 	catch (...)
 	{
-		return task<S>(std::current_exception());
+		return task<S>::from_exception(std::current_exception());
 	}
 }
 
@@ -241,7 +333,7 @@ namespace detail {
 template <typename R, typename S, typename F, typename X>
 task<R> then_impl(task<S> && t, F const & f, std::true_type, X)
 {
-	return t.continue_with([f](task_result<S> r) -> task<R> {
+	return t.continue_with([f](task<S> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		return f(r.get());
@@ -251,7 +343,7 @@ task<R> then_impl(task<S> && t, F const & f, std::true_type, X)
 template <typename R, typename S, typename F>
 task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 {
-	return t.continue_with([f](task_result<S> r) -> task<R> {
+	return t.continue_with([f](task<S> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		f(r.get());
@@ -262,7 +354,7 @@ task<R> then_impl(task<S> && t, F const & f, std::false_type, std::true_type)
 template <typename R, typename S, typename F>
 task<R> then_impl(task<S> && t, F const & f, std::false_type, std::false_type)
 {
-	return t.continue_with([f](task_result<S> r) -> task<R> {
+	return t.continue_with([f](task<S> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		return async::value(f(r.get()));
@@ -272,7 +364,7 @@ task<R> then_impl(task<S> && t, F const & f, std::false_type, std::false_type)
 template <typename R, typename F, typename X>
 task<R> then_impl(task<void> && t, F const & f, std::true_type, X)
 {
-	return t.continue_with([f](task_result<void> r) -> task<R> {
+	return t.continue_with([f](task<void> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		return f();
@@ -282,7 +374,7 @@ task<R> then_impl(task<void> && t, F const & f, std::true_type, X)
 template <typename R, typename F>
 task<R> then_impl(task<void> && t, F const & f, std::false_type, std::true_type)
 {
-	return t.continue_with([f](task_result<void> r) -> task<R> {
+	return t.continue_with([f](task<void> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		f();
@@ -293,7 +385,7 @@ task<R> then_impl(task<void> && t, F const & f, std::false_type, std::true_type)
 template <typename R, typename F>
 task<R> then_impl(task<void> && t, F const & f, std::false_type, std::false_type)
 {
-	return t.continue_with([f](task_result<void> r) -> task<R> {
+	return t.continue_with([f](task<void> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		return async::value(f());
@@ -323,7 +415,7 @@ template <typename R>
 template <typename F>
 task<R> task<R>::follow_with(F f)
 {
-	return this->continue_with([f](task_result<R> r) -> task<R> {
+	return this->continue_with([f](task<R> r) -> task<R> {
 		if (r.has_exception())
 			return async::raise<R>(r.exception());
 		R v(r.get());
@@ -336,14 +428,14 @@ template <typename R>
 template <typename P>
 task<R> task<R>::keep_alive(P && p)
 {
-	return this->follow_with([p](task_result<R> const &) {});
+	return this->follow_with([p](R const &) {});
 }
 
 template <>
 template <typename F>
 task<void> task<void>::follow_with(F f)
 {
-	return this->continue_with([f](task_result<void> r) -> task<void> {
+	return this->continue_with([f](task<void> r) -> task<void> {
 		if (r.has_exception())
 			return async::raise<void>(r.exception());
 		f();
@@ -358,11 +450,11 @@ task<R> task<R>::abort_on(cancel_level cl, cancel_level abort_cl)
 	{
 		try
 		{
-			return task<R>(new detail::cancel_level_upgrade_task<R>(std::move(*this), cl, abort_cl));
+			return task<R>::from_task(new detail::cancel_level_upgrade_task<R>(std::move(*this), cl, abort_cl));
 		}
 		catch (...)
 		{
-			return async::result(this->cancel_and_wait());
+			return this->cancel_and_wait();
 		}
 	}
 
@@ -370,22 +462,7 @@ task<R> task<R>::abort_on(cancel_level cl, cancel_level abort_cl)
 }
 
 template <>
-inline task<void> task<void>::finish_on(cancel_level cl, cancel_level abort_cl)
-{
-	if (m_kind == k_task)
-	{
-		try
-		{
-			return task<void>(new detail::cancel_level_upgrade_task<void>(std::move(*this), cl, abort_cl, true));
-		}
-		catch (...)
-		{
-			return async::result(this->cancel_and_wait());
-		}
-	}
-
-	return std::move(*this);
-}
+task<void> task<void>::finish_on(cancel_level cl, cancel_level abort_cl);
 
 template <typename R>
 task<void> task<R>::ignore_result()
@@ -394,10 +471,7 @@ task<void> task<R>::ignore_result()
 }
 
 template <>
-inline task<void> task<void>::ignore_result()
-{
-	return std::move(*this);
-}
+task<void> task<void>::ignore_result();
 
 template <typename R>
 task<R> task<R>::cancellable(cancellation_token & ct)
@@ -415,19 +489,7 @@ task<R> task<R>::cancellable(cancellation_token & ct)
 }
 
 template <>
-inline task<void> task<void>::finishable(cancellation_token & ct)
-{
-	if (m_kind != k_task)
-		return std::move(*this);
-
-	detail::cancellation_token_core<void> * core = new detail::cancellation_token_core<void>();
-	cancellation_token new_ct(core);
-	task<void> core_task(new detail::cancellation_token_task<void>(core, true));
-
-	core->m_task = std::move(*this);
-	ct = new_ct;
-	return std::move(core_task);
-}
+task<void> task<void>::finishable(cancellation_token & ct);
 
 template <typename F>
 typename detail::task_protect_type<F>::type protect(F f)
@@ -438,7 +500,7 @@ typename detail::task_protect_type<F>::type protect(F f)
 	}
 	catch (...)
 	{
-		return typename detail::task_protect_type<F>::type(std::current_exception());
+		return detail::task_protect_type<F>::type::from_exception(std::current_exception());
 	}
 }
 

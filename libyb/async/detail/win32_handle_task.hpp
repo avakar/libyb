@@ -21,7 +21,7 @@ public:
 	win32_handle_task(HANDLE handle, Canceller && canceller);
 
 	void cancel(cancel_level cl) throw();
-	task_result<void> cancel_and_wait() throw();
+	task<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
 
@@ -65,7 +65,7 @@ task<void> win32_handle_task<Canceller>::finish_wait(task_wait_finalization_cont
 }
 
 template <typename Canceller>
-task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
+task<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 {
 	if (m_handle && !m_canceller(cl_kill))
 		m_handle = 0;
@@ -73,11 +73,11 @@ task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 	if (m_handle)
 	{
 		WaitForSingleObject(m_handle, INFINITE);
-		return task_result<void>();
+		return task<void>::from_value();
 	}
 	else
 	{
-		return task_result<void>(yb::make_exception_ptr(task_cancelled()));
+		return task<void>::from_exception(yb::make_exception_ptr(task_cancelled()));
 	}
 }
 
@@ -93,7 +93,7 @@ task<void> make_win32_handle_task(HANDLE handle, Canceller && canceller) throw()
 {
 	try
 	{
-		return task<void>(
+		return task<void>::from_task(
 			new win32_handle_task<typename std::remove_reference<Canceller>::type>(handle, std::forward<Canceller>(canceller)));
 	}
 	catch (...)

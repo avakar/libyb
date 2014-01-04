@@ -12,9 +12,9 @@ class channel_send_task
 	: public task_base<void>
 {
 public:
-	typedef shared_circular_buffer<task_result<T>, Capacity> buffer_type;
+	typedef shared_circular_buffer<task<T>, Capacity> buffer_type;
 
-	channel_send_task(buffer_type * buffer, task_result<T> && r)
+	channel_send_task(buffer_type * buffer, task<T> && r)
 		: m_buffer(buffer), m_value(std::move(r))
 	{
 		m_buffer->addref();
@@ -35,10 +35,10 @@ public:
 		}
 	}
 
-	task_result<void> cancel_and_wait() throw()
+	task<void> cancel_and_wait() throw()
 	{
 		this->cancel(cl_kill);
-		return task_result<void>();
+		return task<void>::from_value();
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
@@ -62,7 +62,7 @@ public:
 
 private:
 	buffer_type * m_buffer;
-	task_result<T> m_value;
+	task<T> m_value;
 };
 
 template <typename T, size_t Capacity>
@@ -70,7 +70,7 @@ class channel_receive_task
 	: public task_base<T>
 {
 public:
-	typedef shared_circular_buffer<task_result<T>, Capacity> buffer_type;
+	typedef shared_circular_buffer<task<T>, Capacity> buffer_type;
 
 	explicit channel_receive_task(buffer_type * c)
 		: m_buffer(c)
@@ -93,11 +93,11 @@ public:
 		}
 	}
 
-	task_result<T> cancel_and_wait() throw()
+	task<T> cancel_and_wait() throw()
 	{
 		this->cancel(cl_kill);
 		assert(!m_buffer);
-		return yb::make_exception_ptr(task_cancelled());
+		return task<T>::from_exception(yb::make_exception_ptr(task_cancelled()));
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
@@ -111,7 +111,7 @@ public:
 		}
 		else
 		{
-			m_result = async::result(std::move(m_buffer->front()));
+			m_result = std::move(m_buffer->front());
 			m_buffer->pop_front();
 		}
 

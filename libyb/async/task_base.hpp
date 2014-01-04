@@ -1,11 +1,13 @@
 #ifndef LIBYB_ASYNC_TASK_BASE_HPP
 #define LIBYB_ASYNC_TASK_BASE_HPP
 
-#include "task_result.hpp"
 #include "detail/task_fwd.hpp"
 #include <memory> // unique_ptr
 
 namespace yb {
+
+template <typename R>
+class task;
 
 class task_wait_preparation_context;
 class task_wait_finalization_context;
@@ -25,7 +27,7 @@ public:
 
 	// Cancels the task with `cancel_level_hard`
 	// and synchronously waits for it to complete.
-	virtual task_result<R> cancel_and_wait() throw() = 0;
+	virtual task<R> cancel_and_wait() throw() = 0;
 
 	virtual void prepare_wait(task_wait_preparation_context & ctx) = 0;
 

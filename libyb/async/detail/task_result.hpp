@@ -6,28 +6,17 @@
 namespace yb {
 namespace detail {
 
-template <size_t A, size_t B, bool A_less_than_B>
-struct yb_max_impl
-{
-	static size_t const value = B;
-};
-
-template <size_t A, size_t B>
-struct yb_max_impl<A, B, false>
-{
-	static size_t const value = A;
-};
-
-template <size_t A, size_t B>
+template <size_t A, size_t B, size_t C>
 struct yb_max
 {
-	static size_t const value = yb_max_impl<A, B, (A < B)>::value;
+	static size_t const _ab = A > B? A: B;
+	static size_t const value = _ab > C? _ab: C;
 };
 
 template <size_t A, size_t B>
 struct yb_gcd
 {
-	static size_t const value = yb_gcd<B, A - B*(A/B)>::value;
+	static size_t const value = yb_gcd<B, A % B>::value;
 };
 
 template <size_t A>
@@ -36,10 +25,11 @@ struct yb_gcd<A, 0>
 	static size_t const value = A;
 };
 
-template <size_t A, size_t B>
+template <size_t A, size_t B, size_t C>
 struct yb_lcm
 {
-	static size_t const value = A * B * yb_gcd<A, B>::value;
+	static size_t const _ab = A * B / yb_gcd<A, B>::value;
+	static size_t const value = _ab * C / yb_gcd<_ab, C>::value;
 };
 
 } // namespace detail

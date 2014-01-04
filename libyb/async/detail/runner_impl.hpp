@@ -8,13 +8,13 @@ namespace yb {
 template <typename R>
 task<R> runner::post(task<R> && t) throw()
 {
-	if (t.has_result())
+	if (t.has_value() || t.has_exception())
 		return std::move(t);
 
 	try
 	{
 		detail::prepared_task_guard<R> pt(new detail::prepared_task_impl<R>(std::move(t)));
-		task<R> res(new detail::shadow_task<R>(pt.get()));
+		task<R> res(task<R>::from_task(new detail::shadow_task<R>(pt.get())));
 		this->submit(pt.get());
 		return std::move(res);
 	}
@@ -25,10 +25,10 @@ task<R> runner::post(task<R> && t) throw()
 }
 
 template <typename R>
-task_result<R> runner::try_run(task<R> && t) throw()
+task<R> runner::try_run(task<R> && t) throw()
 {
-	if (t.has_result())
-		return t.get_result();
+	if (t.has_value() || t.has_exception())
+		return std::move(t);
 
 	try
 	{
@@ -39,7 +39,7 @@ task_result<R> runner::try_run(task<R> && t) throw()
 	}
 	catch (...)
 	{
-		return task_result<R>(std::current_exception());
+		return task<R>::from_exception(std::current_exception());
 	}
 }
 

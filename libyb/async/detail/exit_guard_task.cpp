@@ -15,10 +15,10 @@ void exit_guard_task::cancel(cancel_level cl) throw()
 		m_cl = cl;
 }
 
-task_result<void> exit_guard_task::cancel_and_wait() throw()
+task<void> exit_guard_task::cancel_and_wait() throw()
 {
 	m_cl = cl_kill;
-	return task_result<void>();
+	return task<void>::from_value();
 }
 
 void exit_guard_task::prepare_wait(task_wait_preparation_context & ctx)

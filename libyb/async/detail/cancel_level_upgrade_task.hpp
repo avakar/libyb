@@ -26,7 +26,7 @@ public:
 		m_nested.cancel(cl);
 	}
 
-	task_result<R> cancel_and_wait() throw()
+	task<R> cancel_and_wait() throw()
 	{
 		return m_nested.cancel_and_wait();
 	}
@@ -68,7 +68,7 @@ public:
 		m_nested.cancel(cl);
 	}
 
-	task_result<void> cancel_and_wait() throw()
+	task<void> cancel_and_wait() throw()
 	{
 		return m_nested.cancel_and_wait();
 	}
@@ -84,11 +84,9 @@ public:
 		if (m_nested.has_task())
 			return nulltask;
 
-		task_result<void> r = m_nested.get_result();
-
 		try
 		{
-			r.rethrow();
+			m_nested.rethrow();
 			return async::value();
 		}
 		catch (task_cancelled const &)

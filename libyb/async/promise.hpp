@@ -15,7 +15,7 @@ class promise_base
 {
 public:
 	promise_base()
-		: m_buffer(new shared_circular_buffer<task_result<T>, 1>())
+		: m_buffer(new shared_circular_buffer<task<T>, 1>())
 	{
 	}
 
@@ -41,7 +41,7 @@ public:
 	task<T> wait_for() const
 	{
 		return protect([this] {
-			return task<T>(new promise_task_impl<T>(m_buffer));
+			return task<T>::from_task(new promise_task_impl<T>(m_buffer));
 		});
 	}
 
@@ -65,7 +65,7 @@ public:
 	}
 
 protected:
-	shared_circular_buffer<task_result<T>, 1> * m_buffer;
+	shared_circular_buffer<task<T>, 1> * m_buffer;
 };
 
 } // namespace detail
@@ -77,12 +77,12 @@ class promise
 public:
 	void set_value(T && t) const
 	{
-		this->m_buffer->push_back(task_result<T>(std::move(t)));
+		this->m_buffer->push_back(task<T>::from_value(std::move(t)));
 	}
 
 	void set_value(T const & t) const
 	{
-		this->m_buffer->push_back(task_result<T>(t));
+		this->m_buffer->push_back(task<T>::from_value(t));
 	}
 };
 
@@ -93,7 +93,7 @@ class promise<void>
 public:
 	void set_value() const
 	{
-		this->m_buffer->push_back(task_result<void>());
+		this->m_buffer->push_back(task<void>::from_value());
 	}
 };
 

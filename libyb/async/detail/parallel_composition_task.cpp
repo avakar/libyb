@@ -17,12 +17,12 @@ void parallel_composition_task::cancel(cancel_level cl) throw()
 		it->t.cancel(cl);
 }
 
-task_result<void> parallel_composition_task::cancel_and_wait() throw()
+task<void> parallel_composition_task::cancel_and_wait() throw()
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
 		it->t.cancel_and_wait(); // XXX: handle exc results
 	m_tasks.clear();
-	return task_result<void>();
+	return task<void>::from_value();
 }
 
 void parallel_composition_task::prepare_wait(task_wait_preparation_context & ctx)
@@ -42,7 +42,7 @@ task<void> parallel_composition_task::finish_wait(task_wait_finalization_context
 		if (ctx.contains(it->m))
 		{
 			it->t.finish_wait(ctx); // XXX: handle exc results
-			if (it->t.has_result())
+			if (it->t.has_value() || it->t.has_exception())
 			{
 				it = m_tasks.erase(it);
 				continue;

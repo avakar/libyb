@@ -248,7 +248,7 @@ static task<void> tcp_listen_impl(
 			pimpl->m_socket = client_socket.s;
 			client_socket.s = INVALID_SOCKET;
 			impl->handler(tcp_socket(pimpl));
-		}).continue_with([](task_result<void> & r) -> task<void> {
+		}).continue_with([](task<void> & r) -> task<void> {
 			return async::value();
 		});
 	});

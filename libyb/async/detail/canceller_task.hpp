@@ -56,7 +56,7 @@ public:
 			m_nested.cancel(cl);
 	}
 
-	task_result<result_type> cancel_and_wait() throw()
+	task<result_type> cancel_and_wait() throw()
 	{
 		m_canceller(yb::cl_kill);
 		return m_nested.cancel_and_wait();

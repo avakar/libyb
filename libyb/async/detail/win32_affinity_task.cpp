@@ -14,9 +14,9 @@ void win32_affinity_task::cancel(cancel_level cl) throw()
 		m_cl = cl;
 }
 
-task_result<void> win32_affinity_task::cancel_and_wait() throw()
+task<void> win32_affinity_task::cancel_and_wait() throw()
 {
-	return task_result<void>(yb::make_exception_ptr(task_cancelled(cl_kill)));
+	return task<void>::from_exception(yb::make_exception_ptr(task_cancelled(cl_kill)));
 }
 
 void win32_affinity_task::prepare_wait(task_wait_preparation_context & ctx)

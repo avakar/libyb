@@ -59,10 +59,10 @@ yb::task<void> yb::make_resumable(std::function<void(resumer &)> const & f)
 
 		return yb::loop([rc](cancel_level) -> yb::task<void> {
 			SwitchToFiber(rc->self_fiber);
-			if (rc->completion_task.has_result())
+			if (rc->completion_task.has_value() || rc->completion_task.has_exception())
 				return yb::nulltask;
 			return std::move(rc->current_task);
-		}).continue_with([rc](task_result<void> r) {
+		}).continue_with([rc](task<void> r) {
 			DeleteFiber(rc->self_fiber);
 			return std::move(rc->completion_task);
 		});

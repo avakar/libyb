@@ -61,7 +61,7 @@ task<void> stream_device::write_packet(packet const & p)
 			append_packet(m_write_buffer, p);
 
 			task<void> t = m_start_write.fire();
-			assert(t.has_result());
+			assert(t.has_value() || t.has_exception());
 			(void)t;
 		}
 		else

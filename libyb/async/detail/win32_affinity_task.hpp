@@ -12,7 +12,7 @@ public:
 	win32_affinity_task();
 
 	void cancel(cancel_level cl) throw();
-	task_result<void> cancel_and_wait() throw();
+	task<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
 

@@ -4,6 +4,7 @@
 #include "../task_base.hpp"
 #include "../cancel_exception.hpp"
 #include "../../utils/noncopyable.hpp"
+#include <cassert>
 
 namespace yb {
 namespace detail {
@@ -72,7 +73,7 @@ public:
 		m_core->m_task.cancel(cl);
 	}
 
-	task_result<R> cancel_and_wait() throw()
+	task<R> cancel_and_wait() throw()
 	{
 		return m_core->m_task.cancel_and_wait();
 	}
@@ -116,9 +117,9 @@ public:
 		m_core->m_task.cancel(cl);
 	}
 
-	task_result<void> cancel_and_wait() throw()
+	task<void> cancel_and_wait() throw()
 	{
-		task_result<void> r = m_core->m_task.cancel_and_wait();
+		task<void> r = m_core->m_task.cancel_and_wait();
 		if (m_catch_cancel && r.has_exception())
 		{
 			try
@@ -127,11 +128,11 @@ public:
 			}
 			catch (task_cancelled const &)
 			{
-				return task_result<void>();
+				return task<void>::from_value();
 			}
 			catch (...)
 			{
-				return task_result<void>(std::current_exception());
+				return task<void>::from_exception(std::current_exception());
 			}
 		}
 		return std::move(r);
@@ -145,14 +146,17 @@ public:
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw()
 	{
 		m_core->m_task.finish_wait(ctx);
-		if (m_core->m_task.has_result())
+
+		if (m_core->m_task.has_value())
+			return std::move(m_core->m_task);
+
+		if (m_core->m_task.has_exception())
 		{
-			task_result<void> r = m_core->m_task.get_result();
-			if (m_catch_cancel && r.has_exception())
+			if (m_catch_cancel)
 			{
 				try
 				{
-					r.rethrow();
+					m_core->m_task.rethrow();
 				}
 				catch (task_cancelled const &)
 				{
@@ -163,7 +167,8 @@ public:
 					return async::raise<void>();
 				}
 			}
-			return async::result(std::move(r));
+
+			return std::move(m_core->m_task);
 		}
 		return nulltask;
 	}

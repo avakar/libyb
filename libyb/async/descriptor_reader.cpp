@@ -32,7 +32,7 @@ struct handler
 			if (p.size() != 16)
 			{
 				device_descriptor dd = device_descriptor::parse(m_buffer.data(), m_buffer.data() + m_buffer.size());
-				m_out.send(std::move(dd));
+				m_out.send(task<device_descriptor>::from_value(std::move(dd)));
 
 				m_dev.unregister_receiver(m_reg);
 				m_registered = false;
@@ -40,7 +40,7 @@ struct handler
 		}
 		catch (...)
 		{
-			m_out.send(std::current_exception());
+			m_out.send(task<device_descriptor>::from_exception(std::current_exception()));
 			m_dev.unregister_receiver(m_reg);
 			m_registered = false;
 		}

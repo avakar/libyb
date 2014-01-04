@@ -1,8 +1,8 @@
 #ifndef LIBYB_ASYNC_DETAIL_TASK_FWD_HPP
 #define LIBYB_ASYNC_DETAIL_TASK_FWD_HPP
 
-#include "../task_result.hpp"
 #include "../cancel_level.hpp"
+#include "task_result.hpp"
 #include "../../utils/noncopyable.hpp"
 #include "../../utils/except.hpp"
 #include "../cancellation_token.hpp"
@@ -52,6 +52,48 @@ struct task_protect_type
 	typedef decltype((*(F*)0)()) type;
 };
 
+template <typename R>
+struct task_value_traits
+{
+public:
+	static size_t const storage_size = sizeof(R);
+	static size_t const storage_alignment = std::alignment_of<R>::value;
+
+	template <typename U>
+	static task<R> from_value(U && u);
+
+	R get_value();
+	void move_from(task<R> & other);
+	void clear_value();
+};
+
+template <typename R>
+struct task_value_traits<R &>
+{
+public:
+	static size_t const storage_size = sizeof(R *);
+	static size_t const storage_alignment = std::alignment_of<R *>::value;
+
+	static task<R &> from_value(R & u);
+
+	R & get_value();
+	void move_from(task<R &> & other);
+	void clear_value();
+};
+
+template <>
+struct task_value_traits<void>
+{
+	static size_t const storage_size = 0;
+	static size_t const storage_alignment = 1;
+
+	static task<void> from_value();
+
+	void get_value();
+	void move_from(task<void> &);
+	void clear_value();
+};
+
 }
 
 class task_wait_preparation_context;
@@ -62,28 +104,30 @@ class task_base;
 
 template <typename R>
 class task
-	: noncopyable
+	: private detail::task_value_traits<R>
 {
 public:
 	typedef R result_type;
 
 	task() throw();
-	task(std::exception_ptr exc) throw();
-	explicit task(task_result<result_type> const & value);
-	explicit task(task_result<result_type> && value);
-	explicit task(task_base<result_type> * impl) throw();
+	using detail::task_value_traits<R>::from_value;
+	static task<R> from_exception(std::exception_ptr exc) throw();
+	static task<R> from_task(task_base<result_type> * task_impl) throw();
 
 	task(task && o);
-	~task();
-
 	task & operator=(task && o) throw();
+	~task();
 
 	void clear() throw();
 
-	bool empty() const;
-	bool has_task() const;
-	bool has_result() const;
-	task_result<result_type> get_result();
+	bool empty() const throw();
+	bool has_task() const throw();
+	bool has_value() const throw();
+	bool has_exception() const throw();
+
+	R get();
+	std::exception_ptr exception() const throw();
+	void rethrow();
 
 	void prepare_wait(task_wait_preparation_context & ctx);
 	void finish_wait(task_wait_finalization_context & ctx);
@@ -91,12 +135,12 @@ public:
 	void cancel(cancel_level cl);
 
 	// task shall not be null; returns the result after a potential synchronous wait
-	task_result<result_type> cancel_and_wait();
+	task<result_type> cancel_and_wait();
 
 	std::unique_ptr<task_base<result_type> > release();
 
 	template <typename F>
-	auto continue_with(F f) -> decltype(f(*(task_result<R>*)0));
+	auto continue_with(F f) -> decltype(f(*(task<R>*)0));
 
 	template <typename F>
 	typename detail::task_then_type<R, F>::type then(F f);
@@ -120,22 +164,28 @@ public:
 private:
 	typedef task_base<R> * task_base_ptr;
 
-	enum kind_t { k_empty, k_result, k_task };
-
 	task_base_ptr & as_task() { return reinterpret_cast<task_base_ptr &>(m_storage); }
 	task_base_ptr const & as_task() const { return reinterpret_cast<task_base_ptr const &>(m_storage); }
 
-	task_result<R> & as_result() { return reinterpret_cast<task_result<R> &>(m_storage); }
-	task_result<R> const & as_result() const { return reinterpret_cast<task_result<R> &>(m_storage); }
-
+	enum kind_t { k_empty, k_value, k_exception, k_task };
 	kind_t m_kind;
 	typename std::aligned_storage<
-		detail::yb_max<sizeof(task_base_ptr), sizeof(task_result<R>)>::value,
+		detail::yb_max<
+			sizeof(task_base_ptr),
+			sizeof(std::exception_ptr),
+			detail::task_value_traits<R>::storage_size
+			>::value,
 		detail::yb_lcm<
 			std::alignment_of<task_base_ptr>::value,
-			std::alignment_of<task_result<R>>::value
-			>::value
+			std::alignment_of<std::exception_ptr>::value,
+			detail::task_value_traits<R>::storage_alignment
+		>::value
 		>::type m_storage;
+
+
+	friend detail::task_value_traits<R>;
+	task(task const &) = delete;
+	task & operator=(task const &) = delete;
 };
 
 task<void> operator|(task<void> && lhs, task<void> && rhs);
@@ -159,47 +209,32 @@ task<typename std::remove_const<typename std::remove_reference<R>::type>::type> 
 
 	try
 	{
-		return task<result_type>(task_result<result_type>(std::forward<R>(v)));
+		return task<result_type>::from_value(std::forward<R>(v));
 	}
 	catch (...)
 	{
-		return task<result_type>(std::current_exception());
+		return task<result_type>::from_exception(std::current_exception());
 	}
 }
 
-template <typename R>
-task<R> result(task_result<R> && v)
-{
-	return task<R>(std::move(v));
-}
-
-template <typename R>
-task<R> result(task_result<R> const & v)
-{
-	return task<R>(v);
-}
-
-inline task<void> value()
-{
-	return task<void>(task_result<void>());
-}
+task<void> value();
 
 template <typename R>
 task<R> raise(std::exception_ptr e)
 {
-	return task<R>(std::move(e));
+	return task<R>::from_exception(std::move(e));
 }
 
 template <typename R, typename E>
 task<R> raise(E && e)
 {
-	return task<R>(yb::make_exception_ptr(std::forward<E>(e)));
+	return task<R>::from_exception(yb::make_exception_ptr(std::forward<E>(e)));
 }
 
 template <typename R>
 task<R> raise()
 {
-	return task<R>(std::current_exception());
+	return task<R>::from_exception(std::current_exception());
 }
 
 task<void> exit_guard(cancel_level cancel_threshold = cl_quit);
@@ -209,10 +244,7 @@ task<void> exit_guard(cancel_level cancel_threshold = cl_quit);
 struct nulltask_t
 {
 	template <typename T>
-	operator task<T>() const
-	{
-		return task<T>();
-	}
+	operator task<T>() const;
 };
 
 static nulltask_t nulltask;

@@ -7,10 +7,10 @@ task<void> yb::async::fix_affinity()
 {
 	try
 	{
-		return task<void>(new win32_affinity_task());
+		return task<void>::from_task(new win32_affinity_task());
 	}
 	catch (...)
 	{
-		return std::current_exception();
+		return task<void>::from_exception(std::current_exception());
 	}
 }

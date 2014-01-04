@@ -56,7 +56,6 @@ set(SOURCES
 	libyb/async/sync_runner.hpp
 	libyb/async/task.hpp
 	libyb/async/task_base.hpp
-	libyb/async/task_result.hpp
 	libyb/async/timer.hpp
 	libyb/net/net.cpp
 	libyb/net/net.hpp
