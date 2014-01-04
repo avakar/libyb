@@ -34,37 +34,42 @@ static void CALLBACK resumable_fiber_proc(void * param)
 	SwitchToFiber(rc->master_fiber);
 }
 
+static yb::task<void> make_resumable_affinity(std::function<void(yb::resumer &)> const & f)
+{
+	void * master_fiber;
+	if (!IsThreadAFiber())
+	{
+		master_fiber = ConvertThreadToFiber(0);
+		if (master_fiber == nullptr)
+			return yb::async::raise<void>(std::runtime_error("failed to convert thread to fiber"));
+	}
+	else
+	{
+		master_fiber = GetCurrentFiber();
+	}
+
+	std::shared_ptr<yb::resumer::impl> rc = std::make_shared<yb::resumer::impl>();
+	rc->self_fiber = CreateFiber(0, &resumable_fiber_proc, rc.get());
+	if (rc->self_fiber == nullptr)
+		return yb::async::raise<void>(std::runtime_error("failed to create fiber"));
+
+	rc->master_fiber = master_fiber;
+	rc->fn = f;
+
+	return yb::loop([rc](yb::cancel_level) -> yb::task<void> {
+		SwitchToFiber(rc->self_fiber);
+		if (rc->completion_task.has_value() || rc->completion_task.has_exception())
+			return yb::nulltask;
+		return std::move(rc->current_task);
+	}).continue_with([rc](yb::task<void> r) -> yb::task<void> {
+		DeleteFiber(rc->self_fiber);
+		return std::move(rc->completion_task);
+	});
+}
+
 yb::task<void> yb::make_resumable(std::function<void(resumer &)> const & f)
 {
 	return yb::async::fix_affinity().then([f]() -> yb::task<void> {
-		void * master_fiber;
-		if (!IsThreadAFiber())
-		{
-			master_fiber = ConvertThreadToFiber(0);
-			if (master_fiber == nullptr)
-				return yb::async::raise<void>(std::runtime_error("failed to convert thread to fiber"));
-		}
-		else
-		{
-			master_fiber = GetCurrentFiber();
-		}
-
-		std::shared_ptr<resumer::impl> rc = std::make_shared<resumer::impl>();
-		rc->self_fiber = CreateFiber(0, &resumable_fiber_proc, rc.get());
-		if (rc->self_fiber == nullptr)
-			return yb::async::raise<void>(std::runtime_error("failed to create fiber"));
-
-		rc->master_fiber = master_fiber;
-		rc->fn = f;
-
-		return yb::loop([rc](cancel_level) -> yb::task<void> {
-			SwitchToFiber(rc->self_fiber);
-			if (rc->completion_task.has_value() || rc->completion_task.has_exception())
-				return yb::nulltask;
-			return std::move(rc->current_task);
-		}).continue_with([rc](task<void> r) {
-			DeleteFiber(rc->self_fiber);
-			return std::move(rc->completion_task);
-		});
+		return make_resumable_affinity(f);
 	});
 }

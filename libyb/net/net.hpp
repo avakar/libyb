@@ -50,15 +50,15 @@ task<ipv4_address> resolve_host(string_ref const & host);
 
 task<void> tcp_listen(
 	uint16_t port,
-	std::function<void(tcp_socket)> const & handler,
+	std::function<void(tcp_socket &)> const & handler,
 	ipv4_address const & intf = ipv4_address(),
-	std::function<bool(tcp_incoming)> const & cond = std::function<bool(tcp_incoming)>());
+	std::function<bool(tcp_incoming const &)> const & cond = std::function<bool(tcp_incoming const &)>());
 
 task<void> tcp_listen(
 	uint16_t port,
-	std::function<void(tcp_socket)> const & handler,
+	std::function<void(tcp_socket &)> const & handler,
 	string_ref const & intf,
-	std::function<bool(tcp_incoming)> const & cond = std::function<bool(tcp_incoming)>());
+	std::function<bool(tcp_incoming const &)> const & cond = std::function<bool(tcp_incoming const &)>());
 
 } // namespace yb
 

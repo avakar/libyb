@@ -102,6 +102,12 @@ class task_wait_finalization_context;
 template <typename R>
 class task_base;
 
+struct nulltask_t
+{
+};
+
+static nulltask_t nulltask;
+
 template <typename R>
 class task
 	: private detail::task_value_traits<R>
@@ -109,7 +115,7 @@ class task
 public:
 	typedef R result_type;
 
-	task() throw();
+	task(nulltask_t = nulltask_t()) throw();
 	using detail::task_value_traits<R>::from_value;
 	static task<R> from_exception(std::exception_ptr exc) throw();
 	static task<R> from_task(task_base<result_type> * task_impl) throw();
@@ -182,10 +188,12 @@ private:
 		>::value
 		>::type m_storage;
 
+	template <typename T>
+	void destroy() throw();
 
 	friend detail::task_value_traits<R>;
-	task(task const &) = delete;
-	task & operator=(task const &) = delete;
+	task(task const &);
+	task & operator=(task const &);
 };
 
 task<void> operator|(task<void> && lhs, task<void> && rhs);
@@ -240,14 +248,6 @@ task<R> raise()
 task<void> exit_guard(cancel_level cancel_threshold = cl_quit);
 
 } // namespace async
-
-struct nulltask_t
-{
-	template <typename T>
-	operator task<T>() const;
-};
-
-static nulltask_t nulltask;
 
 } // namespace yb
 

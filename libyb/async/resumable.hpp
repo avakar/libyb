@@ -20,7 +20,7 @@ public:
 	T operator%(yb::task<T> && t)
 	{
 		yb::task<T> res;
-		this->run(t.continue_with([&res](yb::task<T> r) {
+		this->run(t.continue_with([&res](yb::task<T> r) -> task<void> {
 			res = yb::task<T>(std::move(r));
 			return yb::async::value();
 		}));
@@ -57,10 +57,10 @@ auto make_resumable(F f) -> task<decltype(f(*(resumer *)0))>
 	return make_resumable(std::function<result_type(resumer &)>(f));
 }
 
-template <typename F, typename P1, typename... P>
-auto make_resumable(F && f, P1 && p1, P &&... p) -> task<decltype(f(std::forward<P1>(p1), std::forward<P>(p)..., *(resumer *)0))>
+template <typename F, typename P1>
+auto make_resumable(F && f, P1 && p1) -> task<decltype(f(std::forward<P1>(p1), *(resumer *)0))>
 {
-	return make_resumable(std::bind(std::forward<F>(f), std::forward<P1>(p1), std::forward<P>(p)..., std::placeholders::_1));
+	return make_resumable(std::bind(std::forward<F>(f), std::forward<P1>(p1), std::placeholders::_1));
 }
 
 }

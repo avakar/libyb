@@ -56,7 +56,7 @@ wsa_startup_guard::~wsa_startup_guard()
 tcp_socket::impl::impl()
 	: m_socket(0)
 {
-	m_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
+	m_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, 0, 0, WSA_FLAG_OVERLAPPED | 0x80/*WSA_FLAG_NO_HANDLE_INHERIT*/);
 }
 
 tcp_socket::impl::~impl()
@@ -153,8 +153,8 @@ struct tcp_impl
 {
 	socket_holder s;
 	detail::scoped_win32_handle ev;
-	std::function<void(tcp_socket)> handler;
-	std::function<bool(tcp_incoming)> cond;
+	std::function<void(tcp_socket &)> handler;
+	std::function<bool(tcp_incoming const &)> cond;
 };
 
 template <typename T>
@@ -193,11 +193,39 @@ static int CALLBACK tcp_accept_cond(
 	return impl->cond(inc)? CF_ACCEPT: CF_REJECT;
 }
 
+static task<void> tcp_listen_impl_loop(yb::cancel_level cl, std::shared_ptr<tcp_impl> const & impl)
+{
+	if (cl >= cl_quit)
+		return yb::nulltask;
+
+	return yb::make_win32_handle_task(impl->ev.get(), [](cancel_level cl) -> bool {
+		return false;
+	}).then([impl]() -> void {
+		sockaddr_in sa;
+		INT sa_len = sizeof sa;
+		socket_holder client_socket;
+		if (impl->cond)
+			client_socket = WSAAccept(impl->s.s, (sockaddr *)&sa, &sa_len, &tcp_accept_cond, (DWORD_PTR)impl.get());
+		else
+			client_socket = WSAAccept(impl->s.s, (sockaddr *)&sa, &sa_len, 0, 0);
+
+		if (client_socket.s == INVALID_SOCKET)
+			return;
+
+		tcp_socket::impl * pimpl = new tcp_socket::impl();
+		pimpl->m_socket = client_socket.s;
+		client_socket.s = INVALID_SOCKET;
+		impl->handler(tcp_socket(pimpl));
+	}).continue_with([](task<void> & r) -> task<void> {
+		return async::value();
+	});
+}
+
 static task<void> tcp_listen_impl(
 	ipv4_address const & intf,
 	uint16_t port,
-	std::function<void(tcp_socket)> const & handler,
-	std::function<bool(tcp_incoming)> const & cond)
+	std::function<void(tcp_socket &)> const & handler,
+	std::function<bool(tcp_incoming const &)> const & cond)
 {
 	std::shared_ptr<tcp_impl> impl = std::make_shared<tcp_impl>();
 	impl->cond = cond;
@@ -227,30 +255,7 @@ static task<void> tcp_listen_impl(
 		return wsa_error<void>();
 
 	return yb::loop([impl](cancel_level cl) -> task<void> {
-		if (cl >= cl_quit)
-			return yb::nulltask;
-
-		return yb::make_win32_handle_task(impl->ev.get(), [](cancel_level cl) {
-			return false;
-		}).then([impl]() {
-			sockaddr_in sa;
-			INT sa_len = sizeof sa;
-			socket_holder client_socket;
-			if (impl->cond)
-				client_socket = WSAAccept(impl->s.s, (sockaddr *)&sa, &sa_len, &tcp_accept_cond, (DWORD_PTR)impl.get());
-			else
-				client_socket = WSAAccept(impl->s.s, (sockaddr *)&sa, &sa_len, 0, 0);
-
-			if (client_socket.s == INVALID_SOCKET)
-				return;
-
-			tcp_socket::impl * pimpl = new tcp_socket::impl();
-			pimpl->m_socket = client_socket.s;
-			client_socket.s = INVALID_SOCKET;
-			impl->handler(tcp_socket(pimpl));
-		}).continue_with([](task<void> & r) -> task<void> {
-			return async::value();
-		});
+		return tcp_listen_impl_loop(cl, impl);
 	});
 }
 
@@ -264,9 +269,9 @@ task<ipv4_address> yb::resolve_host(string_ref const & host)
 
 task<void> yb::tcp_listen(
 	uint16_t port,
-	std::function<void(tcp_socket)> const & handler,
+	std::function<void(tcp_socket &)> const & handler,
 	ipv4_address const & intf,
-	std::function<bool(tcp_incoming)> const & cond)
+	std::function<bool(tcp_incoming const &)> const & cond)
 {
 	wsa_init();
 	return tcp_listen_impl(intf, port, handler, cond).follow_with([]() {
@@ -276,9 +281,9 @@ task<void> yb::tcp_listen(
 
 task<void> yb::tcp_listen(
 	uint16_t port,
-	std::function<void(tcp_socket)> const & handler,
+	std::function<void(tcp_socket &)> const & handler,
 	string_ref const & intf,
-	std::function<bool(tcp_incoming)> const & cond)
+	std::function<bool(tcp_incoming const &)> const & cond)
 {
 	wsa_init();
 	return resolve_host_impl(intf).then([port, handler, cond](ipv4_address const & addr) {
@@ -309,10 +314,10 @@ task<size_t> yb::tcp_socket::read(uint8_t * buffer, size_t size)
 	if (WSAGetLastError() != WSA_IO_PENDING)
 		return wsa_error<size_t>();
 
-	return yb::make_win32_handle_task(op->o.o.hEvent, [this, op](cancel_level cl) {
+	return yb::make_win32_handle_task(op->o.o.hEvent, [this, op](cancel_level cl) -> bool {
 		detail::cancel_win32_overlapped((HANDLE)m_pimpl->m_socket, op->o);
 		return true;
-	}).then([this, op]() {
+	}).then([this, op]() ->task<size_t> {
 		DWORD dwReceived;
 		DWORD dwFlags;
 		WSAGetOverlappedResult(m_pimpl->m_socket, &op->o.o, &dwReceived, FALSE, &dwFlags);
@@ -334,10 +339,10 @@ task<size_t> yb::tcp_socket::write(uint8_t const * buffer, size_t size)
 	if (WSAGetLastError() != WSA_IO_PENDING)
 		return wsa_error<size_t>();
 
-	return yb::make_win32_handle_task(op->o.o.hEvent, [this, op](cancel_level cl) {
+	return yb::make_win32_handle_task(op->o.o.hEvent, [this, op](cancel_level cl) -> bool {
 		detail::cancel_win32_overlapped((HANDLE)m_pimpl->m_socket, op->o);
 		return true;
-	}).then([this, op]() {
+	}).then([this, op]() -> task<size_t> {
 		DWORD dwSent;
 		DWORD dwFlags;
 		WSAGetOverlappedResult(m_pimpl->m_socket, &op->o.o, &dwSent, FALSE, &dwFlags);
@@ -384,9 +389,9 @@ static task<tcp_socket> tcp_connect_impl(ipv4_address const & addr, uint16_t por
 	if (WSAGetLastError() != WSAEWOULDBLOCK)
 		return wsa_error<tcp_socket>();
 
-	return yb::make_win32_handle_task(ctx->ev.get(), [](cancel_level cl) {
+	return yb::make_win32_handle_task(ctx->ev.get(), [](cancel_level cl) -> bool {
 		return false;
-	}).then([ctx, sa]() {
+	}).then([ctx, sa]() -> task<tcp_socket> {
 		connect(ctx->pimpl->m_socket, (sockaddr const *)&sa, sizeof(sockaddr_in));
 		return yb::async::value(tcp_socket(ctx->pimpl.release()));
 	});

@@ -85,14 +85,8 @@ void task_value_traits<R>::clear_value()
 
 } // namespace detail
 
-template <typename T>
-nulltask_t::operator task<T>() const
-{
-	return task<T>();
-}
-
 template <typename R>
-task<R>::task() throw()
+task<R>::task(nulltask_t) throw()
 	: m_kind(k_empty)
 {
 }
@@ -132,7 +126,7 @@ task<R>::task(task<R> && o)
 	case k_task:
 		new(&m_storage) task_base_ptr(o.as_task());
 		m_kind = k_task;
-		this->as_task().~task_base_ptr();
+		this->destroy<task_base_ptr>();
 		o.m_kind = k_empty;
 		return;
 	case k_empty:
@@ -149,6 +143,13 @@ task<R>::~task()
 }
 
 template <typename R>
+template <typename T>
+void task<R>::destroy() throw()
+{
+	reinterpret_cast<T &>(this->m_storage).~T();
+}
+
+template <typename R>
 void task<R>::clear() throw()
 {
 	switch (m_kind)
@@ -159,10 +160,10 @@ void task<R>::clear() throw()
 			p->cancel_and_wait();
 			delete p;
 		}
-		this->as_task().~task_base_ptr();
+		this->destroy<task_base_ptr>();
 		break;
 	case k_exception:
-		reinterpret_cast<std::exception_ptr &>(this->m_storage).~exception_ptr();
+		this->destroy<std::exception_ptr>();
 		break;
 	case k_value:
 		this->clear_value();
@@ -226,7 +227,7 @@ task<R> & task<R>::operator=(task<R> && o) throw()
 	case k_task:
 		new(&m_storage) task_base_ptr(o.as_task());
 		m_kind = k_task;
-		reinterpret_cast<task_base_ptr &>(o.m_storage).~task_base_ptr();
+		o.destroy<task_base_ptr>();
 		o.m_kind = k_empty;
 		return *this;
 	case k_value:
@@ -271,7 +272,7 @@ void task<R>::finish_wait(task_wait_finalization_context & ctx)
 	{
 		assert(m_kind == k_task);
 		delete p;
-		this->as_task().~task_base_ptr();
+		this->destroy<task_base_ptr>();
 		m_kind = k_empty;
 
 		*this = std::move(n);
@@ -299,7 +300,7 @@ task<R> task<R>::cancel_and_wait()
 		task<R> r = p->cancel_and_wait();
 		delete p;
 
-		this->as_task().~task_base_ptr();
+		this->destroy<task_base_ptr>();
 		m_kind = k_empty;
 		return std::move(r);
 	}

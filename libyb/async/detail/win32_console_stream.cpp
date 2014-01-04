@@ -49,7 +49,7 @@ static task<size_t> try_read(HANDLE hFile, uint8_t * buffer, size_t size)
 
 task<size_t> console_stream::read(uint8_t * buffer, size_t size)
 {
-	return try_read(m_pimpl->hStdin, buffer, size).then([this, buffer, size](size_t r) {
+	return try_read(m_pimpl->hStdin, buffer, size).then([this, buffer, size](size_t r) -> task<size_t> {
 		if (r == 0)
 			return this->read(buffer, size); // XXX recursion!
 		return async::value(r);
