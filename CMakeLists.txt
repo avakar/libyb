@@ -6,7 +6,6 @@ set(SOURCES
 	libyb/stream_parser.cpp
 	libyb/tunnel.cpp
 	libyb/vector_ref.hpp
-	libyb/async/cancellation_token.cpp
 	libyb/async/descriptor_reader.cpp
 	libyb/async/descriptor_reader.hpp
 	libyb/async/device.cpp
@@ -19,10 +18,8 @@ set(SOURCES
 	libyb/async/async_runner.hpp
 	libyb/async/cancel_exception.hpp
 	libyb/async/cancel_level.hpp
-	libyb/async/cancellation_token.hpp
 	libyb/async/console_stream.hpp
 	libyb/async/detail/cancel_level_upgrade_task.hpp
-	libyb/async/detail/cancellation_token_task.hpp
 	libyb/async/detail/canceller_task.hpp
 	libyb/async/detail/circular_buffer.hpp
 	libyb/async/detail/double_buffer_task.hpp
@@ -62,11 +59,11 @@ set(SOURCES
 	libyb/descriptor.hpp
 	libyb/packet.hpp
 	libyb/packet_handler.hpp
-	libyb/shupito/escape_sequence.hpp
+#	libyb/shupito/escape_sequence.hpp
 	libyb/shupito/flip2.hpp
 	libyb/stream_parser.hpp
 	libyb/tunnel.hpp
-	libyb/shupito/escape_sequence.cpp
+#	libyb/shupito/escape_sequence.cpp
 	libyb/shupito/flip2.cpp
 	libyb/usb/bulk_stream.cpp
 	libyb/usb/interface_guard.cpp

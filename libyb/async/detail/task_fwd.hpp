@@ -3,9 +3,9 @@
 
 #include "../cancel_level.hpp"
 #include "task_result.hpp"
+#include "../task_base.hpp"
 #include "../../utils/noncopyable.hpp"
 #include "../../utils/except.hpp"
-#include "../cancellation_token.hpp"
 #include <memory> // unique_ptr
 #include <exception> // exception_ptr, exception
 
@@ -119,6 +119,7 @@ public:
 	using detail::task_value_traits<R>::from_value;
 	static task<R> from_exception(std::exception_ptr exc) throw();
 	static task<R> from_task(task_base<result_type> * task_impl) throw();
+	static task<R> from_future(future_base<result_type> * future_impl) throw();
 
 	task(task && o);
 	task & operator=(task && o) throw();
@@ -128,6 +129,7 @@ public:
 
 	bool empty() const throw();
 	bool has_task() const throw();
+	bool has_future() const throw();
 	bool has_value() const throw();
 	bool has_exception() const throw();
 
@@ -135,10 +137,10 @@ public:
 	std::exception_ptr exception() const throw();
 	void rethrow();
 
-	void prepare_wait(task_wait_preparation_context & ctx);
-	void finish_wait(task_wait_finalization_context & ctx);
-
 	void cancel(cancel_level cl);
+
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl);
+	void finish_wait(task_wait_finalization_context & ctx);
 
 	// task shall not be null; returns the result after a potential synchronous wait
 	task<result_type> cancel_and_wait();
@@ -164,16 +166,13 @@ public:
 
 	task<void> ignore_result();
 
-	task<R> cancellable(cancellation_token & ct);
-	task<R> finishable(cancellation_token & ct);
-
 private:
 	typedef task_base<R> * task_base_ptr;
 
 	task_base_ptr & as_task() { return reinterpret_cast<task_base_ptr &>(m_storage); }
 	task_base_ptr const & as_task() const { return reinterpret_cast<task_base_ptr const &>(m_storage); }
 
-	enum kind_t { k_empty, k_value, k_exception, k_task };
+	enum kind_t { k_empty, k_value, k_exception, k_task, k_future };
 	kind_t m_kind;
 	typename std::aligned_storage<
 		detail::yb_max<

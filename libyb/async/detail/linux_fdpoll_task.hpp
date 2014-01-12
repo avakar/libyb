@@ -22,13 +22,7 @@ public:
 	{
 	}
 
-	void cancel(cancel_level cl) throw()
-	{
-		if (m_fd != -1 && !m_canceller(cl))
-			m_fd = -1;
-	}
-
-	task<short> cancel_and_wait() throw()
+	task<short> cancel_and_wait() throw() override
 	{
 		if (m_fd != -1 && !m_canceller(cl_kill))
 			m_fd = -1;
@@ -51,8 +45,11 @@ public:
 		}
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx)
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
+		if (m_fd != -1 && !m_canceller(cl))
+			m_fd = -1;
+
 		if (m_fd == -1)
 		{
 			ctx.set_finished();
@@ -66,7 +63,7 @@ public:
 		}
 	}
 
-	task<short> finish_wait(task_wait_finalization_context & ctx) throw()
+	task<short> finish_wait(task_wait_finalization_context & ctx) throw() override
 	{
 		if (m_fd != -1)
 			return async::value(ctx.prep_ctx->get()->m_pollfds[ctx.selected_poll_item].revents);

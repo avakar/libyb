@@ -26,23 +26,24 @@ public:
 			m_buffer->release();
 	}
 
-	void cancel(cancel_level cl) throw()
+	task<void> cancel_and_wait() throw() override
+	{
+		if (m_buffer)
+		{
+			m_buffer->release();
+			m_buffer = 0;
+		}
+		return task<void>::from_value();
+	}
+
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
 		if (cl >= cl_abort && m_buffer)
 		{
 			m_buffer->release();
 			m_buffer = 0;
 		}
-	}
 
-	task<void> cancel_and_wait() throw()
-	{
-		this->cancel(cl_kill);
-		return task<void>::from_value();
-	}
-
-	void prepare_wait(task_wait_preparation_context & ctx)
-	{
 		if (m_buffer && m_buffer->full())
 			return;
 
@@ -52,7 +53,7 @@ public:
 		ctx.set_finished();
 	}
 
-	task<void> finish_wait(task_wait_finalization_context &) throw()
+	task<void> finish_wait(task_wait_finalization_context &) throw() override
 	{
 		if (m_buffer)
 			return async::value();
@@ -84,24 +85,26 @@ public:
 			m_buffer->release();
 	}
 
-	void cancel(cancel_level cl) throw()
+	task<T> cancel_and_wait() throw() override
+	{
+		if (m_buffer)
+		{
+			m_buffer->release();
+			m_buffer = 0;
+		}
+
+		assert(!m_buffer);
+		return task<T>::from_exception(yb::make_exception_ptr(task_cancelled()));
+	}
+
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
 		if (cl >= cl_abort && m_buffer)
 		{
 			m_buffer->release();
 			m_buffer = 0;
 		}
-	}
 
-	task<T> cancel_and_wait() throw()
-	{
-		this->cancel(cl_kill);
-		assert(!m_buffer);
-		return task<T>::from_exception(yb::make_exception_ptr(task_cancelled()));
-	}
-
-	void prepare_wait(task_wait_preparation_context & ctx)
-	{
 		if (m_buffer && m_buffer->empty())
 			return;
 
@@ -118,7 +121,7 @@ public:
 		ctx.set_finished();
 	}
 
-	task<T> finish_wait(task_wait_finalization_context &) throw()
+	task<T> finish_wait(task_wait_finalization_context &) throw() override
 	{
 		assert(!m_result.empty());
 		return std::move(m_result);

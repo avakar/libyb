@@ -86,18 +86,3 @@ yb::task<void> yb::task<void>::ignore_result()
 {
 	return std::move(*this);
 }
-
-template <>
-yb::task<void> yb::task<void>::finishable(cancellation_token & ct)
-{
-	if (m_kind != k_task)
-		return std::move(*this);
-
-	detail::cancellation_token_core<void> * core = new detail::cancellation_token_core<void>();
-	cancellation_token new_ct(core);
-	task<void> core_task(task<void>::from_task(new detail::cancellation_token_task<void>(core, true)));
-
-	core->m_task = std::move(*this);
-	ct = new_ct;
-	return std::move(core_task);
-}

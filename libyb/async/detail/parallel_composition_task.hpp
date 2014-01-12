@@ -2,6 +2,7 @@
 #define LIBYB_ASYNC_DETAIL_PARALLEL_COMPOSITION_TASK_HPP
 
 #include "../task_base.hpp"
+#include "task_fwd.hpp"
 #include "wait_context.hpp"
 #include <list>
 
@@ -14,10 +15,9 @@ class parallel_composition_task
 public:
 	parallel_composition_task(task<void> && t, task<void> && u);
 
-	void cancel(cancel_level cl) throw();
-	task<void> cancel_and_wait() throw();
-	void prepare_wait(task_wait_preparation_context & ctx);
-	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
+	task<void> cancel_and_wait() throw() override;
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override;
+	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override;
 
 private:
 	struct parallel_task

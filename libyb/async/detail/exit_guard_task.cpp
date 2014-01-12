@@ -9,21 +9,14 @@ exit_guard_task::exit_guard_task(cancel_level cancel_threshold)
 {
 }
 
-void exit_guard_task::cancel(cancel_level cl) throw()
-{
-	if (cl > m_cl)
-		m_cl = cl;
-}
-
 task<void> exit_guard_task::cancel_and_wait() throw()
 {
-	m_cl = cl_kill;
 	return task<void>::from_value();
 }
 
-void exit_guard_task::prepare_wait(task_wait_preparation_context & ctx)
+void exit_guard_task::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
 {
-	if (m_cl >= m_threshold)
+	if (cl >= m_threshold)
 		ctx.set_finished();
 }
 

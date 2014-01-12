@@ -11,7 +11,7 @@ struct prepared_task::impl
 {
 	detail::win32_mutex m_mutex;
 	detail::prepared_task_event_sink * m_runner;
-	LONG m_requested_cl;
+	LONG m_cl;
 	LONG m_refcount;
 	HANDLE m_done_event;
 };
@@ -24,7 +24,7 @@ prepared_task::prepared_task()
 		throw std::runtime_error("Failed to create event"); // TODO: win32_error
 
 	m_pimpl->m_runner = 0;
-	m_pimpl->m_requested_cl = cl_none;
+	m_pimpl->m_cl = cl_none;
 	m_pimpl->m_refcount = 1;
 }
 
@@ -49,7 +49,7 @@ void prepared_task::request_cancel(cancel_level cl)
 	cancel_level guess_cl = cl_none;
 	while (guess_cl < cl)
 	{
-		cancel_level previous_cl = ::InterlockedCompareExchange(&m_pimpl->m_requested_cl, cl, guess_cl);
+		cancel_level previous_cl = ::InterlockedCompareExchange(&m_pimpl->m_cl, cl, guess_cl);
 		if (previous_cl == guess_cl)
 		{
 			// We managed to increase the cancel level, signal the runner
@@ -63,8 +63,10 @@ void prepared_task::request_cancel(cancel_level cl)
 	}
 }
 
-void prepared_task::shadow_prepare_wait(task_wait_preparation_context & prep_ctx)
+void prepared_task::shadow_prepare_wait(task_wait_preparation_context & prep_ctx, cancel_level cl)
 {
+	this->request_cancel(cl);
+
 	task_wait_poll_item pi;
 	pi.handle = m_pimpl->m_done_event;
 	prep_ctx.add_poll_item(pi);
@@ -102,7 +104,7 @@ void prepared_task::detach_event_sink() throw()
 
 cancel_level prepared_task::requested_cancel_level() const
 {
-	LONG const volatile & cl = m_pimpl->m_requested_cl;
+	LONG const volatile & cl = m_pimpl->m_cl;
 	return cancel_level(cl);
 }
 

@@ -17,11 +17,9 @@ class sequential_composition_task
 public:
 	sequential_composition_task(task<S> && task, F next);
 
-	void cancel(cancel_level cl) throw();
-	task<R> cancel_and_wait() throw();
-
-	void prepare_wait(task_wait_preparation_context & ctx);
-	task<R> finish_wait(task_wait_finalization_context & ctx) throw();
+	task<R> cancel_and_wait() throw() override;
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override;
+	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override;
 
 private:
 	task<S> m_task;
@@ -44,12 +42,6 @@ sequential_composition_task<R, S, F>::sequential_composition_task(task<S> && tas
 }
 
 template <typename R, typename S, typename F>
-void sequential_composition_task<R, S, F>::cancel(cancel_level cl) throw()
-{
-	m_task.cancel(cl);
-}
-
-template <typename R, typename S, typename F>
 task<R> sequential_composition_task<R, S, F>::cancel_and_wait() throw()
 {
 	task<S> s = m_task.cancel_and_wait();
@@ -69,10 +61,10 @@ task<R> sequential_composition_task<R, S, F>::cancel_and_wait() throw()
 }
 
 template <typename R, typename S, typename F>
-void sequential_composition_task<R, S, F>::prepare_wait(task_wait_preparation_context & ctx)
+void sequential_composition_task<R, S, F>::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
 {
 	assert(m_task.has_task());
-	m_task.prepare_wait(ctx);
+	m_task.prepare_wait(ctx, cl);
 }
 
 template <typename R, typename S, typename F>

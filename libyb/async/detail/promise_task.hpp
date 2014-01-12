@@ -23,18 +23,13 @@ public:
 			m_buffer->release();
 	}
 
-	void cancel(cancel_level cl) throw()
+	task<T> cancel_and_wait() throw() override
 	{
-		if (cl >= cl_abort && m_buffer && m_buffer->empty())
+		if (m_buffer && m_buffer->empty())
 		{
 			m_buffer->release();
 			m_buffer = 0;
 		}
-	}
-
-	task<T> cancel_and_wait() throw()
-	{
-		this->cancel(cl_kill);
 
 		if (m_buffer)
 			return std::move(m_buffer->front());
@@ -42,13 +37,19 @@ public:
 			return task<T>::from_exception(yb::make_exception_ptr(task_cancelled()));
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx)
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
+		if (cl >= cl_abort && m_buffer && m_buffer->empty())
+		{
+			m_buffer->release();
+			m_buffer = 0;
+		}
+
 		if (!m_buffer || !m_buffer->empty())
 			ctx.set_finished();
 	}
 
-	task<T> finish_wait(task_wait_finalization_context &) throw()
+	task<T> finish_wait(task_wait_finalization_context &) throw() override
 	{
 		if (m_buffer)
 			return std::move(m_buffer->front());

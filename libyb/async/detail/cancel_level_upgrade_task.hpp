@@ -18,25 +18,20 @@ public:
 	{
 	}
 
-	void cancel(cancel_level cl) throw()
-	{
-		if (cl >= m_from && cl < m_to)
-			cl = m_to;
-
-		m_nested.cancel(cl);
-	}
-
-	task<R> cancel_and_wait() throw()
+	task<R> cancel_and_wait() throw() override
 	{
 		return m_nested.cancel_and_wait();
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx)
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
-		m_nested.prepare_wait(ctx);
+		if (cl >= m_from && cl < m_to)
+			cl = m_to;
+
+		m_nested.prepare_wait(ctx, cl);
 	}
 
-	task<R> finish_wait(task_wait_finalization_context & ctx) throw()
+	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override
 	{
 		m_nested.finish_wait(ctx);
 		if (m_nested.has_task())
@@ -60,25 +55,20 @@ public:
 	{
 	}
 
-	void cancel(cancel_level cl) throw()
-	{
-		if (cl >= m_from && cl < m_to)
-			cl = m_to;
-
-		m_nested.cancel(cl);
-	}
-
-	task<void> cancel_and_wait() throw()
+	task<void> cancel_and_wait() throw() override
 	{
 		return m_nested.cancel_and_wait();
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx)
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
-		m_nested.prepare_wait(ctx);
+		if (cl >= m_from && cl < m_to)
+			cl = m_to;
+
+		m_nested.prepare_wait(ctx, cl);
 	}
 
-	task<void> finish_wait(task_wait_finalization_context & ctx) throw()
+	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override
 	{
 		m_nested.finish_wait(ctx);
 		if (m_nested.has_task())

@@ -50,24 +50,20 @@ public:
 	{
 	}
 
-	void cancel(cancel_level cl) throw()
-	{
-		if (!m_canceller(cl))
-			m_nested.cancel(cl);
-	}
-
-	task<result_type> cancel_and_wait() throw()
+	task<result_type> cancel_and_wait() throw() override
 	{
 		m_canceller(yb::cl_kill);
 		return m_nested.cancel_and_wait();
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx)
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
-		m_nested.prepare_wait(ctx);
+		if (m_canceller(cl))
+			cl = cl_none;
+		m_nested.prepare_wait(ctx, cl);
 	}
 
-	task<result_type> finish_wait(task_wait_finalization_context & ctx) throw()
+	task<result_type> finish_wait(task_wait_finalization_context & ctx) throw() override
 	{
 		return m_nested.finish_wait(ctx);
 	}

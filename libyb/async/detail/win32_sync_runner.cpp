@@ -62,9 +62,6 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
 	bool done = false;
 	while (!done && !m_pimpl->m_tasks.empty())
 	{
-		for (auto it = m_pimpl->m_tasks.begin(); it != m_pimpl->m_tasks.end(); ++it)
-			it->pt->apply_cancel();
-
 		prep_ctx.clear();
 		prep_ctx_impl->m_handles.push_back(m_pimpl->m_update_event);
 

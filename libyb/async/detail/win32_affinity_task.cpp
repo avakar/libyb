@@ -8,20 +8,15 @@ win32_affinity_task::win32_affinity_task()
 {
 }
 
-void win32_affinity_task::cancel(cancel_level cl) throw()
-{
-	if (m_cl < cl)
-		m_cl = cl;
-}
-
 task<void> win32_affinity_task::cancel_and_wait() throw()
 {
 	return task<void>::from_exception(yb::make_exception_ptr(task_cancelled(cl_kill)));
 }
 
-void win32_affinity_task::prepare_wait(task_wait_preparation_context & ctx)
+void win32_affinity_task::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
 {
 	ctx.set_finished();
+	m_cl = cl;
 }
 
 task<void> win32_affinity_task::finish_wait(task_wait_finalization_context &) throw()

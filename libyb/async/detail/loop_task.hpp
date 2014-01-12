@@ -33,9 +33,8 @@ class loop_task
 public:
 	loop_task(task<S> && t, F const & f, loop_state<T> && state);
 
-	void cancel(cancel_level cl) throw();
 	task<void> cancel_and_wait() throw();
-	void prepare_wait(task_wait_preparation_context & ctx);
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
 
 private:
@@ -113,13 +112,6 @@ loop_task<S, F, T>::loop_task(task<S> && t, F const & f, loop_state<T> && state)
 }
 
 template <typename S, typename F, typename T>
-void loop_task<S, F, T>::cancel(cancel_level cl) throw()
-{
-	m_cancel_level = (std::max)(m_cancel_level, cl);
-	m_task.cancel(cl);
-}
-
-template <typename S, typename F, typename T>
 task<void> loop_task<S, F, T>::cancel_and_wait() throw()
 {
 	while (!m_task.empty())
@@ -134,9 +126,10 @@ task<void> loop_task<S, F, T>::cancel_and_wait() throw()
 }
 
 template <typename S, typename F, typename T>
-void loop_task<S, F, T>::prepare_wait(task_wait_preparation_context & ctx)
+void loop_task<S, F, T>::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
 {
-	m_task.prepare_wait(ctx);
+	m_cancel_level = cl;
+	m_task.prepare_wait(ctx, cl);
 }
 
 template <typename S, typename F, typename T>

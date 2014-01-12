@@ -25,14 +25,13 @@ public:
 
 	// Shadow task interface
 	void request_cancel(cancel_level cl) throw();
-	void shadow_prepare_wait(task_wait_preparation_context & prep_ctx);
+	void shadow_prepare_wait(task_wait_preparation_context & prep_ctx, cancel_level cl);
 	void shadow_wait() throw();
 	void shadow_cancel_and_wait() throw();
 
 	// Runner interface
 	void attach_event_sink(prepared_task_event_sink & r) throw();
 	void detach_event_sink() throw();
-	virtual void apply_cancel() throw() = 0;
 	virtual void prepare_wait(task_wait_preparation_context & prep_ctx) = 0;
 	virtual bool finish_wait(task_wait_finalization_context & fin_ctx) throw() = 0;
 	virtual void cancel_and_wait() throw() = 0;

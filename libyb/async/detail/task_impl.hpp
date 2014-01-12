@@ -4,7 +4,6 @@
 #include "sequential_composition_task.hpp"
 #include "loop_task.hpp"
 #include "cancel_level_upgrade_task.hpp"
-#include "cancellation_token_task.hpp"
 #include <type_traits>
 
 namespace yb {
@@ -110,6 +109,15 @@ task<R> task<R>::from_task(task_base<result_type> * task_impl) throw()
 }
 
 template <typename R>
+task<R> task<R>::from_future(future_base<R> * future_impl) throw()
+{
+	task<R> res;
+	new(&res.m_storage) task_base<result_type>*(future_impl);
+	res.m_kind = k_future;
+	return std::move(res);
+}
+
+template <typename R>
 task<R>::task(task<R> && o)
 	: m_kind(k_empty)
 {
@@ -124,8 +132,9 @@ task<R>::task(task<R> && o)
 		m_kind = k_exception;
 		break;
 	case k_task:
+	case k_future:
 		new(&m_storage) task_base_ptr(o.as_task());
-		m_kind = k_task;
+		m_kind = o.m_kind;
 		this->destroy<task_base_ptr>();
 		o.m_kind = k_empty;
 		return;
@@ -155,6 +164,7 @@ void task<R>::clear() throw()
 	switch (m_kind)
 	{
 	case k_task:
+	case k_future:
 		{
 			task_base_ptr p = this->as_task();
 			p->cancel_and_wait();
@@ -225,8 +235,9 @@ task<R> & task<R>::operator=(task<R> && o) throw()
 	switch (o.m_kind)
 	{
 	case k_task:
+	case k_future:
 		new(&m_storage) task_base_ptr(o.as_task());
-		m_kind = k_task;
+		m_kind = o.m_kind;
 		o.destroy<task_base_ptr>();
 		o.m_kind = k_empty;
 		return *this;
@@ -248,29 +259,42 @@ task<R> & task<R>::operator=(task<R> && o) throw()
 template <typename R>
 bool task<R>::has_task() const
 {
-	return m_kind == k_task;
+	return m_kind == k_task || m_kind == k_future;
 }
 
 template <typename R>
-void task<R>::prepare_wait(task_wait_preparation_context & ctx)
+bool task<R>::has_future() const throw()
 {
-	if (m_kind == k_task)
+	return m_kind == k_future;
+}
+
+template <typename R>
+void task<R>::cancel(cancel_level cl)
+{
+	if (m_kind == k_future)
+		static_cast<future_base<R> *>(this->as_task())->cancel(cl);
+}
+
+template <typename R>
+void task<R>::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+{
+	if (m_kind == k_task || m_kind == k_future)
 	{
 		task_base_ptr p = this->as_task();
-		p->prepare_wait(ctx);
+		p->prepare_wait(ctx, cl);
 	}
 }
 
 template <typename R>
 void task<R>::finish_wait(task_wait_finalization_context & ctx)
 {
-	assert(m_kind == k_task);
+	assert(m_kind == k_task || m_kind == k_future);
 	task_base_ptr p = this->as_task();
 	task<R> n = p->finish_wait(ctx);
 
 	if (!n.empty())
 	{
-		assert(m_kind == k_task);
+		assert(m_kind == k_task || m_kind == k_future);
 		delete p;
 		this->destroy<task_base_ptr>();
 		m_kind = k_empty;
@@ -280,21 +304,11 @@ void task<R>::finish_wait(task_wait_finalization_context & ctx)
 }
 
 template <typename R>
-void task<R>::cancel(cancel_level cl)
-{
-	if (m_kind == k_task)
-	{
-		task_base_ptr p = this->as_task();
-		p->cancel(cl);
-	}
-}
-
-template <typename R>
 task<R> task<R>::cancel_and_wait()
 {
 	assert(!this->empty());
 
-	if (m_kind == k_task)
+	if (m_kind == k_task || m_kind == k_future)
 	{
 		task_base_ptr p = this->as_task();
 		task<R> r = p->cancel_and_wait();
@@ -447,7 +461,7 @@ task<void> task<void>::follow_with(F f)
 template <typename R>
 task<R> task<R>::abort_on(cancel_level cl, cancel_level abort_cl)
 {
-	if (m_kind == k_task)
+	if (m_kind == k_task || m_kind == k_future)
 	{
 		try
 		{
@@ -473,24 +487,6 @@ task<void> task<R>::ignore_result()
 
 template <>
 task<void> task<void>::ignore_result();
-
-template <typename R>
-task<R> task<R>::cancellable(cancellation_token & ct)
-{
-	if (m_kind != k_task)
-		return std::move(*this);
-
-	detail::cancellation_token_core<R> * core = new detail::cancellation_token_core<R>();
-	cancellation_token new_ct(core);
-	task<R> core_task(new detail::cancellation_token_task<R>(core));
-
-	core->m_task = std::move(*this);
-	ct = new_ct;
-	return std::move(core_task);
-}
-
-template <>
-task<void> task<void>::finishable(cancellation_token & ct);
 
 template <typename F>
 typename detail::task_protect_type<F>::type protect(F f)

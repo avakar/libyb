@@ -21,13 +21,6 @@ public:
 		this->collect();
 	}
 
-	void cancel(cancel_level cl) throw() override
-	{
-		m_cl = (std::max)(cl, m_cl);
-		for (std::size_t i = 0; i < m_active_tasks; ++i)
-			m_tasks[(m_head+i) % m_task_count].t.cancel(cl);
-	}
-
 	task<void> cancel_and_wait() throw() override
 	{
 		m_cl = cl_kill;
@@ -57,14 +50,15 @@ public:
 		return m_exc == nullptr? task<void>::from_value(): task<void>::from_exception(m_exc);
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx) override
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
+		m_cl = cl;
 		for (size_t i = 0; i < m_active_tasks; ++i)
 		{
 			size_t idx = (m_head + i) % m_task_count;
 
 			task_wait_memento_builder b(ctx);
-			m_tasks[idx].t.prepare_wait(ctx);
+			m_tasks[idx].t.prepare_wait(ctx, cl);
 			m_tasks[idx].m = b.finish();
 		}
 	}

@@ -14,7 +14,7 @@ task<R> runner::post(task<R> && t) throw()
 	try
 	{
 		detail::prepared_task_guard<R> pt(new detail::prepared_task_impl<R>(std::move(t)));
-		task<R> res(task<R>::from_task(new detail::shadow_task<R>(pt.get())));
+		task<R> res(task<R>::from_future(new detail::shadow_task<R>(pt.get())));
 		this->submit(pt.get());
 		return std::move(res);
 	}
