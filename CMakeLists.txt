@@ -9,6 +9,7 @@ set(SOURCES
 	libyb/async/descriptor_reader.cpp
 	libyb/async/descriptor_reader.hpp
 	libyb/async/device.cpp
+	libyb/async/group.hpp
 	libyb/async/mock_stream.cpp
 	libyb/async/null_stream.cpp
 	libyb/async/stream.cpp
@@ -95,6 +96,7 @@ set(SOURCES
 
 if (WIN32)
 set(SOURCES ${SOURCES}
+	libyb/async/detail/win32_group.cpp
 	libyb/async/detail/win32_affinity_task.hpp
 	libyb/async/detail/win32_handle_task.hpp
 	libyb/async/detail/win32_wait_context.hpp

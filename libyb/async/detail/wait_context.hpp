@@ -21,6 +21,13 @@ struct task_wait_memento
 	size_t poll_item_last;
 
 	size_t finished_task_count;
+
+	void clear()
+	{
+		poll_item_first = 0;
+		poll_item_last = 0;
+		finished_task_count = 0;
+	}
 };
 
 class task_wait_preparation_context
