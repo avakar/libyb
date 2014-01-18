@@ -13,7 +13,6 @@ public:
 	parallel_compositor();
 
 	bool empty() const;
-	size_t size() const;
 
 	void add_task(task<void> && t);
 	void add_task(task<void> && t, task<void> && u);
@@ -36,7 +35,6 @@ private:
 	};
 
 	std::list<parallel_task> m_tasks;
-	std::size_t m_task_count;
 };
 
 } // namespace detail
