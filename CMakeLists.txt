@@ -27,6 +27,9 @@ set(SOURCES
 	libyb/async/detail/channel_detail.hpp
 	libyb/async/detail/loop_task.hpp
 	libyb/async/detail/parallel_composition_task.hpp
+	libyb/async/detail/parallel_compositor.cpp
+	libyb/async/detail/parallel_compositor.hpp
+	libyb/async/detail/parallel_compositor_impl.hpp
 	libyb/async/detail/prepared_task.hpp
 	libyb/async/detail/prepared_task_impl.hpp
 	libyb/async/detail/promise_task.hpp

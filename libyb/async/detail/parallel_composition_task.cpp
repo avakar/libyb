@@ -6,62 +6,24 @@ using namespace yb::detail;
 
 parallel_composition_task::parallel_composition_task(task<void> && t, task<void> && u)
 {
-	m_tasks.resize(2);
-	m_tasks.front().t = std::move(t);
-	m_tasks.back().t = std::move(u);
+	m_compositor.add_task(std::move(t), std::move(u));
 }
 
 task<void> parallel_composition_task::cancel_and_wait() throw()
 {
-	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
-		it->t.cancel_and_wait(); // XXX: handle exc results
-	m_tasks.clear();
-	return task<void>::from_value();
+	m_compositor.cancel_and_wait([](task<void> const &) {});
+	return async::value();
 }
 
 void parallel_composition_task::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
 {
-	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
-	{
-		task_wait_memento_builder mb(ctx);
-		it->t.prepare_wait(ctx, cl);
-		it->m = mb.finish();
-	}
+	m_compositor.prepare_wait(ctx, cl);
 }
 
 task<void> parallel_composition_task::finish_wait(task_wait_finalization_context & ctx) throw()
 {
-	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); )
-	{
-		if (ctx.contains(it->m))
-		{
-			it->t.finish_wait(ctx); // XXX: handle exc results
-			if (it->t.has_value() || it->t.has_exception())
-			{
-				it = m_tasks.erase(it);
-				continue;
-			}
-		}
-
-		++it;
-	}
-
-	switch (m_tasks.size())
-	{
-	case 0:
+	m_compositor.finish_wait(ctx, [](task<void> const &){});
+	if (m_compositor.empty())
 		return async::value();
-	case 1:
-		return std::move(m_tasks.front().t);
-	default:
-		return nulltask;
-	}
-}
-
-parallel_composition_task::parallel_task::parallel_task()
-{
-}
-
-parallel_composition_task::parallel_task::parallel_task(parallel_task && o)
-	: t(std::move(o.t))
-{
+	return nulltask;
 }

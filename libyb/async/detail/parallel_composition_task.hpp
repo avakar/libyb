@@ -1,10 +1,8 @@
 #ifndef LIBYB_ASYNC_DETAIL_PARALLEL_COMPOSITION_TASK_HPP
 #define LIBYB_ASYNC_DETAIL_PARALLEL_COMPOSITION_TASK_HPP
 
+#include "parallel_compositor.hpp"
 #include "../task_base.hpp"
-#include "task_fwd.hpp"
-#include "wait_context.hpp"
-#include <list>
 
 namespace yb {
 namespace detail {
@@ -20,16 +18,7 @@ public:
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override;
 
 private:
-	struct parallel_task
-	{
-		task<void> t;
-		task_wait_memento m;
-
-		parallel_task();
-		parallel_task(parallel_task && o);
-	};
-
-	std::list<parallel_task> m_tasks;
+	parallel_compositor m_compositor;
 };
 
 } // namespace detail
