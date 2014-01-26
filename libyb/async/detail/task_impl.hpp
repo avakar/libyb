@@ -346,13 +346,31 @@ auto task<R>::continue_with(F f) -> decltype(f(std::move(*(task<R>*)0)))
 namespace detail {
 
 template <typename R, typename S, typename F, typename X>
-task<R> then_impl(task<S> && t, F const & f, std::true_type, X)
+task<R> then_impl(task<S> && t, F f, std::true_type, X)
 {
-	return t.continue_with([f](task<S> r) -> task<R> {
-		if (r.has_exception())
-			return async::raise<R>(r.exception());
-		return f(r.get());
-	});
+	struct cont_t
+	{
+		cont_t(F && f)
+			: f(std::move(f))
+		{
+		}
+
+		cont_t(cont_t && o)
+			: f(std::move(o.f))
+		{
+		}
+
+		task<R> operator()(task<S> r)
+		{
+			if (r.has_exception())
+				return async::raise<R>(r.exception());
+			return f(r.get());
+		}
+
+		F f;
+	};
+
+	return t.continue_with(cont_t(std::move(f)));
 }
 
 template <typename R, typename S, typename F>
@@ -423,7 +441,7 @@ typename detail::task_then_type<R, F>::type task<R>::then(F f)
 {
 	typedef typename detail::task_then_type<R, F>::result_type f_result_type;
 	typedef typename detail::task_then_type<R, F>::unwrapped_type unwrapped_type;
-	return detail::then_impl<unwrapped_type>(std::move(*this), f, detail::is_task<f_result_type>(), std::is_void<unwrapped_type>());
+	return detail::then_impl<unwrapped_type>(std::move(*this), std::forward<F>(f), detail::is_task<f_result_type>(), std::is_void<unwrapped_type>());
 }
 
 template <typename R>

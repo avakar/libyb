@@ -10,7 +10,7 @@ stream_device::stream_device()
 task<void> stream_device::write_loop(stream & s)
 {
 	return wait_for(m_start_write).finish_on(cl_quit).then([this, &s] {
-		return s.write_all(m_write_buffer.data(), m_write_buffer.size());
+		return write_all(s, m_write_buffer.data(), m_write_buffer.size());
 	}).then([this]() -> task<void> {
 		m_write_buffer.swap(m_write_backlog);
 		m_write_backlog.clear();
@@ -28,7 +28,7 @@ task<void> stream_device::run(stream & s)
 			m_parser.parse(*this, buffer_ref(m_read_buffer, r));
 			if (cl >= cl_quit)
 				return nulltask;
-			return s.read(m_read_buffer, sizeof m_read_buffer).abort_on(cl_quit);
+			return read(s, m_read_buffer, sizeof m_read_buffer).abort_on(cl_quit);
 		});
 
 		task<void> write_task = loop([this, &s](cancel_level cl) {

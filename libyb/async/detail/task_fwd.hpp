@@ -33,7 +33,7 @@ struct unwrap_task<task<T>>
 template <typename R, typename F>
 struct task_then_type
 {
-	typedef decltype((*(F*)0)(*(R*)0)) result_type;
+	typedef decltype((*(F*)0)(std::move(*(R*)0))) result_type;
 	typedef typename unwrap_task<result_type>::type unwrapped_type;
 	typedef task<unwrapped_type> type;
 };

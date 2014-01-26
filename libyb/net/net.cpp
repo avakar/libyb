@@ -296,41 +296,49 @@ task<void> yb::tcp_listen(
 struct socket_op
 {
 	WSABUF buf;
+	buffer read_buf;
 	detail::win32_overlapped o;
 };
 
-task<size_t> yb::tcp_socket::read(uint8_t * buffer, size_t size)
+task<buffer> yb::tcp_socket::read(buffer_policy policy)
 {
 	std::shared_ptr<socket_op> op = std::make_shared<socket_op>();
 
-	op->buf.len = size;
-	op->buf.buf = (CHAR *)buffer;
+	return policy.fetch().then([this, op](buffer && buf) {
+		op->read_buf = std::move(buf);
+		op->buf.len = op->read_buf.size();
+		op->buf.buf = (CHAR *)op->read_buf.get();
 
-	DWORD dwReceived = 0;
-	DWORD dwFlags = 0;
-	if (WSARecv(m_pimpl->m_socket, &op->buf, 1, &dwReceived, &dwFlags, &op->o.o, 0) == 0)
-		return yb::async::value((size_t)dwReceived);
+		DWORD dwReceived = 0;
+		DWORD dwFlags = 0;
+		if (WSARecv(m_pimpl->m_socket, &op->buf, 1, &dwReceived, &dwFlags, &op->o.o, 0) == 0)
+		{
+			op->read_buf.shrink((size_t)dwReceived);
+			return yb::async::value(std::move(op->read_buf));
+		}
 
-	if (WSAGetLastError() != WSA_IO_PENDING)
-		return wsa_error<size_t>();
+		if (WSAGetLastError() != WSA_IO_PENDING)
+			return wsa_error<buffer>();
 
-	return yb::make_win32_handle_task(op->o.o.hEvent, [this, op](cancel_level cl) -> bool {
-		detail::cancel_win32_overlapped((HANDLE)m_pimpl->m_socket, op->o);
-		return true;
-	}).then([this, op]() ->task<size_t> {
-		DWORD dwReceived;
-		DWORD dwFlags;
-		WSAGetOverlappedResult(m_pimpl->m_socket, &op->o.o, &dwReceived, FALSE, &dwFlags);
-		return yb::async::value((size_t)dwReceived);
+		return yb::make_win32_handle_task(op->o.o.hEvent, [this, op](cancel_level cl) -> bool {
+			detail::cancel_win32_overlapped((HANDLE)m_pimpl->m_socket, op->o);
+			return true;
+		}).then([this, op]() ->task<buffer> {
+			DWORD dwReceived;
+			DWORD dwFlags;
+			WSAGetOverlappedResult(m_pimpl->m_socket, &op->o.o, &dwReceived, FALSE, &dwFlags);
+			op->read_buf.shrink((size_t)dwReceived);
+			return yb::async::value(std::move(op->read_buf));
+		});
 	});
 }
 
-task<size_t> yb::tcp_socket::write(uint8_t const * buffer, size_t size)
+task<size_t> yb::tcp_socket::write(buffer_ref buf)
 {
 	std::shared_ptr<socket_op> op = std::make_shared<socket_op>();
 
-	op->buf.len = size;
-	op->buf.buf = (CHAR *)buffer;
+	op->buf.len = buf.size();
+	op->buf.buf = (CHAR *)buf.data();
 
 	DWORD dwReceived = 0;
 	if (WSASend(m_pimpl->m_socket, &op->buf, 1, &dwReceived, 0, &op->o.o, 0) == 0)

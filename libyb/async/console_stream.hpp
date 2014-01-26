@@ -18,8 +18,8 @@ public:
 	explicit console_stream(output_kind_t output_kind = out);
 	~console_stream();
 
-	task<size_t> read(uint8_t * buffer, size_t size) override;
-	task<size_t> write(uint8_t const * buffer, size_t size) override;
+	task<buffer> read(buffer_policy policy) override;
+	task<size_t> write(buffer_ref buf) override;
 
 private:
 	struct impl;

@@ -22,8 +22,8 @@ public:
 
 	void clear();
 
-	task<size_t> read(uint8_t * buffer, size_t size) override;
-	task<size_t> write(uint8_t const * buffer, size_t size) override;
+	task<buffer> read(buffer_policy policy) override;
+	task<size_t> write(buffer_ref buf) override;
 
 private:
 	impl * m_pimpl;

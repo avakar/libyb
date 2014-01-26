@@ -47,17 +47,48 @@ static task<size_t> try_read(HANDLE hFile, uint8_t * buffer, size_t size)
 	});
 }
 
-task<size_t> console_stream::read(uint8_t * buffer, size_t size)
+task<buffer> console_stream::read(buffer_policy policy)
 {
-	return try_read(m_pimpl->hStdin, buffer, size).then([this, buffer, size](size_t r) -> task<size_t> {
-		if (r == 0)
-			return this->read(buffer, size); // XXX recursion!
-		return async::value(r);
+	struct th
+	{
+		th(th && o)
+			: m_self(o.m_self), m_buf(std::move(o.m_buf))
+		{
+		}
+
+		th & operator=(th && o)
+		{
+			m_self = o.m_self;
+			m_buf = std::move(o.m_buf);
+			return *this;
+		}
+
+		th(console_stream * self, buffer && buf)
+			: m_self(self), m_buf(std::move(buf))
+		{
+		}
+
+		task<buffer> operator()(size_t r)
+		{
+			if (r == 0)
+				return m_self->read(std::move(m_buf)); // XXX recursion!
+			m_buf.shrink(r);
+			return async::value(std::move(m_buf));
+		}
+
+		console_stream * m_self;
+		buffer m_buf;
+	};
+
+	return policy.fetch().then([this](buffer buf) {
+		th t(this, std::move(buf));
+		task<size_t> res = try_read(m_pimpl->hStdin, t.m_buf.get(), t.m_buf.size());
+		return res.then(std::move(t));
 	});
 }
 
-task<size_t> console_stream::write(uint8_t const * buffer, size_t size)
+task<size_t> console_stream::write(buffer_ref buf)
 {
 	std::shared_ptr<detail::win32_file_operation> fo = std::make_shared<detail::win32_file_operation>();
-	return fo->write(m_pimpl->hStdout, buffer, size).keep_alive(fo);
+	return fo->write(m_pimpl->hStdout, buf.data(), buf.size()).keep_alive(fo);
 }
