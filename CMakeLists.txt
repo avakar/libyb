@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 project(yb)
 
 set(SOURCES
+	libyb/buffer.hpp
+	libyb/buffer.cpp
 	libyb/descriptor.cpp
 	libyb/stream_parser.cpp
 	libyb/tunnel.cpp
