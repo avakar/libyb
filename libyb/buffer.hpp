@@ -1,68 +1,92 @@
+#ifndef LIBYB_BUFFER_HPP
+#define LIBYB_BUFFER_HPP
+
 #include "vector_ref.hpp"
-#include "async/task.hpp"
-#include <cassert>
+#include "async/detail/task_fwd.hpp"
+#include <type_traits>
 
 namespace yb {
-
-class buffer_deleter
-{
-public:
-	virtual void free(uint8_t * ptr, size_t capacity) = 0;
-};
 
 class buffer
 {
 public:
 	buffer();
-	buffer(buffer_deleter * deleter, uint8_t * ptr, size_t capacity);
 	buffer(buffer && o);
+	buffer(uint8_t * ptr, size_t size);
 	~buffer();
-	buffer & operator=(buffer && o);
+	buffer & operator=(buffer o);
 
-	bool empty() const;
+	struct vtable_t;
+	buffer(vtable_t const * vtable, uint8_t * ptr, size_t size);
+
 	void clear();
-	void detach();
+	bool empty() const;
+	uint8_t * data() const;
+	size_t size() const;
+	uint8_t * begin() const;
+	uint8_t * end() const;
+
+	bool sharable() const;
+	buffer share() const;
 
 	friend void swap(buffer & lhs, buffer & rhs);
 
-	uint8_t * get() const;
-	size_t size() const;
-	size_t capacity() const;
-	buffer_deleter * deleter() const;
-	buffer_ref cref() const;
-	operator buffer_ref() const;
-
-	void shrink(size_t size);
-
 private:
-	buffer_deleter * m_deleter;
+	vtable_t const * m_vtable;
 	uint8_t * m_ptr;
 	size_t m_size;
-	size_t m_capacity;
 
-	buffer(buffer const &);
-	buffer & operator=(buffer const &);
+	buffer(buffer const & o);
+};
+
+class buffer_view
+{
+public:
+	buffer_view();
+	buffer_view(buffer_view && o);
+	explicit buffer_view(buffer && buf);
+	buffer_view(buffer && buf, size_t length, size_t offset = 0);
+	buffer_view & operator=(buffer_view o);
+
+	void clear();
+	bool empty() const;
+
+	bool clonable() const;
+	buffer_view clone() const;
+
+	buffer_ref const & operator*() const;
+	buffer_ref const * operator->() const;
+
+	void pop_front(size_t size);
+	void shrink(size_t offset, size_t size);
+
+	friend void swap(buffer_view & lhs, buffer_view & rhs);
+
+private:
+	buffer m_buffer;
+	buffer_ref m_view;
+
+	buffer_view(buffer_view const &);
 };
 
 class buffer_policy
 {
 public:
 	buffer_policy();
-	buffer_policy(buffer_policy && o);
 	~buffer_policy();
-	buffer_policy & operator=(buffer_policy && o);
-
-	buffer_policy(uint8_t * buffer, size_t capacity, buffer_deleter * deleter = 0);
+	buffer_policy(size_t dynamic_buf_size, bool sharable = false);
+	buffer_policy(uint8_t * buf, size_t size);
 	buffer_policy(buffer && buf);
-	static buffer_policy dynamic(size_t default_capacity);
+	buffer_policy(buffer_policy && o);
 
-	yb::task<buffer> fetch(size_t min_capacity = 0);
+	buffer_policy ref();
+	task<buffer> fetch(size_t min_size = 1, size_t max_size = 0);
+	task<buffer_view> copy(buffer_view && view);
 
 private:
-	std::aligned_storage<sizeof(void *)* 4>::type m_storage;
-
-	buffer_policy(buffer_policy const &);
-	buffer_policy & operator=(buffer_policy const &);
+	std::aligned_storage<4*sizeof(void*)>::type m_storage;
 };
 
 } // namespace yb
+
+#endif // LIBYB_BUFFER_HPP

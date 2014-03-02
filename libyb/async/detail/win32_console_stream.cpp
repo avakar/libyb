@@ -47,12 +47,12 @@ static task<size_t> try_read(HANDLE hFile, uint8_t * buffer, size_t size)
 	});
 }
 
-task<buffer> console_stream::read(buffer_policy policy)
+task<buffer_view> console_stream::read(buffer_policy policy, size_t max_size)
 {
 	struct th
 	{
 		th(th && o)
-			: m_self(o.m_self), m_buf(std::move(o.m_buf))
+			: m_self(o.m_self), m_buf(std::move(o.m_buf)), m_max_size(o.m_max_size)
 		{
 		}
 
@@ -60,29 +60,30 @@ task<buffer> console_stream::read(buffer_policy policy)
 		{
 			m_self = o.m_self;
 			m_buf = std::move(o.m_buf);
+			m_max_size = o.m_max_size;
 			return *this;
 		}
 
-		th(console_stream * self, buffer && buf)
-			: m_self(self), m_buf(std::move(buf))
+		th(console_stream * self, buffer && buf, size_t max_size)
+			: m_self(self), m_buf(std::move(buf)), m_max_size(max_size)
 		{
 		}
 
-		task<buffer> operator()(size_t r)
+		task<buffer_view> operator()(size_t r)
 		{
 			if (r == 0)
-				return m_self->read(std::move(m_buf)); // XXX recursion!
-			m_buf.shrink(r);
-			return async::value(std::move(m_buf));
+				return m_self->read(std::move(m_buf), m_max_size); // XXX recursion!
+			return async::value(buffer_view(std::move(m_buf), r));
 		}
 
 		console_stream * m_self;
 		buffer m_buf;
+		size_t m_max_size;
 	};
 
-	return policy.fetch().then([this](buffer buf) {
-		th t(this, std::move(buf));
-		task<size_t> res = try_read(m_pimpl->hStdin, t.m_buf.get(), t.m_buf.size());
+	return policy.fetch(1, max_size).then([this, max_size](buffer buf) {
+		th t(this, std::move(buf), max_size);
+		task<size_t> res = try_read(m_pimpl->hStdin, t.m_buf.data(), (std::max)(t.m_buf.size(), max_size));
 		return res.then(std::move(t));
 	});
 }

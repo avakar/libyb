@@ -18,7 +18,7 @@ public:
 	explicit console_stream(output_kind_t output_kind = out);
 	~console_stream();
 
-	task<buffer> read(buffer_policy policy) override;
+	task<buffer_view> read(buffer_policy policy, size_t max_size) override;
 	task<size_t> write(buffer_ref buf) override;
 
 private:

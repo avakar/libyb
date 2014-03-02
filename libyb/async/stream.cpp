@@ -2,14 +2,14 @@
 #include <vector>
 using namespace yb;
 
-task<buffer> yb::read(stream & s, buffer_policy policy)
+task<buffer_view> yb::read(stream & s, buffer_policy policy, size_t max_size)
 {
-	return s.read(std::move(policy));
+	return s.read(std::move(policy), max_size);
 }
 
 task<size_t> yb::read(stream & s, uint8_t * buffer, size_t size)
 {
-	return s.read(buffer_policy(buffer, size)).then([](yb::buffer buf) { return buf.size(); });
+	return s.read(buffer_policy(buffer, size), size).then([](yb::buffer_view buf) { return buf->size(); });
 }
 
 task<void> yb::read_all(stream & s, uint8_t * buffer, size_t size)
@@ -49,6 +49,11 @@ task<size_t> yb::write(stream & s, uint8_t const * buffer, size_t size)
 	return s.write(buffer_ref(buffer, size));
 }
 
+task<void> yb::write_all(stream & s, buffer_ref buf)
+{
+	return write_all(s, buf.begin(), buf.size());
+}
+
 task<void> yb::write_all(stream & s, uint8_t const * buffer, size_t size)
 {
 	return loop_with_state<size_t, size_t>(async::value((size_t)0), 0, [&s, buffer, size](size_t r, size_t & st, cancel_level cl) -> task<size_t> {
@@ -61,10 +66,10 @@ task<void> yb::write_all(stream & s, uint8_t const * buffer, size_t size)
 	});
 }
 
-static task<void> copy_iter(std::shared_ptr<std::vector<uint8_t>> const & ctx, stream & sink, stream & source)
+static task<size_t> copy_iter(std::shared_ptr<std::vector<uint8_t>> const & ctx, stream & sink, stream & source)
 {
 	return read(source, ctx->data(), ctx->size()).abort_on(cl_quit).then([ctx, &sink](size_t r) {
-		return write_all(sink, ctx->data(), r);
+		return write_all(sink, ctx->data(), r).then([r]() { return r; });
 	});
 }
 
@@ -73,8 +78,10 @@ task<void> yb::copy(stream & sink, stream & source, size_t buffer_size)
 	try
 	{
 		std::shared_ptr<std::vector<uint8_t>> ctx(new std::vector<uint8_t>(buffer_size));
-		return loop([ctx, &sink, &source](cancel_level cl) {
-			return cl >= cl_quit? nulltask: copy_iter(ctx, sink, source);
+		return loop(async::value((size_t)1), [ctx, &sink, &source](std::size_t r, cancel_level cl) -> task<size_t> {
+			if (cl >= cl_quit || r == 0)
+				return nulltask;
+			return copy_iter(ctx, sink, source);
 		});
 	}
 	catch (...)

@@ -1,288 +1,462 @@
 #include "buffer.hpp"
+#include "async/task.hpp"
+#include "utils/refcount.hpp"
+#include <cassert>
+using namespace yb;
 
-yb::buffer::buffer()
-	: m_deleter(0), m_ptr(0), m_size(0), m_capacity(0)
+struct buffer::vtable_t
 {
+	void (*destroy)(uint8_t * ptr, size_t size);
+	void (*share)(uint8_t *& ptr, size_t & size);
+};
+
+namespace {
+
+struct buffer_policy_vtable
+{
+	task<buffer> (*fetch)(void * ctx, size_t max_size);
+};
+
+class buffer_policy_ref
+{
+public:
+	explicit buffer_policy_ref(buffer_policy_vtable const ** origin);
+	static task<buffer> fetch(void * ctx, size_t max_size);
+
+private:
+	buffer_policy_vtable const * m_vtable;
+	buffer_policy_vtable const ** m_origin;
+};
+
+class buffer_policy_dynamic
+{
+public:
+	explicit buffer_policy_dynamic(size_t size, bool shared);
+
+	static task<buffer> fetch_unique(void * ctx, size_t max_size);
+	static void destroy_unique(uint8_t * ptr, size_t size);
+
+	static task<buffer> fetch_shared(void * ctx, size_t max_size);
+	static void destroy_shared(uint8_t * ptr, size_t size);
+	static void share_shared(uint8_t *& ptr, size_t & size);
+
+private:
+	buffer_policy_vtable const * m_vtable;
+	size_t m_size;
+};
+
+class buffer_policy_static
+{
+public:
+	explicit buffer_policy_static(buffer && buffer);
+	static task<buffer> fetch(void * ctx, size_t max_size);
+
+private:
+	buffer_policy_vtable const * m_vtable;
+	buffer m_buffer;
+};
+
+} // namespace
+
+buffer_policy_ref::buffer_policy_ref(buffer_policy_vtable const ** origin)
+{
+	static buffer_policy_vtable const vtable = {
+		/*fetch=*/&fetch,
+	};
+
+	if (*origin == &vtable)
+	{
+		// The origin is a ref too; reference its origin instead.
+		buffer_policy_ref * original_ref = reinterpret_cast<buffer_policy_ref *>(origin);
+
+		assert(original_ref->m_vtable != &vtable);
+		m_vtable = original_ref->m_vtable;
+		m_origin = original_ref->m_origin;
+	}
+	else
+	{
+		assert((*origin)->fetch);
+		m_vtable = &vtable;
+		m_origin = origin;
+	}
 }
 
-yb::buffer::buffer(buffer_deleter * deleter, uint8_t * ptr, size_t capacity)
-	: m_deleter(deleter), m_ptr(ptr), m_size(capacity), m_capacity(capacity)
+task<buffer> buffer_policy_ref::fetch(void * ctx, size_t max_size)
 {
+	buffer_policy_ref * self = static_cast<buffer_policy_ref *>(ctx);
+
+	assert((*self->m_origin)->fetch);
+	return (*self->m_origin)->fetch(self->m_origin, max_size);
 }
 
-yb::buffer::buffer(buffer && o)
-	: m_deleter(o.m_deleter), m_ptr(o.m_ptr), m_size(o.m_size), m_capacity(o.m_capacity)
+buffer_policy_dynamic::buffer_policy_dynamic(size_t size, bool shared)
+	: m_size(size)
 {
-	o.detach();
+	static buffer_policy_vtable const vtable_unique = {
+		/*fetch=*/&fetch_unique,
+	};
+
+	static buffer_policy_vtable const vtable_shared = {
+		/*fetch=*/&fetch_shared,
+	};
+
+	m_vtable = shared? &vtable_shared: &vtable_unique;
 }
 
-yb::buffer::~buffer()
+task<buffer> buffer_policy_dynamic::fetch_unique(void * ctx, size_t max_size)
 {
-	if (m_deleter)
-		m_deleter->free(m_ptr, m_capacity);
+	buffer_policy_dynamic * self = static_cast<buffer_policy_dynamic *>(ctx);
+
+	std::size_t actual_size = self->m_size;
+	if (max_size && actual_size > max_size)
+		actual_size = max_size;
+	uint8_t * p = new(std::nothrow) uint8_t[actual_size];
+	if (!p)
+		return async::raise<buffer>(std::bad_alloc());
+
+	static buffer::vtable_t const vtable = {
+		/*destroy=*/&destroy_unique,
+		/*share=*/nullptr,
+	};
+
+	return async::value(buffer(&vtable, p, actual_size));
 }
 
-yb::buffer & yb::buffer::operator=(buffer && o)
+void buffer_policy_dynamic::destroy_unique(uint8_t * ptr, size_t size)
 {
-	swap(*this, o);
-	return *this;
+	(void)size;
+	delete[] ptr;
+}
+
+task<buffer> buffer_policy_dynamic::fetch_shared(void * ctx, size_t max_size)
+{
+	static size_t const universal_alignment = std::alignment_of<std::max_align_t>::value;
+	size_t refcount_size = universal_alignment;
+	while (refcount_size < sizeof(refcount))
+		refcount_size += universal_alignment;
+
+	buffer_policy_dynamic * self = static_cast<buffer_policy_dynamic *>(ctx);
+
+	std::size_t actual_size = self->m_size;
+	if (max_size && actual_size > max_size)
+		actual_size = max_size;
+	actual_size += refcount_size;
+
+	uint8_t * p = new(std::nothrow) uint8_t[actual_size];
+	if (!p)
+		return async::raise<buffer>(std::bad_alloc());
+
+	refcount * rc = new(p) refcount(1);
+	p += refcount_size;
+
+	static buffer::vtable_t const vtable = {
+		/*destroy=*/&destroy_shared,
+		/*share=*/&share_shared,
+	};
+
+	return async::value(buffer(&vtable, p, actual_size - refcount_size));
+}
+
+void buffer_policy_dynamic::destroy_shared(uint8_t * ptr, size_t size)
+{
+	(void)size;
+
+	static size_t const universal_alignment = std::alignment_of<std::max_align_t>::value;
+	size_t refcount_size = universal_alignment;
+	while (refcount_size < sizeof(refcount))
+		refcount_size += universal_alignment;
+
+	ptr -= refcount_size;
+	if (reinterpret_cast<refcount *>(ptr)->release() == 0)
+		delete[] ptr;
+}
+
+void buffer_policy_dynamic::share_shared(uint8_t *& ptr, size_t & size)
+{
+	static size_t const universal_alignment = std::alignment_of<std::max_align_t>::value;
+	size_t refcount_size = universal_alignment;
+	while (refcount_size < sizeof(refcount))
+		refcount_size += universal_alignment;
+
+	uint8_t * p = ptr - refcount_size;
+	reinterpret_cast<refcount *>(p)->addref();
+}
+
+
+buffer_policy_static::buffer_policy_static(buffer && buffer)
+	: m_buffer(std::move(buffer))
+{
+	static buffer_policy_vtable const vtable = {
+		/*fetch=*/&fetch,
+	};
+
+	m_vtable = &vtable;
+}
+
+task<buffer> buffer_policy_static::fetch(void * ctx, size_t max_size)
+{
+	buffer_policy_static * self = static_cast<buffer_policy_static *>(ctx);
+	if (self->m_buffer.empty())
+		return async::raise<buffer>(std::bad_alloc());
+
+	return async::value(std::move(self->m_buffer));
 }
 
 void yb::swap(buffer & lhs, buffer & rhs)
 {
 	using std::swap;
-	swap(lhs.m_deleter, rhs.m_deleter);
+	swap(lhs.m_vtable, rhs.m_vtable);
 	swap(lhs.m_ptr, rhs.m_ptr);
 	swap(lhs.m_size, rhs.m_size);
-	swap(lhs.m_capacity, rhs.m_capacity);
 }
 
-bool yb::buffer::empty() const
+static buffer::vtable_t const g_empty_buffer_vtable = {
+	/*destroy=*/nullptr,
+	/*share=*/nullptr,
+};
+
+buffer::buffer()
+	: m_vtable(&g_empty_buffer_vtable), m_ptr(nullptr), m_size(0)
 {
-	return m_ptr == 0;
 }
 
-void yb::buffer::clear()
+buffer::buffer(uint8_t * ptr, size_t size)
+	: m_vtable(&g_empty_buffer_vtable), m_ptr(ptr), m_size(size)
 {
-	if (m_ptr && m_deleter)
-		m_deleter->free(m_ptr, m_capacity);
-	this->detach();
 }
 
-void yb::buffer::detach()
+buffer::buffer(vtable_t const * vtable, uint8_t * ptr, size_t size)
+	: m_vtable(vtable), m_ptr(ptr), m_size(size)
 {
-	m_ptr = 0;
+}
+
+buffer::buffer(buffer && o)
+	: m_vtable(o.m_vtable), m_ptr(o.m_ptr), m_size(o.m_size)
+{
+	o.m_vtable = &g_empty_buffer_vtable;
+	o.m_ptr = nullptr;
+	o.m_size = 0;
+}
+
+buffer::~buffer()
+{
+	this->clear();
+}
+
+buffer & buffer::operator=(buffer o)
+{
+	swap(*this, o);
+	return *this;
+}
+
+void buffer::clear()
+{
+	if (m_vtable->destroy)
+		m_vtable->destroy(m_ptr, m_size);
+
+	m_vtable = &g_empty_buffer_vtable;
+	m_ptr = nullptr;
 	m_size = 0;
-	m_capacity = 0;
-	m_deleter = 0;
 }
 
-uint8_t * yb::buffer::get() const
+bool buffer::empty() const
+{
+	return m_size == 0;
+}
+
+uint8_t * buffer::data() const
 {
 	return m_ptr;
 }
 
-size_t yb::buffer::size() const
+size_t buffer::size() const
 {
 	return m_size;
 }
 
-size_t yb::buffer::capacity() const
+uint8_t * buffer::begin() const
 {
-	return m_capacity;
+	return m_ptr;
 }
 
-yb::buffer_deleter * yb::buffer::deleter() const
+uint8_t * buffer::end() const
 {
-	return m_deleter;
+	return m_ptr + m_size;
 }
 
-void yb::buffer::shrink(size_t size)
+bool buffer::sharable() const
 {
-	if (size < m_size)
-		m_size = size;
+	return m_vtable->share != nullptr;
 }
 
-yb::buffer_ref yb::buffer::cref() const
+buffer buffer::share() const
 {
-	return buffer_ref(m_ptr, m_size);
+	assert(this->sharable());
+
+	buffer res(m_vtable, m_ptr, m_size);
+	m_vtable->share(res.m_ptr, res.m_size);
+	return std::move(res);
 }
 
-yb::buffer::operator yb::buffer_ref() const
+void yb::swap(buffer_view & lhs, buffer_view & rhs)
 {
-	return this->cref();
+	using std::swap;
+	swap(lhs.m_buffer, rhs.m_buffer);
+	swap(lhs.m_view, rhs.m_view);
 }
 
-namespace {
-
-struct policy_vtable
+buffer_view::buffer_view()
 {
-	void (*destroy)(void * ctx);
-	void (*move)(void * ctx, void * target);
-	yb::task<yb::buffer> (*fetch)(void * ctx, size_t min_capacity);
-};
-
-struct empty_policy
-{
-	policy_vtable const * vt;
-
-	static void destroy(void * ctx)
-	{
-		(void)ctx;
-	}
-
-	static void move(void * ctx, void * target)
-	{
-		empty_policy * self = static_cast<empty_policy *>(ctx);
-		*static_cast<empty_policy *>(target) = *self;
-	}
-
-	static yb::task<yb::buffer> fetch(void * ctx, size_t min_capacity)
-	{
-		(void)ctx;
-		(void)min_capacity;
-		return yb::async::raise<yb::buffer>(std::bad_alloc());
-	}
-};
-
-struct static_policy
-{
-	policy_vtable const * vt;
-	uint8_t * ptr;
-	size_t capacity;
-	yb::buffer_deleter * deleter;
-
-	static void destroy(void * ctx)
-	{
-		static_policy * self = static_cast<static_policy *>(ctx);
-		if (self->ptr && self->deleter)
-			self->deleter->free(self->ptr, self->capacity);
-	}
-
-	static void move(void * ctx, void * target)
-	{
-		static_policy * self = static_cast<static_policy *>(ctx);
-		*static_cast<static_policy *>(target) = *self;
-		self->ptr = 0;
-	}
-
-	static yb::task<yb::buffer> fetch(void * ctx, size_t min_capacity)
-	{
-		static_policy * self = static_cast<static_policy *>(ctx);
-		if (self->ptr == 0 || self->capacity < min_capacity)
-			return yb::async::raise<yb::buffer>(std::bad_alloc());
-
-		uint8_t * ptr = self->ptr;
-		self->ptr = 0;
-		return yb::async::value(yb::buffer(self->deleter, ptr, self->capacity));
-	}
-};
-
-struct dynamic_deleter
-	: public yb::buffer_deleter
-{
-	void free(uint8_t * ptr, size_t capacity) override
-	{
-		(void)capacity;
-		delete[] ptr;
-	}
-};
-
-dynamic_deleter g_dynamic_deleter;
-
-struct dynamic_policy
-{
-	policy_vtable const * vt;
-	size_t default_capacity;
-
-	static void destroy(void * ctx)
-	{
-		(void)ctx;
-	}
-
-	static void move(void * ctx, void * target)
-	{
-		dynamic_policy * self = static_cast<dynamic_policy *>(ctx);
-		*static_cast<dynamic_policy *>(target) = *self;
-	}
-
-	static yb::task<yb::buffer> fetch(void * ctx, size_t min_capacity)
-	{
-		dynamic_policy * self = static_cast<dynamic_policy *>(ctx);
-
-		size_t capacity = (std::max)(self->default_capacity, min_capacity);
-		uint8_t * ptr = new(std::nothrow) uint8_t[capacity];
-		if (!ptr)
-			return yb::async::raise<yb::buffer>(std::bad_alloc());
-		return yb::async::value(yb::buffer(&g_dynamic_deleter, ptr, capacity));
-	}
-};
-
 }
 
-yb::buffer_policy::buffer_policy()
+buffer_view::buffer_view(buffer_view && o)
+	: m_buffer(std::move(o.m_buffer)), m_view(std::move(o.m_view))
 {
-	static policy_vtable const vt = {
-		&empty_policy::destroy,
-		&empty_policy::move,
-		&empty_policy::fetch,
-	};
-
-	empty_policy * policy = new(&m_storage) empty_policy();
-	policy->vt = &vt;
 }
 
-yb::buffer_policy::buffer_policy(buffer_policy && o)
+buffer_view::buffer_view(buffer && buf)
+	: m_buffer(std::move(buf)), m_view(m_buffer.data(), m_buffer.size())
 {
-	policy_vtable const * ovt = reinterpret_cast<policy_vtable const *&>(o.m_storage);
-	ovt->move(&o.m_storage, &m_storage);
 }
 
-yb::buffer_policy::~buffer_policy()
+buffer_view::buffer_view(buffer && buf, size_t length, size_t offset)
+	: m_buffer(std::move(buf)), m_view(buffer_ref(m_buffer.data() + offset, m_buffer.data() + length))
 {
-	policy_vtable const * vt = reinterpret_cast<policy_vtable const *&>(m_storage);
-	vt->destroy(&m_storage);
 }
 
-yb::buffer_policy & yb::buffer_policy::operator=(buffer_policy && o)
+buffer_view & buffer_view::operator = (buffer_view o)
 {
-	policy_vtable const * vt = reinterpret_cast<policy_vtable const *&>(m_storage);
-	policy_vtable const * ovt = reinterpret_cast<policy_vtable const *&>(o.m_storage);
-
-	vt->destroy(&m_storage);
-	ovt->move(&o.m_storage, &m_storage);
+	swap(*this, o);
 	return *this;
 }
 
-
-yb::buffer_policy::buffer_policy(uint8_t * buffer, size_t size, buffer_deleter * deleter)
+void buffer_view::clear()
 {
-	static policy_vtable const vt = {
-		&static_policy::destroy,
-		&static_policy::move,
-		&static_policy::fetch
-	};
-
-	static_policy * policy = new(&m_storage) static_policy();
-	policy->vt = &vt;
-	policy->ptr = buffer;
-	policy->capacity = size;
-	policy->deleter = deleter;
+	m_buffer.clear();
+	m_view.clear();
 }
 
-yb::buffer_policy::buffer_policy(buffer && buf)
+bool buffer_view::empty() const
 {
-	static policy_vtable const vt = {
-		&static_policy::destroy,
-		&static_policy::move,
-		&static_policy::fetch
-	};
-
-	static_policy * policy = new(&m_storage) static_policy();
-	policy->vt = &vt;
-	policy->ptr = buf.get();
-	policy->capacity = buf.capacity();
-	policy->deleter = buf.deleter();
-	buf.detach();
+	return m_view.empty();
 }
 
-yb::task<yb::buffer> yb::buffer_policy::fetch(size_t min_capacity)
+bool buffer_view::clonable() const
 {
-	policy_vtable const * vt = reinterpret_cast<policy_vtable const *&>(m_storage);
-	return vt->fetch(&m_storage, min_capacity);
+	return m_buffer.sharable();
 }
 
-yb::buffer_policy yb::buffer_policy::dynamic(size_t default_capacity)
+buffer_view buffer_view::clone() const
 {
-	static policy_vtable const vt = {
-		&dynamic_policy::destroy,
-		&dynamic_policy::move,
-		&dynamic_policy::fetch
-	};
+	assert(this->clonable());
 
-	yb::buffer_policy res;
-	dynamic_policy * policy = new(&res.m_storage) dynamic_policy();
-	policy->vt = &vt;
-	policy->default_capacity = default_capacity;
+	buffer_view res;
+	res.m_buffer = m_buffer.share();
+	res.m_view = m_view;
 	return std::move(res);
+}
+
+buffer_ref const & buffer_view::operator*() const
+{
+	return m_view;
+}
+
+buffer_ref const * buffer_view::operator->() const
+{
+	return &m_view;
+}
+
+void buffer_view::pop_front(size_t size)
+{
+	m_view.pop_front(size);
+}
+
+void buffer_view::shrink(size_t offset, size_t size)
+{
+	if (offset > m_view.size())
+		offset = m_view.size();
+	if (size > m_view.size() - offset)
+		size = m_view.size() - offset;
+
+	m_view = buffer_ref(m_view.data() + offset, m_view.data() + offset + size);
+}
+
+buffer_policy::buffer_policy()
+{
+	static_assert(sizeof(buffer_policy_static) <= sizeof(m_storage), "XXX");
+	new(&m_storage) buffer_policy_static(buffer());
+}
+
+buffer_policy::~buffer_policy()
+{
+}
+
+buffer_policy::buffer_policy(size_t dynamic_buf_size, bool sharable)
+{
+	static_assert(sizeof(buffer_policy_dynamic) <= sizeof(m_storage), "XXX");
+	new(&m_storage) buffer_policy_dynamic(dynamic_buf_size, sharable);
+}
+
+buffer_policy::buffer_policy(uint8_t * buf, size_t size)
+{
+	static_assert(sizeof(buffer_policy_static) <= sizeof(m_storage), "XXX");
+	new(&m_storage) buffer_policy_static(buffer(buf, size));
+}
+
+buffer_policy::buffer_policy(buffer && buf)
+{
+	static_assert(sizeof(buffer_policy_static) <= sizeof(m_storage), "XXX");
+	new(&m_storage) buffer_policy_static(std::move(buf));
+}
+
+buffer_policy::buffer_policy(buffer_policy && o)
+{
+	buffer_policy_vtable const * vtable = reinterpret_cast<buffer_policy_vtable const *&>(o.m_storage);
+	memcpy(&m_storage, &o.m_storage, sizeof m_storage);
+	new(&o.m_storage) buffer_policy_static(buffer());
+}
+
+buffer_policy buffer_policy::ref()
+{
+	buffer_policy_vtable const *& vtable = reinterpret_cast<buffer_policy_vtable const *&>(m_storage);
+
+	buffer_policy res;
+	new(&res.m_storage) buffer_policy_ref(&vtable);
+	return std::move(res);
+}
+
+task<buffer> buffer_policy::fetch(size_t min_size, size_t max_size)
+{
+	buffer_policy_vtable const * vtable = reinterpret_cast<buffer_policy_vtable const *&>(m_storage);
+	if (vtable->fetch)
+		return vtable->fetch(&m_storage, max_size);
+	return async::raise<buffer>(std::bad_alloc());
+}
+
+task<buffer_view> buffer_policy::copy(buffer_view && view)
+{
+	buffer_policy_vtable const * vtable = reinterpret_cast<buffer_policy_vtable const *&>(m_storage);
+
+	struct cont_t
+	{
+		cont_t(buffer_view && view)
+			: m_view(std::move(view))
+		{
+		}
+
+		cont_t(cont_t && o)
+			: m_view(std::move(o.m_view))
+		{
+		}
+
+		buffer_view operator()(buffer && buf)
+		{
+			std::copy(m_view->begin(), m_view->end(), buf.data());
+			return buffer_view(std::move(buf), m_view->size());
+		}
+
+		buffer_view m_view;
+	};
+
+	return vtable->fetch(&m_storage, view->size()).then(cont_t(std::move(view)));
 }
