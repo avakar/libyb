@@ -47,6 +47,7 @@ set(SOURCES
 	libyb/async/detail/task_impl.cpp
 	libyb/async/device.hpp
 	libyb/async/double_buffer.hpp
+	libyb/async/file.hpp
 	libyb/async/channel.hpp
 	libyb/async/mock_stream.hpp
 	libyb/async/null_stream.hpp
@@ -107,6 +108,7 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/win32_async_channel.cpp
 	libyb/async/detail/win32_async_runner.cpp
 	libyb/async/detail/win32_console_stream.cpp
+	libyb/async/detail/win32_file.cpp
 	libyb/async/detail/win32_handle_task.cpp
 	libyb/async/detail/win32_prepared_task.cpp
 	libyb/async/detail/win32_resumable.cpp

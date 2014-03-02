@@ -38,14 +38,19 @@ task<size_t> win32_file_operation::ioctl_with_affinity(HANDLE hFile, DWORD dwCon
 	}
 }
 
-task<size_t> win32_file_operation::read_with_affinity(HANDLE hFile, void * buffer, size_t size)
+task<size_t> win32_file_operation::read_with_affinity(HANDLE hFile, void * buffer, size_t size, uint64_t offset)
 {
 	assert(hFile);
 
 	DWORD dwTransferred;
+	m_overlapped.o.Offset = static_cast<DWORD>(offset);
+	m_overlapped.o.OffsetHigh = static_cast<DWORD>(offset >> 32);
 	if (!ReadFile(hFile, buffer, size, &dwTransferred, &m_overlapped.o))
 	{
 		DWORD dwError = GetLastError();
+		if (dwError == ERROR_HANDLE_EOF)
+			return async::value((size_t)0);
+
 		if (dwError == ERROR_IO_PENDING)
 		{
 			return make_win32_handle_task(m_overlapped.o.hEvent, [this, hFile](cancel_level cl) -> bool {
@@ -69,7 +74,11 @@ task<size_t> win32_file_operation::read_with_affinity(HANDLE hFile, void * buffe
 			}).then([this, hFile]() -> task<size_t> {
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(hFile, &m_overlapped.o, &dwTransferred, TRUE))
+				{
+					if (GetLastError() == ERROR_HANDLE_EOF)
+						return async::value((size_t)0);
 					throw std::runtime_error("the read operation failed"); // XXX
+				}
 				return async::value((size_t)dwTransferred);
 			});
 		}
@@ -133,10 +142,10 @@ task<size_t> win32_file_operation::ioctl(HANDLE hFile, DWORD dwControlCode, void
 	});
 }
 
-task<size_t> win32_file_operation::read(HANDLE hFile, void * buffer, size_t size)
+task<size_t> win32_file_operation::read(HANDLE hFile, void * buffer, size_t size, uint64_t offset)
 {
-	return async::fix_affinity().then([this, hFile, buffer, size]() {
-		return this->read_with_affinity(hFile, buffer, size);
+	return async::fix_affinity().then([this, hFile, buffer, size, offset]() {
+		return this->read_with_affinity(hFile, buffer, size, offset);
 	});
 }
 
