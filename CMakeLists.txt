@@ -89,6 +89,7 @@ set(SOURCES
 	libyb/utils/except.hpp
 	libyb/utils/ihex_file.hpp
 	libyb/utils/noncopyable.hpp
+	libyb/utils/refcount.hpp
 	libyb/utils/signal.hpp
 	libyb/utils/sparse_buffer.hpp
 	libyb/utils/svf_file.hpp
@@ -124,6 +125,7 @@ set(SOURCES ${SOURCES}
 	libyb/utils/detail/win32_file_operation.hpp
 	libyb/utils/detail/win32_mutex.hpp
 	libyb/utils/detail/win32_overlapped.hpp
+	libyb/utils/detail/win32_refcount.cpp
 	)
 else (WIN32)
 set(SOURCES ${SOURCES}
