@@ -83,12 +83,14 @@ set(SOURCES
 	libyb/usb/usb_context.hpp
 	libyb/usb/usb_descriptors.hpp
 	libyb/usb/usb_device.hpp
+	libyb/utils/detail/lexcast_impl.hpp
 	libyb/utils/ihex_file.cpp
 	libyb/utils/sparse_buffer.cpp
 	libyb/utils/svf_file.cpp
 	libyb/utils/utf.cpp
 	libyb/utils/except.hpp
 	libyb/utils/ihex_file.hpp
+	libyb/utils/lexcast.hpp
 	libyb/utils/noncopyable.hpp
 	libyb/utils/refcount.hpp
 	libyb/utils/signal.hpp
