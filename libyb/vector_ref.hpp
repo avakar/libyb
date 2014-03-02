@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 #include <stdint.h>
 
 namespace yb {
@@ -33,6 +34,12 @@ public:
 	{
 	}
 
+	void clear()
+	{
+		first = 0;
+		last = 0;
+	}
+
 	T const * begin() const { return first; }
 	T const * end() const { return last; }
 
@@ -41,6 +48,32 @@ public:
 	bool empty() const { return first == last; }
 
 	T const & operator[](size_t i) const { return first[i]; }
+
+	T const & front() { return first[0]; }
+	T const & back() { return last[-1]; }
+
+	bool contains(T const & v) const
+	{
+		for (T const * p = first; p != last; ++p)
+		{
+			if (*p == v)
+				return true;
+		}
+
+		return false;
+	}
+
+	void pop_front(size_t size = 1)
+	{
+		assert(static_cast<size_t>(last - first) >= size);
+		first += size;
+	}
+
+	void pop_back(size_t size = 1)
+	{
+		assert(static_cast<size_t>(last - first) >= size);
+		last -= size;
+	}
 
 	friend Derived operator+(vector_ref_base const & lhs, size_t rhs)
 	{
@@ -53,33 +86,33 @@ public:
 		return static_cast<Derived &>(*this);
 	}
 
-	friend bool operator==(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	friend bool operator==(Derived const & lhs, Derived const & rhs)
 	{
-		return (lhs.last - lhs.first) == (rhs.last - rhs.first)
-			&& std::equal(lhs.first, lhs.last, rhs.first);
+		return (lhs.end() - lhs.begin()) == (rhs.end() - rhs.begin())
+			&& std::equal(lhs.begin(), lhs.end(), rhs.begin());
 	}
 
-	friend bool operator!=(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	friend bool operator!=(Derived const & lhs, Derived const & rhs)
 	{
 		return !(lhs == rhs);
 	}
 
-	friend bool operator<(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	friend bool operator<(Derived const & lhs, Derived const & rhs)
 	{
-		return std::lexicographical_compare(lhs.first, lhs.last, rhs.first, rhs.last);
+		return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 	}
 
-	friend bool operator>(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	friend bool operator>(Derived const & lhs, Derived const & rhs)
 	{
 		return rhs < lhs;
 	}
 
-	friend bool operator<=(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	friend bool operator<=(Derived const & lhs, Derived const & rhs)
 	{
 		return !(rhs < lhs);
 	}
 
-	friend bool operator>=(vector_ref_base const & lhs, vector_ref_base const & rhs)
+	friend bool operator>=(Derived const & lhs, Derived const & rhs)
 	{
 		return !(lhs < rhs);
 	}
@@ -187,7 +220,39 @@ public:
 	{
 	}
 
+	vector_ref<char> ltrim(vector_ref<char> sep = " \t\r\n") const
+	{
+		vector_ref<char> res;
+		for (char const * p = this->begin(); p != this->end(); ++p)
+		{
+			if (!sep.contains(*p))
+				return vector_ref<char>(p, this->end());
+		}
+		return vector_ref<char>();
+	}
+
+	vector_ref<char> rtrim(vector_ref<char> sep = " \t\r\n") const
+	{
+		vector_ref<char> res;
+		for (char const * p = this->end(); p != this->begin(); --p)
+		{
+			if (!sep.contains(p[-1]))
+				return vector_ref<char>(this->begin(), this->end());
+		}
+		return vector_ref<char>();
+	}
+
+	vector_ref<char> trim(vector_ref<char> sep = " \t\r\n") const
+	{
+		return this->ltrim(sep).rtrim(sep);
+	}
+
 	operator std::string() const
+	{
+		return this->to_string();
+	}
+
+	std::string to_string() const
 	{
 		return std::string(this->data(), this->size());
 	}
