@@ -61,8 +61,14 @@ set(SOURCES
 	libyb/async/task.hpp
 	libyb/async/task_base.hpp
 	libyb/async/timer.hpp
+	libyb/net/detail/http_request_parser.cpp
+	libyb/net/detail/http_request_parser.hpp
 	libyb/net/net.cpp
 	libyb/net/net.hpp
+	libyb/net/http.cpp
+	libyb/net/http.hpp
+	libyb/net/http_server.cpp
+	libyb/net/http_server.hpp
 	libyb/descriptor.hpp
 	libyb/packet.hpp
 	libyb/packet_handler.hpp
