@@ -37,6 +37,9 @@ public:
 
 	void add_task(task<void> && t)
 	{
+		if (!t.has_task())
+			return;
+
 		yb::detail::scoped_win32_lock l(m_mutex);
 		m_ready_tasks.add_task(std::move(t));
 		SetEvent(m_update_event);
