@@ -140,6 +140,7 @@ set(SOURCES ${SOURCES}
 	)
 else (WIN32)
 set(SOURCES ${SOURCES}
+	libyb/async/detail/linux_group.cpp
 	libyb/async/detail/linux_fdpoll_task.hpp
 	libyb/async/detail/linux_wait_context.hpp
 	libyb/async/detail/unix_wait_context.hpp
