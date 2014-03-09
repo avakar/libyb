@@ -1,4 +1,5 @@
 #include "../file.hpp"
+#include "../../utils/detail/unix_system_error.hpp"
 #include "linux_fdpoll_task.hpp"
 #include "unix_file.hpp"
 #include <sys/types.h>
@@ -6,24 +7,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 using namespace yb;
-
-class unix_system_error
-	: public std::runtime_error
-{
-public:
-	explicit unix_system_error(int error_number)
-		: std::runtime_error(std::string()), m_errno(error_number)
-	{
-	}
-
-	int error_number() const
-	{
-		return m_errno;
-	}
-
-private:
-	int m_errno;
-};
 
 namespace {
 
@@ -54,7 +37,7 @@ public:
 					}).ignore_result().then(*this);
 				}
 
-				return async::raise<size_t>(unix_system_error(e));
+				return async::raise<size_t>(detail::unix_system_error(e));
 			}
 
 			return async::value((size_t)r);
@@ -93,7 +76,7 @@ public:
 					}).ignore_result().then(std::move(*this));
 				}
 
-				return async::raise<buffer_view>(unix_system_error(e));
+				return async::raise<buffer_view>(detail::unix_system_error(e));
 			}
 
 			return async::value(buffer_view(std::move(m_buf), r));
@@ -179,7 +162,7 @@ file::file(yb::string_ref const & fname)
 	std::unique_ptr<impl> pimpl(new impl());
 	pimpl->fd = open(zfname.c_str(), O_CLOEXEC | O_NONBLOCK | O_RDWR);
 	if (pimpl->fd == -1)
-		throw unix_system_error(errno);
+		throw detail::unix_system_error(errno);
 	m_pimpl = pimpl.release();
 }
 
@@ -202,7 +185,7 @@ file::file_size_t file::size() const
 {
 	struct stat st;
 	if (fstat(m_pimpl->fd, &st) == -1)
-		throw unix_system_error(errno);
+		throw detail::unix_system_error(errno);
 	return st.st_size;
 }
 
