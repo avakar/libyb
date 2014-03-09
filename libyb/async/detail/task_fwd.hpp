@@ -148,7 +148,7 @@ public:
 	std::unique_ptr<task_base<result_type> > release();
 
 	template <typename F>
-	auto continue_with(F f) -> decltype(f(*(task<R>*)0));
+	auto continue_with(F f) -> decltype(f(std::move(*(task<R>*)0)));
 
 	template <typename F>
 	typename detail::task_then_type<R, F>::type then(F f);

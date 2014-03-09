@@ -24,7 +24,7 @@ struct is_task<task<T>>
 
 
 template <typename R>
-static task<R &> task_value_traits<R &>::from_value(R & u)
+task<R &> task_value_traits<R &>::from_value(R & u)
 {
 	task<R &> res;
 	reinterpret_cast<R *&>(res.m_storage) = &u;
@@ -53,7 +53,7 @@ void task_value_traits<R &>::clear_value()
 
 template <typename R>
 template <typename U>
-static task<R> task_value_traits<R>::from_value(U && u)
+task<R> task_value_traits<R>::from_value(U && u)
 {
 	task<R> res;
 	new(&res.m_storage) R(std::forward<U>(u));
@@ -186,19 +186,19 @@ void task<R>::clear() throw()
 }
 
 template <typename R>
-bool task<R>::empty() const
+bool task<R>::empty() const throw()
 {
 	return m_kind == k_empty;
 }
 
 template <typename R>
-bool task<R>::has_value() const
+bool task<R>::has_value() const throw()
 {
 	return m_kind == k_value;
 }
 
 template <typename R>
-bool task<R>::has_exception() const
+bool task<R>::has_exception() const throw()
 {
 	return m_kind == k_exception;
 }
@@ -257,7 +257,7 @@ task<R> & task<R>::operator=(task<R> && o) throw()
 }
 
 template <typename R>
-bool task<R>::has_task() const
+bool task<R>::has_task() const throw()
 {
 	return m_kind == k_task || m_kind == k_future;
 }

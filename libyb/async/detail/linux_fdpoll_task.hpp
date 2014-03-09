@@ -86,7 +86,7 @@ task<short> make_linux_pollfd_task(int fd, short events, Canceller && canceller)
 
 	try
 	{
-		return task<short>(new detail::linux_fdpoll_task<Canceller>(fd, events, std::move(canceller)));
+		return task<short>::from_task(new detail::linux_fdpoll_task<Canceller>(fd, events, std::move(canceller)));
 	}
 	catch (...)
 	{

@@ -49,7 +49,7 @@ public:
 	task<T> wait_for(Canceller const & canceller) const
 	{
 		return protect([this, &canceller] {
-			return task<T>(new canceller_task<promise_task_impl<T>, Canceller>(canceller, m_buffer));
+			return task<T>::from_task(new canceller_task<promise_task_impl<T>, Canceller>(canceller, m_buffer));
 		});
 	}
 

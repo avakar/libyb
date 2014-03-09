@@ -31,7 +31,7 @@ class loop_task
 	: public task_base<void>, private loop_state<T>
 {
 public:
-	loop_task(task<S> && t, F const & f, loop_state<T> && state);
+	loop_task(task<S> && t, F f, loop_state<T> && state);
 
 	task<void> cancel_and_wait() throw();
 	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl);
@@ -106,8 +106,8 @@ loop_state<T>::loop_state(U && state)
 }
 
 template <typename S, typename F, typename T>
-loop_task<S, F, T>::loop_task(task<S> && t, F const & f, loop_state<T> && state)
-	: loop_state<T>(std::move(state)), m_task(std::move(t)), m_f(f), m_cancel_level(cl_none)
+loop_task<S, F, T>::loop_task(task<S> && t, F f, loop_state<T> && state)
+	: loop_state<T>(std::move(state)), m_task(std::move(t)), m_f(std::move(f)), m_cancel_level(cl_none)
 {
 }
 

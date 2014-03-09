@@ -1,6 +1,7 @@
 #include "buffer.hpp"
 #include "async/task.hpp"
 #include "utils/refcount.hpp"
+#include <stdlib.h>
 #include <cassert>
 using namespace yb;
 
@@ -130,7 +131,7 @@ void buffer_policy_dynamic::destroy_unique(uint8_t * ptr, size_t size)
 
 task<buffer> buffer_policy_dynamic::fetch_shared(void * ctx, size_t max_size)
 {
-	static size_t const universal_alignment = std::alignment_of<std::max_align_t>::value;
+	static size_t const universal_alignment = std::alignment_of<max_align_t>::value;
 	size_t refcount_size = universal_alignment;
 	while (refcount_size < sizeof(refcount))
 		refcount_size += universal_alignment;
@@ -161,7 +162,7 @@ void buffer_policy_dynamic::destroy_shared(uint8_t * ptr, size_t size)
 {
 	(void)size;
 
-	static size_t const universal_alignment = std::alignment_of<std::max_align_t>::value;
+	static size_t const universal_alignment = std::alignment_of<max_align_t>::value;
 	size_t refcount_size = universal_alignment;
 	while (refcount_size < sizeof(refcount))
 		refcount_size += universal_alignment;
@@ -173,7 +174,7 @@ void buffer_policy_dynamic::destroy_shared(uint8_t * ptr, size_t size)
 
 void buffer_policy_dynamic::share_shared(uint8_t *& ptr, size_t & size)
 {
-	static size_t const universal_alignment = std::alignment_of<std::max_align_t>::value;
+	static size_t const universal_alignment = std::alignment_of<max_align_t>::value;
 	size_t refcount_size = universal_alignment;
 	while (refcount_size < sizeof(refcount))
 		refcount_size += universal_alignment;
