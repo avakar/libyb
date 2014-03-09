@@ -163,6 +163,7 @@ set(SOURCES ${SOURCES}
 	libyb/utils/detail/pthread_mutex.cpp
 	libyb/utils/detail/pthread_mutex.hpp
 	libyb/utils/detail/scoped_unix_fd.hpp
+	libyb/utils/detail/unix_refcount.cpp
 	libyb/utils/detail/unix_system_error.hpp
 	)
 endif (WIN32)
