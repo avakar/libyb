@@ -63,7 +63,6 @@ set(SOURCES
 	libyb/async/timer.hpp
 	libyb/net/detail/http_request_parser.cpp
 	libyb/net/detail/http_request_parser.hpp
-	libyb/net/net.cpp
 	libyb/net/net.hpp
 	libyb/net/http.cpp
 	libyb/net/http.hpp
@@ -124,6 +123,7 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/win32_sync_runner.cpp
 	libyb/async/detail/win32_timer.cpp
 	libyb/async/detail/win32_wait_context.cpp
+	libyb/net/detail/win32_net.cpp
 	libyb/usb/detail/usb_request_context.cpp
 	libyb/usb/detail/win32_usb_context.cpp
 	libyb/usb/detail/win32_usb_device.cpp
