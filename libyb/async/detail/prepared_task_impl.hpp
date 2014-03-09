@@ -17,8 +17,8 @@ public:
 	task<R> fetch_result() throw();
 
 	void prepare_wait(task_wait_preparation_context & prep_ctx) override;
-    bool finish_wait(task_wait_finalization_context & fin_ctx) throw() override;
-    void cancel_and_wait() throw() override;
+	bool finish_wait(task_wait_finalization_context & fin_ctx) throw() override;
+	void cancel_and_wait() throw() override;
 
 private:
 	cancel_level m_applied_cl;
