@@ -1,5 +1,6 @@
 #include "../sync_runner.hpp"
 #include "../../utils/detail/pthread_mutex.hpp"
+#include "../../utils/detail/linux_event.hpp"
 #include "linux_wait_context.hpp"
 #include <sys/eventfd.h>
 #include <sys/types.h>
@@ -19,7 +20,7 @@ struct sync_runner::impl
     };
 
     detail::pthread_mutex m_mutex;
-    int m_update_event;
+	detail::linux_event m_update_event;
     pid_t m_associated_thread;
     std::list<task_entry> m_tasks;
 };
@@ -27,9 +28,6 @@ struct sync_runner::impl
 sync_runner::sync_runner(bool associate_thread_now)
     : m_pimpl(new impl())
 {
-    m_pimpl->m_update_event = eventfd(0, 0);
-    if (!m_pimpl->m_update_event)
-        throw std::runtime_error("Failed to create an event");
     m_pimpl->m_associated_thread = associate_thread_now? syscall(SYS_gettid): 0;
 }
 
@@ -40,8 +38,6 @@ sync_runner::~sync_runner()
         it->pt->cancel_and_wait();
         it->pt->detach_event_sink();
     }
-
-    close(m_pimpl->m_update_event);
 }
 
 void sync_runner::associate_current_thread()
@@ -65,17 +61,9 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
     bool done = false;
     while (!done && !m_pimpl->m_tasks.empty())
     {
-        for (auto it = m_pimpl->m_tasks.begin(); it != m_pimpl->m_tasks.end(); ++it)
-            it->pt->apply_cancel();
-
         prep_ctx.clear();
 
-        {
-            struct pollfd p;
-            p.fd = m_pimpl->m_update_event;
-            p.events = POLLIN;
-            prep_ctx_impl->m_pollfds.push_back(p);
-        }
+		prep_ctx_impl->m_pollfds.push_back(m_pimpl->m_update_event.get_poll());
 
         for (auto it = m_pimpl->m_tasks.begin(); it != m_pimpl->m_tasks.end(); ++it)
         {
@@ -115,11 +103,7 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
         }
         else
         {
-            {
-                uint64_t n;
-                read(m_pimpl->m_update_event, &n, sizeof n);
-            }
-
+			m_pimpl->m_update_event.reset();
             m_pimpl->m_mutex.unlock();
             int r = poll(prep_ctx_impl->m_pollfds.data(), prep_ctx_impl->m_pollfds.size(), -1);
             if (r == -1)
@@ -168,14 +152,12 @@ void sync_runner::submit(detail::prepared_task * pt)
     m_pimpl->m_tasks.push_back(te);
     pt->attach_event_sink(*this);
 
-    uint64_t n = 1;
-    write(m_pimpl->m_update_event, &n, sizeof n);
+	m_pimpl->m_update_event.set();
 }
 
 void sync_runner::cancel(detail::prepared_task *) throw()
 {
-    uint64_t n = 1;
-    write(m_pimpl->m_update_event, &n, sizeof n);
+	m_pimpl->m_update_event.set();
 }
 
 void sync_runner::cancel_and_wait(detail::prepared_task * pt) throw()

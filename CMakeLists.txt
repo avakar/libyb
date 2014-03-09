@@ -146,6 +146,7 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/linux_async_channel.cpp
 	libyb/async/detail/linux_async_runner.cpp
 	libyb/async/detail/linux_console_stream.cpp
+	libyb/async/detail/linux_prepared_task.cpp
 	libyb/async/detail/linux_serial_port.cpp
 	libyb/async/detail/linux_sync_runner.cpp
 	libyb/async/detail/linux_timer.cpp
