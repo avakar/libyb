@@ -157,6 +157,8 @@ set(SOURCES ${SOURCES}
 	libyb/usb/detail/linux_usb_device_core.hpp
 	libyb/usb/detail/udev.hpp
 	libyb/usb/detail/unix_usb_device_core.hpp
+	libyb/utils/detail/linux_event.cpp
+	libyb/utils/detail/linux_event.hpp
 	libyb/utils/detail/pthread_mutex.cpp
 	libyb/utils/detail/pthread_mutex.hpp
 	libyb/utils/detail/scoped_unix_fd.hpp
