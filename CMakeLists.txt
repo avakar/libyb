@@ -25,6 +25,7 @@ set(SOURCES
 	libyb/async/detail/cancel_level_upgrade_task.hpp
 	libyb/async/detail/canceller_task.hpp
 	libyb/async/detail/circular_buffer.hpp
+	libyb/async/detail/console_stream.cpp
 	libyb/async/detail/double_buffer_task.hpp
 	libyb/async/detail/exit_guard_task.hpp
 	libyb/async/detail/channel_detail.hpp
@@ -144,6 +145,7 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/unix_wait_context.hpp
 	libyb/async/detail/linux_async_channel.cpp
 	libyb/async/detail/linux_async_runner.cpp
+	libyb/async/detail/linux_console_stream.cpp
 	libyb/async/detail/linux_serial_port.cpp
 	libyb/async/detail/linux_sync_runner.cpp
 	libyb/async/detail/linux_timer.cpp
