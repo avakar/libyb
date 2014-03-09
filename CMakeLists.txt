@@ -168,6 +168,9 @@ set(SOURCES ${SOURCES}
 	libyb/utils/detail/unix_refcount.cpp
 	libyb/utils/detail/unix_system_error.hpp
 	)
+
+add_definitions(-std=c++11)
+
 endif (WIN32)
 
 add_definitions(-D_SCL_SECURE_NO_WARNINGS)

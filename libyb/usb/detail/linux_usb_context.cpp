@@ -328,7 +328,7 @@ usb_context::~usb_context()
 {
 }
 
-task<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
+/*task<void> usb_context::run(std::function<void (usb_plugin_event const &)> const & event_sink)
 {
 	m_pimpl->m_event_sink = event_sink;
 	m_pimpl->enumerate_all();
@@ -341,4 +341,4 @@ task<void> usb_context::run(std::function<void (usb_plugin_event const &)> const
 			return false;
 		});
 	}));
-}
+}*/
