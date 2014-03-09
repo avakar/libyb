@@ -148,6 +148,8 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/linux_sync_runner.cpp
 	libyb/async/detail/linux_timer.cpp
 	libyb/async/detail/linux_wait_context.cpp
+	libyb/async/detail/unix_file.cpp
+	libyb/async/detail/unix_file.hpp
 	libyb/usb/detail/linux_usb_context.cpp
 	libyb/usb/detail/linux_usb_device.cpp
 	libyb/usb/detail/linux_usb_device_core.hpp
