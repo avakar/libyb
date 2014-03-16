@@ -4,9 +4,9 @@
 #include "async/task.hpp"
 #include "async/stream.hpp"
 #include "async/device.hpp"
-#include "async/promise.hpp"
 #include "descriptor.hpp"
 #include "utils/signal.hpp"
+#include "async/channel.hpp"
 #include <deque>
 
 namespace yb {
@@ -41,13 +41,13 @@ private:
 	void handle_packet(packet const & p);
 	static tunnel_list_t parse_tunnel_list(packet const & p);
 
-	std::list<promise<uint8_t>> m_active_opens;
+	std::list<channel<uint8_t>> m_active_opens;
 
 	struct read_irp
 	{
 		uint8_t * buffer;
 		size_t size;
-		promise<size_t> transferred;
+		channel<size_t> transferred;
 	};
 	std::map<uint8_t, std::deque<read_irp>> m_read_irps;
 

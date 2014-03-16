@@ -40,6 +40,9 @@ public:
 	task<void> send(T && value) const;
 	using channel_base<T, Capacity>::send;
 
+	void send_sync(T const & value) const;
+	void send_sync(T && value) const;
+
 private:
 	typedef typename channel_base<T, Capacity>::buffer_type buffer_type;
 	explicit channel(buffer_type * buffer);
@@ -54,6 +57,8 @@ public:
 
 	task<void> send() const;
 	using channel_base<void, Capacity>::send;
+
+	void send_sync() const;
 
 	task<void> fire() const;
 
@@ -161,6 +166,22 @@ task<void> channel<T, Capacity>::send(T && value) const
 	return this->send(task<T>::from_value(std::move(value)));
 }
 
+template <typename T, size_t Capacity>
+void channel<T, Capacity>::send_sync(T const & value) const
+{
+	task<void> r = this->send(value);
+	assert(r.has_value() || r.has_exception());
+	r.rethrow();
+}
+
+template <typename T, size_t Capacity>
+void channel<T, Capacity>::send_sync(T && value) const
+{
+	task<void> r = this->send(std::move(value));
+	assert(r.has_value() || r.has_exception());
+	r.rethrow();
+}
+
 template <size_t Capacity>
 channel<void, Capacity> channel<void, Capacity>::create()
 {
@@ -177,6 +198,14 @@ template <size_t Capacity>
 task<void> channel<void, Capacity>::send() const
 {
 	return this->send(task<void>::from_value());
+}
+
+template <size_t Capacity>
+void channel<void, Capacity>::send_sync() const
+{
+	task<void> r = this->send();
+	assert(r.has_value() || r.has_exception());
+	r.rethrow();
 }
 
 template <size_t Capacity>

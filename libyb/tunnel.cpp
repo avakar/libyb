@@ -1,5 +1,4 @@
 #include "tunnel.hpp"
-#include "async/promise.hpp"
 using namespace yb;
 
 tunnel_handler::tunnel_handler()
@@ -34,10 +33,10 @@ task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
 {
 	try
 	{
-		promise<tunnel_list_t> ch;
-		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.set_value(tl); });
+		channel<tunnel_list_t> ch = channel<tunnel_list_t>::create();
+		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.send_sync(tl); });
 		this->request_tunnel_list();
-		return wait_for(ch);
+		return ch.receive();
 	}
 	catch (...)
 	{
@@ -60,11 +59,11 @@ void tunnel_handler::handle_packet(packet const & p)
 		if (m_active_opens.empty())
 			return;
 
-		promise<uint8_t> current_open = m_active_opens.front();
+		channel<uint8_t> current_open = m_active_opens.front();
 		m_active_opens.pop_front();
 
 		uint8_t pipe_no = p[3];
-		current_open.set_value(pipe_no);
+		current_open.send_sync(pipe_no);
 	}
 	else if (p.size() > 2)
 	{
@@ -76,7 +75,7 @@ void tunnel_handler::handle_packet(packet const & p)
 
 			size_t chunk = (std::min)(r.size, p.size() - 2);
 			std::copy(p.begin() + 2, p.begin() + 2 + chunk, r.buffer);
-			r.transferred.set_value(chunk);
+			r.transferred.send_sync(chunk);
 		}
 	}
 }
@@ -102,11 +101,11 @@ tunnel_handler::tunnel_list_t tunnel_handler::parse_tunnel_list(packet const & p
 task<uint8_t> tunnel_handler::open(string_ref const & name)
 {
 	// FIXME: exception safety
-	promise<uint8_t> p;
+	channel<uint8_t> p = channel<uint8_t>::create();
 	m_active_opens.push_back(p);
 
 	return m_dev->write_packet(yb::make_packet(m_config.cmd) % 0 % 1 % name).then([p] {
-		return wait_for(p);
+		return p.receive();
 	});
 }
 
@@ -117,9 +116,9 @@ task<void> tunnel_handler::fast_close(uint8_t pipe_no)
 
 task<size_t> tunnel_handler::read(uint8_t pipe_no, uint8_t * buffer, size_t size)
 {
-	read_irp irp = { buffer, size };
+	read_irp irp = { buffer, size, channel<size_t>::create() };
 	m_read_irps[pipe_no].push_back(irp);
-	return wait_for(irp.transferred);
+	return irp.transferred.receive();
 }
 
 task<size_t> tunnel_handler::write(uint8_t pipe_no, uint8_t const * buffer, size_t size)

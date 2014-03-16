@@ -1,6 +1,6 @@
 #include "../async_runner.hpp"
 #include "../sync_runner.hpp"
-#include "../promise.hpp"
+#include "../channel.hpp"
 #include <stdexcept>
 #include <windows.h>
 using namespace yb;
@@ -8,11 +8,11 @@ using namespace yb;
 struct async_runner::impl
 {
 	sync_runner m_runner;
-	promise<void> m_stop_promise;
+	channel<void> m_stop_promise;
 	HANDLE m_thread_handle;
 
 	impl()
-		: m_runner(/*associate_thread_now=*/false)
+		: m_runner(/*associate_thread_now=*/false), m_stop_promise(channel<void>::create())
 	{
 	}
 
@@ -23,7 +23,7 @@ DWORD CALLBACK async_runner::impl::thread_proc(LPVOID param)
 {
 	impl * pimpl = static_cast<impl *>(param);
 	pimpl->m_runner.associate_current_thread();
-	pimpl->m_runner.run(pimpl->m_stop_promise.wait_for());
+	pimpl->m_runner.run(pimpl->m_stop_promise.receive());
 	return 0;
 }
 
@@ -38,7 +38,7 @@ async_runner::async_runner()
 
 async_runner::~async_runner()
 {
-	m_pimpl->m_stop_promise.set_value();
+	m_pimpl->m_stop_promise.send_sync();
 	::WaitForSingleObject(m_pimpl->m_thread_handle, INFINITE);
 	::CloseHandle(m_pimpl->m_thread_handle);
 }

@@ -3,7 +3,7 @@
 
 #include "stream.hpp"
 #include "../vector_ref.hpp"
-#include "promise.hpp"
+#include "channel.hpp"
 #include <vector>
 
 namespace yb {
@@ -22,10 +22,10 @@ public:
 private:
 	struct action
 	{
+		yb::channel<void> ready;
 		enum { k_read, k_write } kind;
 		std::vector<uint8_t> data;
 		size_t max_chunk_size;
-		yb::promise<void> ready;
 	};
 
 	std::vector<action> m_expected_actions;

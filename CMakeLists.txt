@@ -36,7 +36,6 @@ set(SOURCES
 	libyb/async/detail/parallel_compositor_impl.hpp
 	libyb/async/detail/prepared_task.hpp
 	libyb/async/detail/prepared_task_impl.hpp
-	libyb/async/detail/promise_task.hpp
 	libyb/async/detail/runner_impl.hpp
 	libyb/async/detail/sequential_composition_task.hpp
 	libyb/async/detail/task_fwd.hpp
@@ -52,7 +51,6 @@ set(SOURCES
 	libyb/async/channel.hpp
 	libyb/async/mock_stream.hpp
 	libyb/async/null_stream.hpp
-	libyb/async/promise.hpp
 	libyb/async/resumable.hpp
 	libyb/async/runner.hpp
 	libyb/async/serial_port.hpp
