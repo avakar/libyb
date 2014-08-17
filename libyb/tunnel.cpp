@@ -33,7 +33,7 @@ task<tunnel_handler::tunnel_list_t> tunnel_handler::list_tunnels()
 {
 	try
 	{
-		channel<tunnel_list_t> ch = channel<tunnel_list_t>::create();
+		channel<tunnel_list_t> ch = channel<tunnel_list_t>::create_finite();
 		m_on_tunnel_list.oneshot([ch](tunnel_list_t const & tl) { ch.send_sync(tl); });
 		this->request_tunnel_list();
 		return ch.receive();
@@ -101,7 +101,7 @@ tunnel_handler::tunnel_list_t tunnel_handler::parse_tunnel_list(packet const & p
 task<uint8_t> tunnel_handler::open(string_ref const & name)
 {
 	// FIXME: exception safety
-	channel<uint8_t> p = channel<uint8_t>::create();
+	channel<uint8_t> p = channel<uint8_t>::create_finite();
 	m_active_opens.push_back(p);
 
 	return m_dev->write_packet(yb::make_packet(m_config.cmd) % 0 % 1 % name).then([p] {
@@ -116,7 +116,7 @@ task<void> tunnel_handler::fast_close(uint8_t pipe_no)
 
 task<size_t> tunnel_handler::read(uint8_t pipe_no, uint8_t * buffer, size_t size)
 {
-	read_irp irp = { buffer, size, channel<size_t>::create() };
+	read_irp irp = { buffer, size, channel<size_t>::create_finite() };
 	m_read_irps[pipe_no].push_back(irp);
 	return irp.transferred.receive();
 }

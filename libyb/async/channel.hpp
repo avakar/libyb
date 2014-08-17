@@ -7,218 +7,138 @@
 
 namespace yb {
 
-template <typename T, size_t Capacity>
+template <typename T>
 class channel_base
 {
 public:
-	static size_t const static_capacity = Capacity;
-
-	~channel_base();
-	channel_base(channel_base const & o);
-	channel_base & operator=(channel_base const & o);
-
 	task<T> receive() const;
 	task<void> send(task<T> && r) const;
 	task<void> send(task<T> const & r) const;
 
 protected:
-	typedef shared_circular_buffer<task<T>, static_capacity> buffer_type;
+	typedef std::shared_ptr<detail::channel_buffer_base<T>> buffer_type;
 
-	explicit channel_base(buffer_type * buffer);
-
-	buffer_type * m_buffer;
+	explicit channel_base(buffer_type buffer);
+	buffer_type m_buffer;
 };
 
-template <typename T, size_t Capacity = 1>
+template <typename T>
 class channel
-	: public channel_base<T, Capacity>
+	: public channel_base<T>
 {
 public:
-	static channel create();
+	template <size_t Capacity = 1>
+	static channel create_finite();
+	static channel create_infinite();
 
 	task<void> send(T const & value) const;
 	task<void> send(T && value) const;
-	using channel_base<T, Capacity>::send;
+	using channel_base<T>::send;
 
 	void send_sync(T const & value) const;
 	void send_sync(T && value) const;
 
 private:
-	typedef typename channel_base<T, Capacity>::buffer_type buffer_type;
-	explicit channel(buffer_type * buffer);
+	explicit channel(buffer_type buffer);
 };
 
-template <size_t Capacity>
-class channel<void, Capacity>
-	: public channel_base<void, Capacity>
+template <>
+class channel<void>
+	: public channel_base<void>
 {
 public:
-	static channel create();
+	template <size_t Capacity = 1>
+	static channel create_finite();
+	static channel create_infinite();
 
 	task<void> send() const;
-	using channel_base<void, Capacity>::send;
+	using channel_base<void>::send;
 
 	void send_sync() const;
 
 	task<void> fire() const;
 
 private:
-	typedef typename channel_base<void, Capacity>::buffer_type buffer_type;
-	explicit channel(buffer_type * buffer);
+	explicit channel(buffer_type buffer);
 };
+
+task<void> wait_for(channel<void> const & sig);
 
 } // namespace yb
 
+#include "detail/circular_buffer.hpp"
+
 namespace yb {
 
-template <typename T, size_t Capacity>
-channel_base<T, Capacity>::channel_base(buffer_type * buffer)
+template <typename T>
+channel_base<T>::channel_base(buffer_type buffer)
 	: m_buffer(buffer)
 {
 }
 
-template <typename T, size_t Capacity>
-channel_base<T, Capacity>::~channel_base()
+template <typename T>
+task<T> channel_base<T>::receive() const
 {
-	m_buffer->release();
+	return m_buffer->receive();
 }
 
-template <typename T, size_t Capacity>
-channel_base<T, Capacity>::channel_base(channel_base const & o)
-	: m_buffer(o.m_buffer)
+template <typename T>
+task<void> channel_base<T>::send(task<T> && r) const
 {
-	m_buffer->addref();
+	return m_buffer->send(std::move(r));
 }
 
-template <typename T, size_t Capacity>
-channel_base<T, Capacity> & channel_base<T, Capacity>::operator=(channel_base const & o)
-{
-	o.m_buffer->addref();
-	m_buffer->release();
-	m_buffer = o.m_buffer;
-	return *this;
-}
-
-template <typename T, size_t Capacity>
-task<T> channel_base<T, Capacity>::receive() const
-{
-	try
-	{
-		if (m_buffer->empty())
-			return task<T>::from_task(new channel_receive_task<T, Capacity>(m_buffer));
-		else
-			return m_buffer->pop_front_move();
-	}
-	catch (...)
-	{
-		return async::raise<T>();
-	}
-}
-
-template <typename T, size_t Capacity>
-task<void> channel_base<T, Capacity>::send(task<T> && r) const
-{
-	try
-	{
-		if (!m_buffer->full())
-		{
-			m_buffer->push_back(std::move(r));
-			return async::value();
-		}
-		else
-		{
-			return task<void>::from_task(new channel_send_task<T, Capacity>(m_buffer, std::move(r)));
-		}
-	}
-	catch (...)
-	{
-		return async::raise<void>();
-	}
-}
-
-template <typename T, size_t Capacity>
-task<void> channel_base<T, Capacity>::send(task<T> const & r) const
+template <typename T>
+task<void> channel_base<T>::send(task<T> const & r) const
 {
 	return this->send(task<T>::from_value(r));
 }
 
-template <typename T, size_t Capacity>
-channel<T, Capacity> channel<T, Capacity>::create()
+template <typename T>
+template <size_t Capacity>
+channel<T> channel<T>::create_finite()
 {
-	return channel<T, Capacity>(new buffer_type());
+	return channel<T>(std::make_shared<detail::channel_buffer<T, circular_buffer<task<T>, Capacity> > >());
 }
 
-template <typename T, size_t Capacity>
-channel<T, Capacity>::channel(buffer_type * buffer)
-	: channel_base<T, Capacity>(buffer)
+template <typename T>
+channel<T> channel<T>::create_infinite()
+{
+	return channel<T>(std::make_shared<detail::channel_buffer<T, detail::unbounded_channel_buffer<task<T>> > >());
+}
+
+template <typename T>
+channel<T>::channel(buffer_type buffer)
+	: channel_base<T>(buffer)
 {
 }
 
-template <typename T, size_t Capacity>
-task<void> channel<T, Capacity>::send(T const & value) const
+template <typename T>
+task<void> channel<T>::send(T const & value) const
 {
 	return this->send(task<T>::from_value(value));
 }
 
-template <typename T, size_t Capacity>
-task<void> channel<T, Capacity>::send(T && value) const
+template <typename T>
+task<void> channel<T>::send(T && value) const
 {
 	return this->send(task<T>::from_value(std::move(value)));
 }
 
-template <typename T, size_t Capacity>
-void channel<T, Capacity>::send_sync(T const & value) const
+template <typename T>
+void channel<T>::send_sync(T const & value) const
 {
 	task<void> r = this->send(value);
 	assert(r.has_value() || r.has_exception());
 	r.rethrow();
 }
 
-template <typename T, size_t Capacity>
-void channel<T, Capacity>::send_sync(T && value) const
+template <typename T>
+void channel<T>::send_sync(T && value) const
 {
 	task<void> r = this->send(std::move(value));
 	assert(r.has_value() || r.has_exception());
 	r.rethrow();
-}
-
-template <size_t Capacity>
-channel<void, Capacity> channel<void, Capacity>::create()
-{
-	return channel<void>(new buffer_type());
-}
-
-template <size_t Capacity>
-channel<void, Capacity>::channel(buffer_type * buffer)
-	: channel_base<void, Capacity>(buffer)
-{
-}
-
-template <size_t Capacity>
-task<void> channel<void, Capacity>::send() const
-{
-	return this->send(task<void>::from_value());
-}
-
-template <size_t Capacity>
-void channel<void, Capacity>::send_sync() const
-{
-	task<void> r = this->send();
-	assert(r.has_value() || r.has_exception());
-	r.rethrow();
-}
-
-template <size_t Capacity>
-task<void> channel<void, Capacity>::fire() const
-{
-	return this->send();
-}
-
-template <size_t Capacity>
-task<void> wait_for(channel<void, Capacity> const & sig)
-{
-	return sig.receive();
-
 }
 
 } // namespace yb

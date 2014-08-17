@@ -1,140 +1,122 @@
 #ifndef LIBYB_ASYNC_DETAIL_CHANNEL_DETAIL_HPP
 #define LIBYB_ASYNC_DETAIL_CHANNEL_DETAIL_HPP
 
-#include "circular_buffer.hpp"
-#include "../cancel_exception.hpp"
-#include "../../utils/except.hpp"
+#include "../utils/detail/win32_mutex.hpp" // XXX
+#include <windows.h>
+#include "detail/win32_handle_task.hpp"
+#include "detail/notification_event.hpp"
+#include "detail/semaphore.hpp"
+
+#include <list>
+#include <deque>
 
 namespace yb {
+namespace detail {
 
-template <typename T, size_t Capacity>
-class channel_send_task
-	: public task_base<void>
+template <typename T>
+class unbounded_channel_buffer
+	: public std::deque<T>
 {
 public:
-	typedef shared_circular_buffer<task<T>, Capacity> buffer_type;
-
-	channel_send_task(buffer_type * buffer, task<T> && r)
-		: m_buffer(buffer), m_value(std::move(r))
+	bool full() const
 	{
-		m_buffer->addref();
+		return false;
 	}
-
-	~channel_send_task()
-	{
-		if (m_buffer)
-			m_buffer->release();
-	}
-
-	task<void> cancel_and_wait() throw() override
-	{
-		if (m_buffer)
-		{
-			m_buffer->release();
-			m_buffer = 0;
-		}
-		return task<void>::from_value();
-	}
-
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
-	{
-		if (cl >= cl_abort && m_buffer)
-		{
-			m_buffer->release();
-			m_buffer = 0;
-		}
-
-		if (m_buffer && m_buffer->full())
-			return;
-
-		if (m_buffer)
-			m_buffer->push_back(std::move(m_value));
-
-		ctx.set_finished();
-	}
-
-	task<void> finish_wait(task_wait_finalization_context &) throw() override
-	{
-		if (m_buffer)
-			return async::value();
-		else
-			return async::raise<void>(task_cancelled());
-	}
-
-private:
-	buffer_type * m_buffer;
-	task<T> m_value;
 };
 
-template <typename T, size_t Capacity>
-class channel_receive_task
-	: public task_base<T>
+template <typename T>
+class channel_buffer_base
 {
 public:
-	typedef shared_circular_buffer<task<T>, Capacity> buffer_type;
+	virtual yb::task<T> receive() = 0;
+	virtual yb::task<void> send(yb::task<T> && t) = 0;
+};
 
-	explicit channel_receive_task(buffer_type * c)
-		: m_buffer(c)
+template <typename T, typename Buffer>
+class channel_buffer
+	: public channel_buffer_base<T>
+{
+public:
+	yb::task<T> receive() override
 	{
-		m_buffer->addref();
+		return m_read_sem.wait().then([this]() {
+			yb::detail::scoped_win32_lock l(m_buffer_lock);
+			if (!m_buffer.empty())
+			{
+				yb::task<T> res = std::move(m_buffer.front());
+				m_buffer.pop_front();
+
+				while (!m_writers.empty() && !m_buffer.full())
+				{
+					writer * w = m_writers.front();
+					m_buffer.push_back(std::move(w->m_value));
+					m_writers.pop_front();
+					w->it = m_writers.end();
+					w->ev.set();
+				}
+
+				return std::move(res);
+			}
+			else
+			{
+				assert(!m_writers.empty());
+				writer * w = m_writers.front();
+				yb::task<T> res = std::move(w->m_value);
+				m_writers.pop_front();
+				w->it = m_writers.end();
+				w->ev.set();
+				return std::move(res);
+			}
+		});
 	}
 
-	~channel_receive_task()
+	yb::task<void> send(yb::task<T> && t) override
 	{
-		if (m_buffer)
-			m_buffer->release();
-	}
+		yb::detail::scoped_win32_lock l(m_buffer_lock);
 
-	task<T> cancel_and_wait() throw() override
-	{
-		if (m_buffer)
+		if (!m_buffer.full())
 		{
-			m_buffer->release();
-			m_buffer = 0;
-		}
-
-		assert(!m_buffer);
-		return task<T>::from_exception(yb::make_exception_ptr(task_cancelled()));
-	}
-
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
-	{
-		if (cl >= cl_abort && m_buffer)
-		{
-			m_buffer->release();
-			m_buffer = 0;
-		}
-
-		if (m_buffer && m_buffer->empty())
-			return;
-
-		if (!m_buffer)
-		{
-			m_result = async::raise<T>(task_cancelled());
+			m_buffer.push_back(std::move(t));
+			m_read_sem.set();
+			return yb::async::value();
 		}
 		else
 		{
-			m_result = std::move(m_buffer->front());
-			m_buffer->pop_front();
+			std::unique_ptr<writer> p(new writer(std::move(t)));
+			m_writers.push_back(p.get());
+			writer * w = p.release();
+			w->it = std::prev(m_writers.end());
+			m_read_sem.set();
+			return w->ev.wait().follow_with([this, w]() {
+				yb::detail::scoped_win32_lock l(m_buffer_lock);
+				if (w->it != m_writers.end())
+					m_writers.erase(w->it);
+				delete w;
+			});
 		}
-
-		ctx.set_finished();
-	}
-
-	task<T> finish_wait(task_wait_finalization_context &) throw() override
-	{
-		assert(!m_result.empty());
-		return std::move(m_result);
 	}
 
 private:
-	buffer_type * m_buffer;
-	task<T> m_result;
+	semaphore m_read_sem;
+	yb::detail::win32_mutex m_buffer_lock;
+	Buffer m_buffer;
 
-	channel_receive_task(channel_receive_task const &);
-	channel_receive_task & operator=(channel_receive_task const &);
+	struct writer
+	{
+		yb::notification_event ev;
+		yb::task<T> m_value;
+		typename std::list<writer *>::iterator it;
+
+		explicit writer(yb::task<T> && value)
+			: m_value(std::move(value))
+		{
+		}
+	};
+
+	std::list<writer *> m_writers;
 };
 
+} // namespace detail
 } // namespace yb
 
 #endif // LIBYB_ASYNC_DETAIL_CHANNEL_DETAIL_HPP

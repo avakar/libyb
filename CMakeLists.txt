@@ -8,6 +8,7 @@ set(SOURCES
 	libyb/stream_parser.cpp
 	libyb/tunnel.cpp
 	libyb/vector_ref.hpp
+	libyb/async/channel.cpp
 	libyb/async/descriptor_reader.cpp
 	libyb/async/descriptor_reader.hpp
 	libyb/async/device.cpp
@@ -17,7 +18,6 @@ set(SOURCES
 	libyb/async/stream.cpp
 	libyb/async/stream_device.cpp
 	libyb/async/timer.cpp
-	libyb/async/async_channel.hpp
 	libyb/async/async_runner.hpp
 	libyb/async/cancel_exception.hpp
 	libyb/async/cancel_level.hpp
@@ -106,12 +106,13 @@ set(SOURCES
 
 if (WIN32)
 set(SOURCES ${SOURCES}
+	libyb/async/detail/notification_event.cpp
+	libyb/async/detail/semaphore.cpp
 	libyb/async/detail/win32_group.cpp
 	libyb/async/detail/win32_affinity_task.hpp
 	libyb/async/detail/win32_handle_task.hpp
 	libyb/async/detail/win32_wait_context.hpp
 	libyb/async/detail/win32_affinity_task.cpp
-	libyb/async/detail/win32_async_channel.cpp
 	libyb/async/detail/win32_async_runner.cpp
 	libyb/async/detail/win32_console_stream.cpp
 	libyb/async/detail/win32_file.cpp
@@ -142,7 +143,6 @@ set(SOURCES ${SOURCES}
 	libyb/async/detail/linux_fdpoll_task.hpp
 	libyb/async/detail/linux_wait_context.hpp
 	libyb/async/detail/unix_wait_context.hpp
-	libyb/async/detail/linux_async_channel.cpp
 	libyb/async/detail/linux_async_runner.cpp
 	libyb/async/detail/linux_console_stream.cpp
 	libyb/async/detail/linux_prepared_task.cpp

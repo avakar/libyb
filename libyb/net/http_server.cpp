@@ -11,7 +11,7 @@ class pump_stream
 	: public stream
 {
 public:
-	pump_stream(yb::channel<yb::buffer_view, 3> const & chan)
+	pump_stream(yb::channel<yb::buffer_view> const & chan)
 		: m_buffers(chan)
 	{
 	}
@@ -39,7 +39,7 @@ public:
 	task<size_t> write(buffer_ref buf) override { return yb::nulltask; }
 
 private:
-	yb::channel<yb::buffer_view, 3> m_buffers;
+	yb::channel<yb::buffer_view> m_buffers;
 };
 
 class http_handler
@@ -55,10 +55,10 @@ private:
 	yb::buffer_policy m_bp;
 	http_request_parser m_parser;
 
-	yb::channel<yb::task<http_response>, 3> m_response_channel;
+	yb::channel<yb::task<http_response>> m_response_channel;
 
 	size_t m_req_body_remaining;
-	yb::channel<yb::buffer_view, 3> m_request_body_channel;
+	yb::channel<yb::buffer_view> m_request_body_channel;
 
 	std::string m_current_response;
 };
@@ -132,7 +132,7 @@ public:
 		}
 		else
 		{
-			m_self->m_request_body_channel = yb::channel<yb::buffer_view, 3>::create();
+			m_self->m_request_body_channel = yb::channel<yb::buffer_view>::create_finite<3>();
 			req.body = std::make_shared<pump_stream>(m_self->m_request_body_channel);
 			m_self->m_req_body_remaining = content_length;
 			resp = m_fn(std::move(req));
@@ -154,8 +154,8 @@ private:
 };
 
 http_handler::http_handler(stream & s)
-	: m_s(s), m_bp(4096, /*sharable=*/true), m_response_channel(yb::channel<yb::task<http_response>, 3>::create()),
-	m_req_body_remaining(0), m_request_body_channel(yb::channel<yb::buffer_view, 3>::create())
+	: m_s(s), m_bp(4096, /*sharable=*/true), m_response_channel(yb::channel<yb::task<http_response>>::create_finite<3>()),
+	m_req_body_remaining(0), m_request_body_channel(yb::channel<yb::buffer_view>::create_finite<3>())
 {
 }
 

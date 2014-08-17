@@ -1,4 +1,5 @@
 #include "mock_stream.hpp"
+#include "task.hpp"
 using namespace yb;
 
 mock_stream::mock_stream()
@@ -8,7 +9,7 @@ mock_stream::mock_stream()
 
 void mock_stream::expect_read(yb::buffer_ref const & data, size_t max_chunk_size)
 {
-	action act = { channel<void>::create(), };
+	action act = { channel<void>::create_finite(), };
 	act.kind = action::k_read;
 	act.data.assign(data.begin(), data.end());
 	act.max_chunk_size = max_chunk_size;
@@ -19,7 +20,7 @@ void mock_stream::expect_read(yb::buffer_ref const & data, size_t max_chunk_size
 
 void mock_stream::expect_write(yb::buffer_ref const & data, size_t max_chunk_size)
 {
-	action act = { channel<void>::create() };
+	action act = { channel<void>::create_finite() };
 	act.kind = action::k_write;
 	act.data.assign(data.begin(), data.end());
 	act.max_chunk_size = max_chunk_size;

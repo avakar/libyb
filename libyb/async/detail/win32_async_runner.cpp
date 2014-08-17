@@ -12,7 +12,7 @@ struct async_runner::impl
 	HANDLE m_thread_handle;
 
 	impl()
-		: m_runner(/*associate_thread_now=*/false), m_stop_promise(channel<void>::create())
+		: m_runner(/*associate_thread_now=*/false), m_stop_promise(channel<void>::create_finite())
 	{
 	}
 
