@@ -220,6 +220,39 @@ std::exception_ptr task<R>::exception() const throw()
 }
 
 template <typename R>
+template <typename E>
+bool task<R>::exception(E & e) const throw()
+{
+	try
+	{
+		if (this->has_exception())
+		{
+			std::exception_ptr eptr = this->exception();
+			std::rethrow_exception(eptr);
+		}
+	}
+	catch (E const & ee)
+	{
+		try
+		{
+			e = ee;
+		}
+		catch (...)
+		{
+			return false;
+		}
+
+		return true;
+	}
+	catch (...)
+	{
+		return false;
+	}
+
+	return false;
+}
+
+template <typename R>
 void task<R>::rethrow()
 {
 	assert(m_kind == k_value || m_kind == k_exception);

@@ -135,6 +135,10 @@ public:
 
 	R get();
 	std::exception_ptr exception() const throw();
+
+	template <typename E>
+	bool exception(E & e) const throw();
+
 	void rethrow();
 
 	void cancel(cancel_level cl);
