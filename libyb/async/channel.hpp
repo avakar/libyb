@@ -141,6 +141,12 @@ void channel<T>::send_sync(T && value) const
 	r.rethrow();
 }
 
+template <size_t Capacity>
+channel<void> channel<void>::create_finite()
+{
+	return channel<void>(std::make_shared<detail::channel_buffer<void, circular_buffer<task<void>, Capacity> > >());
+}
+
 } // namespace yb
 
 #endif // LIBYB_ASYNC_CHANNEL_HPP
