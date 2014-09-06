@@ -1,5 +1,6 @@
 #include "win32_file_operation.hpp"
 #include "win32_overlapped.hpp"
+#include "win32_system_error.hpp"
 #include "../../async/detail/win32_handle_task.hpp"
 using namespace yb;
 using namespace yb::detail;
@@ -20,16 +21,16 @@ task<size_t> win32_file_operation::ioctl_with_affinity(HANDLE hFile, DWORD dwCon
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(hFile, &m_overlapped.o, &dwTransferred, TRUE))
 				{
-					dwTransferred = 0;
-					if (GetLastError() != ERROR_OPERATION_ABORTED)
-						return async::raise<size_t>(std::runtime_error("GetOverlappedResult failure"));
+					DWORD dwError = ::GetLastError();
+					if (dwError != ERROR_OPERATION_ABORTED)
+						return async::raise<size_t>(yb::detail::win32_system_error(dwError));
 				}
 				return async::value((size_t)dwTransferred);
 			});
 		}
 		else
 		{
-			return async::raise<size_t>(std::runtime_error("DeviceIoControl failed"));
+			return async::raise<size_t>(yb::detail::win32_system_error(dwError));
 		}
 	}
 	else
@@ -75,15 +76,18 @@ task<size_t> win32_file_operation::read_with_affinity(HANDLE hFile, void * buffe
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(hFile, &m_overlapped.o, &dwTransferred, TRUE))
 				{
-					if (GetLastError() == ERROR_HANDLE_EOF)
+					DWORD dwError = GetLastError();
+					if (dwError == ERROR_HANDLE_EOF)
 						return async::value((size_t)0);
-					throw std::runtime_error("the read operation failed"); // XXX
+					throw yb::detail::win32_system_error(dwError);
 				}
 				return async::value((size_t)dwTransferred);
 			});
 		}
 		else
-			return async::raise<size_t>(std::runtime_error("the read operation failed")); // XXX
+		{
+			return async::raise<size_t>(yb::detail::win32_system_error(dwError));
+		}
 	}
 	else
 	{
@@ -122,12 +126,14 @@ task<size_t> win32_file_operation::write_with_affinity(HANDLE hFile, void const 
 			}).then([this, hFile]() -> task<size_t> {
 				DWORD dwTransferred;
 				if (!GetOverlappedResult(hFile, &m_overlapped.o, &dwTransferred, TRUE))
-					throw std::runtime_error("the write operation failed"); // XXX
+					throw yb::detail::win32_system_error(::GetLastError());
 				return async::value((size_t)dwTransferred);
 			});
 		}
 		else
-			return async::raise<size_t>(std::runtime_error("the write operation failed")); // XXX
+		{
+			return async::raise<size_t>(yb::detail::win32_system_error(dwError));
+		}
 	}
 	else
 	{
@@ -166,12 +172,12 @@ size_t win32_file_operation::sync_ioctl(HANDLE hFile, DWORD dwControlCode, void 
 		{
 			DWORD dwTransferred;
 			if (!GetOverlappedResult(hFile, &m_overlapped.o, &dwTransferred, TRUE))
-				throw std::runtime_error("GetOverlappedResult failure");
+				throw yb::detail::win32_system_error(::GetLastError());
 			return dwTransferred;
 		}
 		else
 		{
-			throw std::runtime_error("DeviceIoControl failed");
+			throw yb::detail::win32_system_error(dwError);
 		}
 	}
 	else
