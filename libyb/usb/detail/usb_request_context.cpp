@@ -1,4 +1,5 @@
 #include "usb_request_context.hpp"
+#include "../../utils/detail/win32_system_error.hpp"
 #include "../../utils/utf.hpp"
 using namespace yb;
 using namespace yb::detail;
@@ -174,6 +175,21 @@ task<void> usb_request_context::control_write(HANDLE hFile, uint8_t bmRequestTyp
 		buf.size(),
 		0,
 		0).ignore_result();
+}
+
+task<void> usb_request_context::reset_device(HANDLE hFile)
+{
+	req = libusb0_win32_request();
+	req.timeout = 5000;
+	return opctx.ioctl(hFile, LIBUSB_IOCTL_RESET_DEVICE, &req, sizeof req, 0, 0).continue_with([](task<size_t> && t) {
+		yb::detail::win32_system_error e;
+		if (t.exception(e))
+		{
+			if (e.error_number() == ERROR_FILE_NOT_FOUND)
+				return yb::async::value();
+		}
+		return t.ignore_result();
+	});
 }
 
 bool usb_request_context::claim_interface(HANDLE hFile, uint8_t intfno)

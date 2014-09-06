@@ -35,6 +35,8 @@ public:
 	bool claim_interface(HANDLE hFile, uint8_t intfno);
 	void release_interface(HANDLE hFile, uint8_t intfno);
 
+	task<void> reset_device(HANDLE hFile);
+
 private:
 	libusb0_win32_request req;
 	uint8_t stack_buf[2];

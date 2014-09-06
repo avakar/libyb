@@ -219,6 +219,19 @@ task<void> usb_device::control_write(uint8_t bmRequestType, uint8_t bRequest, ui
 	}
 }
 
+task<void> usb_device::reset_device()
+{
+	try
+	{
+		std::shared_ptr<detail::usb_request_context> ctx(new detail::usb_request_context());
+		return ctx->reset_device(m_core->hFile.get()).follow_with([ctx](){});
+	}
+	catch (...)
+	{
+		return async::raise<void>();
+	}
+}
+
 usb_interface const & usb_device_interface::descriptor() const
 {
 	return m_core->configs[m_config_index].interfaces[m_interface_index];

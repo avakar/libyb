@@ -11,7 +11,7 @@ class win32_system_error
 	: public std::runtime_error
 {
 public:
-	explicit win32_system_error(uint32_t error_number)
+	explicit win32_system_error(uint32_t error_number = 0)
 		: std::runtime_error(std::string()), m_error_number(error_number)
 	{
 	}
