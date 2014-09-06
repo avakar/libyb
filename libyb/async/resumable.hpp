@@ -63,6 +63,12 @@ auto make_resumable(F && f, P1 && p1) -> task<decltype(f(std::forward<P1>(p1), *
 	return make_resumable(std::bind(std::forward<F>(f), std::forward<P1>(p1), std::placeholders::_1));
 }
 
+template <typename F, typename P1, typename P2>
+auto make_resumable(F && f, P1 && p1, P2 && p2) -> task<decltype(f(std::forward<P1>(p1), std::forward<P2>(p2), *(resumer *)0))>
+{
+	return make_resumable(std::bind(std::forward<F>(f), std::forward<P1>(p1), std::forward<P2>(p2), std::placeholders::_1));
+}
+
 }
 
 #define ybawait await %
