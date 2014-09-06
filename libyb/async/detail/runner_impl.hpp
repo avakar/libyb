@@ -44,9 +44,20 @@ task<R> runner::try_run(task<R> && t) throw()
 }
 
 template <typename R>
-R runner::run(task<R> && t) throw()
+R runner::run(task<R> && t)
 {
 	return this->try_run(std::move(t)).get();
+}
+
+template <typename R>
+R runner::operator%(task<R> && t)
+{
+	return this->run(std::move(t));
+}
+
+inline void runner::run_forever() throw()
+{
+	this->run_until(0);
 }
 
 } // namespace yb

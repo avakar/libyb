@@ -17,7 +17,12 @@ public:
 	task<R> try_run(task<R> && t) throw();
 
 	template <typename R>
-	R run(task<R> && t) throw();
+	R run(task<R> && t);
+
+	void run_forever() throw();
+
+	template <typename R>
+	R operator%(task<R> && t);
 
 protected:
 	virtual void submit(detail::prepared_task * pt) = 0;
