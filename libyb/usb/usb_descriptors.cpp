@@ -45,7 +45,7 @@ usb_config_descriptor yb::parse_config_descriptor(yb::buffer_ref d)
 		else if (d[1] == 5/*ENDPOINT*/)
 		{
 			if (!current_altsetting
-				|| desclen != usb_raw_endpoint_descriptor::size)
+				|| desclen < usb_raw_endpoint_descriptor::size)
 			{
 				throw std::runtime_error("invalid descriptor");
 			}
