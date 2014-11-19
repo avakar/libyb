@@ -33,18 +33,18 @@ prepared_task::~prepared_task()
 	::CloseHandle(m_pimpl->m_done_event);
 }
 
-void prepared_task::addref()
+void prepared_task::addref() throw()
 {
 	::InterlockedIncrement(&m_pimpl->m_refcount);
 }
 
-void prepared_task::release()
+void prepared_task::release() throw()
 {
 	if (::InterlockedDecrement(&m_pimpl->m_refcount) == 0)
 		delete this;
 }
 
-void prepared_task::request_cancel(cancel_level cl)
+void prepared_task::request_cancel(cancel_level cl) throw()
 {
 	cancel_level guess_cl = cl_none;
 	while (guess_cl < cl)
@@ -72,12 +72,12 @@ void prepared_task::shadow_prepare_wait(task_wait_preparation_context & prep_ctx
 	prep_ctx.add_poll_item(pi);
 }
 
-void prepared_task::shadow_wait()
+void prepared_task::shadow_wait() throw()
 {
 	::WaitForSingleObject(m_pimpl->m_done_event, INFINITE);
 }
 
-void prepared_task::shadow_cancel_and_wait()
+void prepared_task::shadow_cancel_and_wait() throw()
 {
 	detail::scoped_win32_lock l(m_pimpl->m_mutex);
 	if (m_pimpl->m_runner)
@@ -102,13 +102,13 @@ void prepared_task::detach_event_sink() throw()
 	this->release();
 }
 
-cancel_level prepared_task::requested_cancel_level() const
+cancel_level prepared_task::requested_cancel_level() const throw()
 {
 	LONG const volatile & cl = m_pimpl->m_cl;
 	return cancel_level(cl);
 }
 
-void prepared_task::mark_finished()
+void prepared_task::mark_finished() throw()
 {
 	::SetEvent(m_pimpl->m_done_event);
 }
