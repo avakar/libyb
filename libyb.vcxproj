@@ -1,0 +1,210 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="libyb\async\channel.cpp" />
+    <ClCompile Include="libyb\async\descriptor_reader.cpp" />
+    <ClCompile Include="libyb\async\detail\console_stream.cpp" />
+    <ClCompile Include="libyb\async\detail\exit_guard_task.cpp" />
+    <ClCompile Include="libyb\async\detail\notification_event.cpp" />
+    <ClCompile Include="libyb\async\detail\parallel_composition_task.cpp" />
+    <ClCompile Include="libyb\async\detail\parallel_compositor.cpp" />
+    <ClCompile Include="libyb\async\detail\runner.cpp" />
+    <ClCompile Include="libyb\async\detail\semaphore.cpp" />
+    <ClCompile Include="libyb\async\detail\task_impl.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_affinity_task.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_async_runner.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_console_stream.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_file.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_group.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_handle_task.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_prepared_task.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_resumable.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_serial_port.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_sync_runner.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_timer.cpp" />
+    <ClCompile Include="libyb\async\detail\win32_wait_context.cpp" />
+    <ClCompile Include="libyb\async\device.cpp" />
+    <ClCompile Include="libyb\async\null_stream.cpp" />
+    <ClCompile Include="libyb\async\stream.cpp" />
+    <ClCompile Include="libyb\async\stream_device.cpp" />
+    <ClCompile Include="libyb\async\timer.cpp" />
+    <ClCompile Include="libyb\buffer.cpp" />
+    <ClCompile Include="libyb\descriptor.cpp" />
+    <ClCompile Include="libyb\net\detail\http_request_parser.cpp" />
+    <ClCompile Include="libyb\net\detail\win32_net.cpp" />
+    <ClCompile Include="libyb\net\http.cpp" />
+    <ClCompile Include="libyb\net\http_server.cpp" />
+    <ClCompile Include="libyb\stream_parser.cpp" />
+    <ClCompile Include="libyb\tunnel.cpp" />
+    <ClCompile Include="libyb\usb\bulk_stream.cpp" />
+    <ClCompile Include="libyb\usb\detail\usb_request_context.cpp" />
+    <ClCompile Include="libyb\usb\detail\win32_usb_context.cpp" />
+    <ClCompile Include="libyb\usb\detail\win32_usb_device.cpp" />
+    <ClCompile Include="libyb\usb\interface_guard.cpp" />
+    <ClCompile Include="libyb\usb\usb_descriptors.cpp" />
+    <ClCompile Include="libyb\usb\usb_device.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_file_operation.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_mutex.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_overlapped.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_refcount.cpp" />
+    <ClCompile Include="libyb\utils\ihex_file.cpp" />
+    <ClCompile Include="libyb\utils\sparse_buffer.cpp" />
+    <ClCompile Include="libyb\utils\svf_file.cpp" />
+    <ClCompile Include="libyb\utils\utf.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="libyb\async\async_runner.hpp" />
+    <ClInclude Include="libyb\async\cancel_exception.hpp" />
+    <ClInclude Include="libyb\async\cancel_level.hpp" />
+    <ClInclude Include="libyb\async\channel.hpp" />
+    <ClInclude Include="libyb\async\console_stream.hpp" />
+    <ClInclude Include="libyb\async\descriptor_reader.hpp" />
+    <ClInclude Include="libyb\async\detail\canceller_task.hpp" />
+    <ClInclude Include="libyb\async\detail\cancel_level_upgrade_task.hpp" />
+    <ClInclude Include="libyb\async\detail\channel_detail.hpp" />
+    <ClInclude Include="libyb\async\detail\circular_buffer.hpp" />
+    <ClInclude Include="libyb\async\detail\double_buffer_task.hpp" />
+    <ClInclude Include="libyb\async\detail\exit_guard_task.hpp" />
+    <ClInclude Include="libyb\async\detail\loop_task.hpp" />
+    <ClInclude Include="libyb\async\detail\notification_event.hpp" />
+    <ClInclude Include="libyb\async\detail\parallel_composition_task.hpp" />
+    <ClInclude Include="libyb\async\detail\parallel_compositor.hpp" />
+    <ClInclude Include="libyb\async\detail\parallel_compositor_impl.hpp" />
+    <ClInclude Include="libyb\async\detail\prepared_task.hpp" />
+    <ClInclude Include="libyb\async\detail\prepared_task_impl.hpp" />
+    <ClInclude Include="libyb\async\detail\runner_impl.hpp" />
+    <ClInclude Include="libyb\async\detail\semaphore.hpp" />
+    <ClInclude Include="libyb\async\detail\sequential_composition_task.hpp" />
+    <ClInclude Include="libyb\async\detail\task_fwd.hpp" />
+    <ClInclude Include="libyb\async\detail\task_impl.hpp" />
+    <ClInclude Include="libyb\async\detail\task_result.hpp" />
+    <ClInclude Include="libyb\async\detail\wait_context.hpp" />
+    <ClInclude Include="libyb\async\detail\win32_affinity_task.hpp" />
+    <ClInclude Include="libyb\async\detail\win32_handle_task.hpp" />
+    <ClInclude Include="libyb\async\detail\win32_wait_context.hpp" />
+    <ClInclude Include="libyb\async\device.hpp" />
+    <ClInclude Include="libyb\async\double_buffer.hpp" />
+    <ClInclude Include="libyb\async\file.hpp" />
+    <ClInclude Include="libyb\async\group.hpp" />
+    <ClInclude Include="libyb\async\null_stream.hpp" />
+    <ClInclude Include="libyb\async\resumable.hpp" />
+    <ClInclude Include="libyb\async\runner.hpp" />
+    <ClInclude Include="libyb\async\serial_port.hpp" />
+    <ClInclude Include="libyb\async\stream.hpp" />
+    <ClInclude Include="libyb\async\stream_device.hpp" />
+    <ClInclude Include="libyb\async\sync_runner.hpp" />
+    <ClInclude Include="libyb\async\task.hpp" />
+    <ClInclude Include="libyb\async\task_base.hpp" />
+    <ClInclude Include="libyb\async\timer.hpp" />
+    <ClInclude Include="libyb\buffer.hpp" />
+    <ClInclude Include="libyb\descriptor.hpp" />
+    <ClInclude Include="libyb\mutable_vector_ref.hpp" />
+    <ClInclude Include="libyb\net\detail\http_request_parser.hpp" />
+    <ClInclude Include="libyb\net\http.hpp" />
+    <ClInclude Include="libyb\net\http_server.hpp" />
+    <ClInclude Include="libyb\net\net.hpp" />
+    <ClInclude Include="libyb\packet.hpp" />
+    <ClInclude Include="libyb\packet_handler.hpp" />
+    <ClInclude Include="libyb\stream_parser.hpp" />
+    <ClInclude Include="libyb\tunnel.hpp" />
+    <ClInclude Include="libyb\usb\bulk_stream.hpp" />
+    <ClInclude Include="libyb\usb\detail\libusb0_win32_intf.h" />
+    <ClInclude Include="libyb\usb\detail\usb_device_core_fwd.hpp" />
+    <ClInclude Include="libyb\usb\detail\usb_request_context.hpp" />
+    <ClInclude Include="libyb\usb\detail\win32_usb_device_core.hpp" />
+    <ClInclude Include="libyb\usb\interface_guard.hpp" />
+    <ClInclude Include="libyb\usb\usb_context.hpp" />
+    <ClInclude Include="libyb\usb\usb_descriptors.hpp" />
+    <ClInclude Include="libyb\usb\usb_device.hpp" />
+    <ClInclude Include="libyb\utils\detail\lexcast_impl.hpp" />
+    <ClInclude Include="libyb\utils\detail\scoped_win32_handle.hpp" />
+    <ClInclude Include="libyb\utils\detail\win32_file_operation.hpp" />
+    <ClInclude Include="libyb\utils\detail\win32_mutex.hpp" />
+    <ClInclude Include="libyb\utils\detail\win32_overlapped.hpp" />
+    <ClInclude Include="libyb\utils\detail\win32_system_error.hpp" />
+    <ClInclude Include="libyb\utils\except.hpp" />
+    <ClInclude Include="libyb\utils\ihex_file.hpp" />
+    <ClInclude Include="libyb\utils\lexcast.hpp" />
+    <ClInclude Include="libyb\utils\noncopyable.hpp" />
+    <ClInclude Include="libyb\utils\refcount.hpp" />
+    <ClInclude Include="libyb\utils\signal.hpp" />
+    <ClInclude Include="libyb\utils\sparse_buffer.hpp" />
+    <ClInclude Include="libyb\utils\svf_file.hpp" />
+    <ClInclude Include="libyb\utils\tuple_less.hpp" />
+    <ClInclude Include="libyb\utils\utf.hpp" />
+    <ClInclude Include="libyb\vector_ref.hpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{92E744E0-9B13-4825-AD26-0E7B53BA0B9D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libyb</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
