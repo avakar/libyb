@@ -55,11 +55,6 @@ R runner::operator%(task<R> && t)
 	return this->run(std::move(t));
 }
 
-inline void runner::run_forever() throw()
-{
-	this->run_until(0);
-}
-
 } // namespace yb
 
 #endif // LIBYB_ASYNC_DETAIL_RUNNER_IMPL_HPP
