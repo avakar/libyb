@@ -86,3 +86,36 @@ yb::task<void> yb::task<void>::ignore_result()
 {
 	return std::move(*this);
 }
+
+namespace {
+
+class infinite_loop_task
+	: public yb::task_base<void>
+{
+public:
+	yb::task<void> cancel_and_wait() throw() override
+	{
+		return yb::async::value();
+	}
+
+	void prepare_wait(yb::task_wait_preparation_context & ctx, yb::cancel_level cl) override
+	{
+		(void)ctx;
+		if (cl >= yb::cl_quit)
+			ctx.set_finished();
+	}
+
+	yb::task<void> finish_wait(yb::task_wait_finalization_context & ctx) throw() override
+	{
+		return yb::async::value();
+	}
+};
+
+}
+
+yb::task<void> yb::async::infinite_loop()
+{
+	return yb::protect([]() {
+		return task<void>::from_task(new infinite_loop_task());
+	});
+}

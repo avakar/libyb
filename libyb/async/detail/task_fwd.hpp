@@ -213,6 +213,8 @@ task<void> loop(task<S> && t, F f);
 
 namespace async {
 
+task<void> infinite_loop();
+
 template <typename R>
 task<typename std::remove_const<typename std::remove_reference<R>::type>::type> value(R && v)
 {
