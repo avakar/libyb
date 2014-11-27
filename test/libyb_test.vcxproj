@@ -82,7 +82,6 @@
     <ClCompile Include="memmock.cpp" />
     <ClCompile Include="singleton.cpp" />
     <ClCompile Include="test.cpp" />
-    <ClCompile Include="usb.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="memmock.h" />
