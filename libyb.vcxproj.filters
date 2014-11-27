@@ -162,13 +162,19 @@
     <ClCompile Include="libyb\utils\detail\win32_overlapped.cpp">
       <Filter>utils\details</Filter>
     </ClCompile>
-    <ClCompile Include="libyb\utils\detail\win32_refcount.cpp">
-      <Filter>utils\details</Filter>
-    </ClCompile>
     <ClCompile Include="libyb\buffer.cpp" />
     <ClCompile Include="libyb\descriptor.cpp" />
     <ClCompile Include="libyb\stream_parser.cpp" />
     <ClCompile Include="libyb\tunnel.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_singleton.cpp">
+      <Filter>utils\details</Filter>
+    </ClCompile>
+    <ClCompile Include="libyb\utils\detail\win32_atomic.cpp">
+      <Filter>utils\details</Filter>
+    </ClCompile>
+    <ClCompile Include="libyb\utils\detail\refcount.cpp">
+      <Filter>utils\details</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libyb\async\async_runner.hpp">
@@ -395,5 +401,11 @@
     <ClInclude Include="libyb\stream_parser.hpp" />
     <ClInclude Include="libyb\tunnel.hpp" />
     <ClInclude Include="libyb\vector_ref.hpp" />
+    <ClInclude Include="libyb\utils\singleton.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="libyb\utils\atomic.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

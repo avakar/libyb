@@ -53,10 +53,12 @@
     <ClCompile Include="libyb\usb\interface_guard.cpp" />
     <ClCompile Include="libyb\usb\usb_descriptors.cpp" />
     <ClCompile Include="libyb\usb\usb_device.cpp" />
+    <ClCompile Include="libyb\utils\detail\refcount.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_atomic.cpp" />
     <ClCompile Include="libyb\utils\detail\win32_file_operation.cpp" />
     <ClCompile Include="libyb\utils\detail\win32_mutex.cpp" />
     <ClCompile Include="libyb\utils\detail\win32_overlapped.cpp" />
-    <ClCompile Include="libyb\utils\detail\win32_refcount.cpp" />
+    <ClCompile Include="libyb\utils\detail\win32_singleton.cpp" />
     <ClCompile Include="libyb\utils\ihex_file.cpp" />
     <ClCompile Include="libyb\utils\sparse_buffer.cpp" />
     <ClCompile Include="libyb\utils\svf_file.cpp" />
@@ -126,6 +128,7 @@
     <ClInclude Include="libyb\usb\usb_context.hpp" />
     <ClInclude Include="libyb\usb\usb_descriptors.hpp" />
     <ClInclude Include="libyb\usb\usb_device.hpp" />
+    <ClInclude Include="libyb\utils\atomic.hpp" />
     <ClInclude Include="libyb\utils\detail\lexcast_impl.hpp" />
     <ClInclude Include="libyb\utils\detail\scoped_win32_handle.hpp" />
     <ClInclude Include="libyb\utils\detail\win32_file_operation.hpp" />
@@ -138,6 +141,7 @@
     <ClInclude Include="libyb\utils\noncopyable.hpp" />
     <ClInclude Include="libyb\utils\refcount.hpp" />
     <ClInclude Include="libyb\utils\signal.hpp" />
+    <ClInclude Include="libyb\utils\singleton.hpp" />
     <ClInclude Include="libyb\utils\sparse_buffer.hpp" />
     <ClInclude Include="libyb\utils\svf_file.hpp" />
     <ClInclude Include="libyb\utils\tuple_less.hpp" />

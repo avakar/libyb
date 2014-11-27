@@ -2,10 +2,7 @@
 #define LIBYB_UTILS_REFCOUNT_HPP
 
 #include <stdlib.h>
-
-#ifndef _MSC_VER
-#include <atomic>
-#endif
+#include "atomic.hpp"
 
 namespace yb {
 
@@ -18,11 +15,7 @@ public:
 	size_t release();
 
 private:
-#ifndef _MSC_VER
-	std::atomic<size_t> m_value;
-#else
-	size_t m_value;
-#endif
+	yb::atomic_uint m_value;
 };
 
 }

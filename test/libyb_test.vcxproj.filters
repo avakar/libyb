@@ -4,6 +4,8 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="memmock.cpp" />
+    <ClCompile Include="singleton.cpp" />
+    <ClCompile Include="usb.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="memmock.h" />

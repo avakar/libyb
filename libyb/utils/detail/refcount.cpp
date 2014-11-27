@@ -8,10 +8,10 @@ yb::refcount::refcount(size_t initial)
 
 size_t yb::refcount::addref()
 {
-	return InterlockedIncrement(&m_value);
+	return m_value.fetch_add(1) + 1;
 }
 
 size_t yb::refcount::release()
 {
-	return InterlockedDecrement(&m_value);
+	return m_value.fetch_sub(1) - 1;
 }
