@@ -42,12 +42,19 @@ task<void> parallel_compositor::pop()
 	return std::move(res);
 }
 
-void parallel_compositor::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+void parallel_compositor::prepare_wait(task_wait_preparation_context & ctx)
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
 	{
 		task_wait_memento_builder mb(ctx);
-		it->t.prepare_wait(ctx, cl);
+		it->t.prepare_wait(ctx);
 		it->m = mb.finish();
 	}
+}
+
+cancel_level parallel_compositor::cancel(cancel_level cl) throw()
+{
+	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
+		it->t.cancel(cl);
+	return cl;
 }

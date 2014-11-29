@@ -13,10 +13,12 @@ public:
 	explicit exit_guard_task(cancel_level cancel_threshold);
 
 	task<void> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override;
+	void prepare_wait(task_wait_preparation_context & ctx) override;
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override;
+	cancel_level cancel(cancel_level cl) throw() override;
 
 private:
+	cancel_level m_cl;
 	cancel_level m_threshold;
 };
 

@@ -44,16 +44,16 @@ private:
 
 template <typename R>
 class shadow_task
-	: public future_base<R>
+	: public task_base<R>
 {
 public:
 	explicit shadow_task(prepared_task_impl<R> * pt);
 	~shadow_task();
 
-	void cancel(cancel_level cl) throw() override;
 	task<R> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override;
+	void prepare_wait(task_wait_preparation_context & ctx) override;
 	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override;
+	cancel_level cancel(cancel_level cl) throw() override;
 
 private:
 	prepared_task_impl<R> * m_pt;
@@ -77,7 +77,7 @@ task<R> prepared_task_impl<R>::fetch_result() throw()
 template <typename R>
 void prepared_task_impl<R>::prepare_wait(task_wait_preparation_context & prep_ctx)
 {
-	m_task.prepare_wait(prep_ctx, this->requested_cancel_level());
+	m_task.prepare_wait(prep_ctx);
 }
 
 template <typename R>
@@ -112,9 +112,10 @@ shadow_task<R>::~shadow_task()
 }
 
 template <typename R>
-void shadow_task<R>::cancel(cancel_level cl) throw()
+cancel_level shadow_task<R>::cancel(cancel_level cl) throw()
 {
 	m_pt->request_cancel(cl);
+	return cl;
 }
 
 template <typename R>
@@ -125,9 +126,9 @@ task<R> shadow_task<R>::cancel_and_wait() throw()
 }
 
 template <typename R>
-void shadow_task<R>::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+void shadow_task<R>::prepare_wait(task_wait_preparation_context & ctx)
 {
-	m_pt->shadow_prepare_wait(ctx, cl);
+	m_pt->shadow_prepare_wait(ctx);
 }
 
 template <typename R>

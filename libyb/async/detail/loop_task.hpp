@@ -34,8 +34,9 @@ public:
 	loop_task(task<S> && t, F f, loop_state<T> && state);
 
 	task<void> cancel_and_wait() throw();
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl);
+	void prepare_wait(task_wait_preparation_context & ctx);
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
+	cancel_level cancel(cancel_level cl) throw() override;
 
 private:
 	task<S> m_task;
@@ -126,10 +127,9 @@ task<void> loop_task<S, F, T>::cancel_and_wait() throw()
 }
 
 template <typename S, typename F, typename T>
-void loop_task<S, F, T>::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+void loop_task<S, F, T>::prepare_wait(task_wait_preparation_context & ctx)
 {
-	m_cancel_level = cl;
-	m_task.prepare_wait(ctx, cl);
+	m_task.prepare_wait(ctx);
 }
 
 template <typename S, typename F, typename T>
@@ -146,6 +146,14 @@ task<void> loop_task<S, F, T>::finish_wait(task_wait_finalization_context & ctx)
 	}
 
 	return nulltask;
+}
+
+template <typename S, typename F, typename T>
+cancel_level loop_task<S, F, T>::cancel(cancel_level cl) throw()
+{
+	m_cancel_level = cl;
+	m_task.cancel(cl);
+	return cl;
 }
 
 template <typename S, typename T, typename F>

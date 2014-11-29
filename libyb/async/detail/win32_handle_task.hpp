@@ -21,8 +21,9 @@ public:
 	win32_handle_task(HANDLE handle, Canceller && canceller);
 
 	task<void> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override;
+	void prepare_wait(task_wait_preparation_context & ctx) override;
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override;
+	cancel_level cancel(cancel_level cl) throw() override;
 
 private:
 	HANDLE m_handle;
@@ -49,11 +50,8 @@ win32_handle_task<Canceller>::win32_handle_task(HANDLE handle, Canceller && canc
 }
 
 template <typename Canceller>
-void win32_handle_task<Canceller>::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+void win32_handle_task<Canceller>::prepare_wait(task_wait_preparation_context & ctx)
 {
-	if (cl != cl_none && !m_canceller(cl))
-		m_handle = 0;
-
 	if (m_handle)
 		ctx.get()->m_handles.push_back(m_handle);
 	else
@@ -64,6 +62,18 @@ template <typename Canceller>
 task<void> win32_handle_task<Canceller>::finish_wait(task_wait_finalization_context &) throw()
 {
 	return m_handle? async::value(): async::raise<void>(task_cancelled());
+}
+
+template <typename Canceller>
+cancel_level win32_handle_task<Canceller>::cancel(cancel_level cl) throw()
+{
+	if (cl < cl_abort)
+		return cl;
+
+	if (!m_canceller(cl))
+		m_handle = 0;
+
+	return cl_kill;
 }
 
 template <typename Canceller>

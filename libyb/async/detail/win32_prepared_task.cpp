@@ -63,9 +63,9 @@ void prepared_task::request_cancel(cancel_level cl) throw()
 	}
 }
 
-void prepared_task::shadow_prepare_wait(task_wait_preparation_context & prep_ctx, cancel_level cl)
+void prepared_task::shadow_prepare_wait(task_wait_preparation_context & prep_ctx)
 {
-	this->request_cancel(cl);
+//	this->request_cancel(cl);
 
 	task_wait_poll_item pi;
 	pi.handle = m_pimpl->m_done_event;

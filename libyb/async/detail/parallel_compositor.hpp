@@ -22,10 +22,12 @@ public:
 	template <typename F>
 	void cancel_and_wait(F f) throw();
 
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl);
+	void prepare_wait(task_wait_preparation_context & ctx);
 
 	template <typename F>
 	void finish_wait(task_wait_finalization_context & ctx, F f) throw();
+
+	cancel_level cancel(cancel_level cl) throw();
 
 private:
 	struct parallel_task

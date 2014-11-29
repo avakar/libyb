@@ -15,9 +15,9 @@ task<void> parallel_composition_task::cancel_and_wait() throw()
 	return async::value();
 }
 
-void parallel_composition_task::prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+void parallel_composition_task::prepare_wait(task_wait_preparation_context & ctx)
 {
-	m_compositor.prepare_wait(ctx, cl);
+	m_compositor.prepare_wait(ctx);
 }
 
 task<void> parallel_composition_task::finish_wait(task_wait_finalization_context & ctx) throw()
@@ -26,4 +26,9 @@ task<void> parallel_composition_task::finish_wait(task_wait_finalization_context
 	if (m_compositor.empty())
 		return async::value();
 	return nulltask;
+}
+
+cancel_level parallel_composition_task::cancel(cancel_level cl) throw()
+{
+	return m_compositor.cancel(cl);
 }

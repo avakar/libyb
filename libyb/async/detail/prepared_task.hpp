@@ -25,7 +25,7 @@ public:
 
 	// Shadow task interface
 	void request_cancel(cancel_level cl) throw();
-	void shadow_prepare_wait(task_wait_preparation_context & prep_ctx, cancel_level cl);
+	void shadow_prepare_wait(task_wait_preparation_context & prep_ctx);
 	void shadow_wait() throw();
 	void shadow_cancel_and_wait() throw();
 

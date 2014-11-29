@@ -66,7 +66,7 @@ public:
 			return yb::async::value();
 		}
 
-		void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
+		void prepare_wait(task_wait_preparation_context & ctx) override
 		{
 			{
 				yb::detail::scoped_win32_lock l(m_pimpl->m_mutex);
@@ -86,9 +86,15 @@ public:
 				ctx.add_poll_item(item);
 
 				yb::task_wait_memento_builder mb(ctx);
-				m_pimpl->m_active_tasks.prepare_wait(ctx, cl);
+				m_pimpl->m_active_tasks.prepare_wait(ctx);
 				m_nested_mem = mb.finish();
 			}
+		}
+
+		cancel_level cancel(cancel_level cl) throw() override
+		{
+			// XXX: m_ready_tasks?
+			return m_pimpl->m_active_tasks.cancel(cl);
 		}
 
 		task<void> finish_wait(task_wait_finalization_context & ctx) throw() override

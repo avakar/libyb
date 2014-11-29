@@ -93,15 +93,20 @@ class infinite_loop_task
 	: public yb::task_base<void>
 {
 public:
+	infinite_loop_task()
+		: m_cl(yb::cl_none)
+	{
+	}
+
 	yb::task<void> cancel_and_wait() throw() override
 	{
 		return yb::async::value();
 	}
 
-	void prepare_wait(yb::task_wait_preparation_context & ctx, yb::cancel_level cl) override
+	void prepare_wait(yb::task_wait_preparation_context & ctx) override
 	{
 		(void)ctx;
-		if (cl >= yb::cl_quit)
+		if (m_cl >= yb::cl_quit)
 			ctx.set_finished();
 	}
 
@@ -109,6 +114,15 @@ public:
 	{
 		return yb::async::value();
 	}
+
+	yb::cancel_level cancel(yb::cancel_level cl) throw() override
+	{
+		m_cl = cl;
+		return cl;
+	}
+
+private:
+	yb::cancel_level m_cl;
 };
 
 }

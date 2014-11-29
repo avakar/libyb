@@ -23,12 +23,9 @@ public:
 		return m_nested.cancel_and_wait();
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
+	void prepare_wait(task_wait_preparation_context & ctx) override
 	{
-		if (cl >= m_from && cl < m_to)
-			cl = m_to;
-
-		m_nested.prepare_wait(ctx, cl);
+		m_nested.prepare_wait(ctx);
 	}
 
 	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override
@@ -37,6 +34,13 @@ public:
 		if (m_nested.has_task())
 			return nulltask;
 		return std::move(m_nested);
+	}
+
+	cancel_level cancel(cancel_level cl) throw() override
+	{
+		if (cl >= m_from && cl < m_to)
+			cl = m_to;
+		return m_nested.cancel(cl);
 	}
 
 private:
@@ -60,12 +64,16 @@ public:
 		return m_nested.cancel_and_wait();
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
+	void prepare_wait(task_wait_preparation_context & ctx) override
+	{
+		m_nested.prepare_wait(ctx);
+	}
+
+	cancel_level cancel(cancel_level cl) throw() override
 	{
 		if (cl >= m_from && cl < m_to)
 			cl = m_to;
-
-		m_nested.prepare_wait(ctx, cl);
+		return m_nested.cancel(cl);
 	}
 
 	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override

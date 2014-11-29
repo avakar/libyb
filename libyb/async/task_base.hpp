@@ -23,20 +23,14 @@ public:
 	// and synchronously waits for it to complete.
 	virtual task<R> cancel_and_wait() throw() = 0;
 
-	virtual void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) = 0;
+	virtual void prepare_wait(task_wait_preparation_context & ctx) = 0;
 
 	// An empty task indicates a stall.
 	// A task-based task indicates a continuation.
 	// A result task indicates a completion.
 	virtual task<R> finish_wait(task_wait_finalization_context & ctx) throw() = 0;
-};
 
-template <typename R>
-class future_base
-	: public task_base<R>
-{
-public:
-	virtual void cancel(cancel_level cl) throw() = 0;
+	virtual cancel_level cancel(cancel_level cl) throw() = 0;// { (void)cl; }
 };
 
 } // namespace yb
