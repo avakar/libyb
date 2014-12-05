@@ -407,5 +407,8 @@
     <ClInclude Include="libyb\utils\atomic.hpp">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="libyb\async\detail\win32_runner_registry.hpp">
+      <Filter>async\detail</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -21,7 +21,6 @@ public:
 
 private:
 	void cancel(detail::prepared_task * pt) throw() override;
-	void cancel_and_wait(detail::prepared_task * pt) throw() override;
 
 	struct impl;
 	std::unique_ptr<impl> m_pimpl;

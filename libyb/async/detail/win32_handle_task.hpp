@@ -7,6 +7,7 @@
 #include "../../utils/noncopyable.hpp"
 #include "../../utils/except.hpp"
 #include "../cancel_exception.hpp"
+#include "win32_runner_registry.hpp"
 #include <windows.h>
 
 namespace yb {
@@ -14,18 +15,20 @@ namespace yb {
 // The canceller must not throw an exception
 template <typename Canceller>
 class win32_handle_task
-	: public task_base<void>, noncopyable
+	: public task_base<void>
+	, handle_completion_sink
 {
 public:
 	win32_handle_task(HANDLE handle, Canceller const & canceller);
 	win32_handle_task(HANDLE handle, Canceller && canceller);
 
-	task<void> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx) override;
-	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override;
-	cancel_level cancel(cancel_level cl) throw() override;
+	task<void> start(runner_registry & rr, task_completion_sink<void> & sink) override;
+	task<void> cancel(runner_registry * rr, cancel_level cl) throw() override;
 
 private:
+	void on_signaled(runner_registry & rr, HANDLE h) throw() override;
+
+	task_completion_sink<void> * m_parent;
 	HANDLE m_handle;
 	Canceller m_canceller;
 };
@@ -39,58 +42,48 @@ namespace yb {
 
 template <typename Canceller>
 win32_handle_task<Canceller>::win32_handle_task(HANDLE handle, Canceller const & canceller)
-	: m_handle(handle), m_canceller(canceller)
+	: m_parent(nullptr), m_handle(handle), m_canceller(canceller)
 {
 }
 
 template <typename Canceller>
 win32_handle_task<Canceller>::win32_handle_task(HANDLE handle, Canceller && canceller)
-	: m_handle(handle), m_canceller(std::move(canceller))
+	: m_parent(nullptr), m_handle(handle), m_canceller(std::move(canceller))
 {
 }
 
 template <typename Canceller>
-void win32_handle_task<Canceller>::prepare_wait(task_wait_preparation_context & ctx)
+task<void> win32_handle_task<Canceller>::start(runner_registry & rr, task_completion_sink<void> & sink)
 {
-	if (m_handle)
-		ctx.get()->m_handles.push_back(m_handle);
-	else
-		++ctx.get()->m_finished_tasks;
+	rr.add_handle(m_handle, *this);
+	m_parent = &sink;
+	return yb::nulltask;
 }
 
 template <typename Canceller>
-task<void> win32_handle_task<Canceller>::finish_wait(task_wait_finalization_context &) throw()
+void win32_handle_task<Canceller>::on_signaled(runner_registry & rr, HANDLE h) throw()
 {
-	return m_handle? async::value(): async::raise<void>(task_cancelled());
+	assert(m_handle == h);
+	m_parent->on_completion(rr, async::value());
 }
 
 template <typename Canceller>
-cancel_level win32_handle_task<Canceller>::cancel(cancel_level cl) throw()
+task<void> win32_handle_task<Canceller>::cancel(runner_registry * rr, cancel_level cl) throw()
 {
-	if (cl < cl_abort)
-		return cl;
+	if (cl >= cl_abort && !m_canceller(cl))
+	{
+		if (rr)
+			rr->remove_handle(m_handle, *this);
+		return async::raise<void>(task_cancelled());
+	}
 
-	if (!m_canceller(cl))
-		m_handle = 0;
-
-	return cl_kill;
-}
-
-template <typename Canceller>
-task<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
-{
-	if (m_handle && !m_canceller(cl_kill))
-		m_handle = 0;
-
-	if (m_handle)
+	if (cl == cl_kill)
 	{
 		WaitForSingleObject(m_handle, INFINITE);
-		return task<void>::from_value();
+		return async::value();
 	}
-	else
-	{
-		return task<void>::from_exception(yb::make_exception_ptr(task_cancelled()));
-	}
+
+	return yb::nulltask;
 }
 
 template <typename Canceller>

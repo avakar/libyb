@@ -93,6 +93,7 @@
     <ClInclude Include="libyb\async\detail\wait_context.hpp" />
     <ClInclude Include="libyb\async\detail\win32_affinity_task.hpp" />
     <ClInclude Include="libyb\async\detail\win32_handle_task.hpp" />
+    <ClInclude Include="libyb\async\detail\win32_runner_registry.hpp" />
     <ClInclude Include="libyb\async\detail\win32_wait_context.hpp" />
     <ClInclude Include="libyb\async\device.hpp" />
     <ClInclude Include="libyb\async\double_buffer.hpp" />

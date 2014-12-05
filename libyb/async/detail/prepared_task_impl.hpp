@@ -50,10 +50,8 @@ public:
 	explicit shadow_task(prepared_task_impl<R> * pt);
 	~shadow_task();
 
-	task<R> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx) override;
-	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override;
-	cancel_level cancel(cancel_level cl) throw() override;
+	task<R> start(runner_registry & rr, task_completion_sink<R> & sink) override;
+	task<R> cancel(runner_registry * rr, cancel_level cl) throw() override;
 
 private:
 	prepared_task_impl<R> * m_pt;
@@ -116,6 +114,16 @@ cancel_level shadow_task<R>::cancel(cancel_level cl) throw()
 {
 	m_pt->request_cancel(cl);
 	return cl;
+}
+
+template <typename R>
+task<R> shadow_task<R>::start(runner_registry & rr, task_completion_sink<R> & sink)
+{
+}
+
+template <typename R>
+task<R> shadow_task<R>::cancel(runner_registry * rr, cancel_level cl) throw()
+{
 }
 
 template <typename R>

@@ -54,29 +54,30 @@ class cancel_level_upgrade_task<void>
 	: public task_base<void>
 {
 public:
-	cancel_level_upgrade_task(task<void> && nested, cancel_level from, cancel_level to, bool catch_cancel = false)
+	cancel_level_upgrade_task(task<void> && nested, cancel_level from, cancel_level to, bool catch_cancel = false /*XXX*/)
 		: m_nested(std::move(nested)), m_from(from), m_to(to), m_catch_cancel(catch_cancel)
 	{
 	}
 
-	task<void> cancel_and_wait() throw() override
+	task<void> start(runner_registry & rr, task_completion_sink<void> & sink) override
 	{
-		return m_nested.cancel_and_wait();
+		m_nested.start(rr, sink);
+		if (m_nested.has_task())
+			return yb::nulltask;
+		return std::move(m_nested);
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx) override
-	{
-		m_nested.prepare_wait(ctx);
-	}
-
-	cancel_level cancel(cancel_level cl) throw() override
+	task<void> cancel(runner_registry * rr, cancel_level cl) throw() override
 	{
 		if (cl >= m_from && cl < m_to)
 			cl = m_to;
-		return m_nested.cancel(cl);
+		m_nested.cancel(rr, cl);
+		if (m_nested.has_task())
+			return yb::nulltask;
+		return std::move(m_nested);
 	}
 
-	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override
+	/*task<void> finish_wait(task_wait_finalization_context & ctx) throw() override
 	{
 		m_nested.finish_wait(ctx);
 		if (m_nested.has_task())
@@ -97,7 +98,7 @@ public:
 		{
 			return async::raise<void>();
 		}
-	}
+	}*/
 
 private:
 	task<void> m_nested;

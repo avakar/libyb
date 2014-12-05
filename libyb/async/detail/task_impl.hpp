@@ -156,7 +156,7 @@ void task<R>::clear() throw()
 	case k_task:
 		{
 			task_base_ptr const & p = this->as_task();
-			p.ptr->cancel_and_wait();
+			p.ptr->cancel(0, cl_kill);
 			delete p.ptr;
 		}
 		this->destroy<task_base_ptr>();
@@ -284,44 +284,34 @@ bool task<R>::has_task() const throw()
 }
 
 template <typename R>
-cancel_level task<R>::cancel(cancel_level cl)
+void task<R>::cancel(runner_registry * rr, cancel_level cl)
 {
-	if (m_kind == k_task)
+	while (m_kind == k_task)
 	{
 		task_base_ptr & p = this->as_task();
-		if (cl > p.cl)
-			p.cl = p.ptr->cancel(cl);
-		return p.cl;
+		task<R> t = p.ptr->cancel(rr, cl);
+		if (t.empty())
+			break;
+		*this = std::move(t);
 	}
-
-	return cl;
 }
 
 template <typename R>
-void task<R>::prepare_wait(task_wait_preparation_context & ctx)
+void task<R>::cancel(cancel_level cl)
 {
-	if (m_kind == k_task)
+	this->cancel(0, cl);
+}
+
+template <typename R>
+void task<R>::start(runner_registry & rr, task_completion_sink<R> & sink)
+{
+	while (m_kind == k_task)
 	{
 		task_base_ptr const & p = this->as_task();
-		p.ptr->prepare_wait(ctx);
-	}
-}
-
-template <typename R>
-void task<R>::finish_wait(task_wait_finalization_context & ctx)
-{
-	assert(m_kind == k_task);
-	task_base_ptr const & p = this->as_task();
-	task<R> n = p.ptr->finish_wait(ctx);
-
-	if (!n.empty())
-	{
-		assert(m_kind == k_task);
-		delete p.ptr;
-		this->destroy<task_base_ptr>();
-		m_kind = k_empty;
-
-		*this = std::move(n);
+		task<R> t = p.ptr->start(rr, sink);
+		if (t.empty())
+			break;
+		*this = std::move(t);
 	}
 }
 

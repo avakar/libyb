@@ -12,17 +12,18 @@ namespace detail {
 
 template <typename R, typename S, typename F>
 class sequential_composition_task
-	: public task_base<R>
+	: public task_base<R>, private task_completion_sink<S>
 {
 public:
 	sequential_composition_task(task<S> && task, F next);
 
-	task<R> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx) override;
-	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override;
-	cancel_level cancel(cancel_level cl) throw() override;
+	task<R> start(runner_registry & rr, task_completion_sink<R> & sink) override;
+	task<R> cancel(runner_registry * rr, cancel_level cl) throw() override;
 
 private:
+	void on_completion(runner_registry & rr, task<S> && r) override;
+
+	task_completion_sink<R> * m_parent;
 	task<S> m_task;
 	F m_next;
 };
@@ -42,7 +43,7 @@ sequential_composition_task<R, S, F>::sequential_composition_task(task<S> && tas
 	m_task = std::move(task);
 }
 
-template <typename R, typename S, typename F>
+/*template <typename R, typename S, typename F>
 task<R> sequential_composition_task<R, S, F>::cancel_and_wait() throw()
 {
 	task<S> s = m_task.cancel_and_wait();
@@ -59,39 +60,52 @@ task<R> sequential_composition_task<R, S, F>::cancel_and_wait() throw()
 	{
 		return task<R>::from_exception(std::current_exception());
 	}
-}
+}*/
 
 template <typename R, typename S, typename F>
-void sequential_composition_task<R, S, F>::prepare_wait(task_wait_preparation_context & ctx)
+task<R> sequential_composition_task<R, S, F>::start(runner_registry & rr, task_completion_sink<R> & sink)
 {
 	assert(m_task.has_task());
-	m_task.prepare_wait(ctx);
-}
-
-template <typename R, typename S, typename F>
-task<R> sequential_composition_task<R, S, F>::finish_wait(task_wait_finalization_context & ctx) throw()
-{
-	m_task.finish_wait(ctx);
-
-	if (m_task.has_value() || m_task.has_exception())
-	{
-		try
-		{
-			return m_next(std::move(m_task));
-		}
-		catch (...)
-		{
-			return async::raise<R>();
-		}
-	}
-
+	m_task.start(rr, *this);
+	m_parent = &sink;
 	return nulltask;
 }
 
 template <typename R, typename S, typename F>
-cancel_level sequential_composition_task<R, S, F>::cancel(cancel_level cl) throw()
+void sequential_composition_task<R, S, F>::on_completion(runner_registry & rr, task<S> && r)
 {
-	return m_task.cancel(cl);
+	if (r.has_value() || r.has_exception())
+	{
+		try
+		{
+			m_parent->on_completion(rr, m_next(std::move(r)));
+		}
+		catch (...)
+		{
+			m_parent->on_completion(rr, async::raise<R>());
+		}
+	}
+	else
+	{
+		m_task = std::move(r);
+	}
+}
+
+template <typename R, typename S, typename F>
+task<R> sequential_composition_task<R, S, F>::cancel(runner_registry * rr, cancel_level cl) throw()
+{
+	m_task.cancel(rr, cl);
+	if (m_task.has_task())
+		return yb::nulltask;
+
+	try
+	{
+		return m_next(std::move(m_task));
+	}
+	catch (...)
+	{
+		return task<R>::from_exception(std::current_exception());
+	}
 }
 
 }

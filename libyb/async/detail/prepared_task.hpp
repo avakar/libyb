@@ -11,36 +11,33 @@ class prepared_task;
 
 struct prepared_task_event_sink
 {
-	virtual void cancel(prepared_task * promise) throw() = 0;
-	virtual void cancel_and_wait(prepared_task * promise) throw() = 0;
+	virtual prepared_task * schedule_update(prepared_task * pt) throw() = 0;
 };
 
 class prepared_task
 {
 public:
+	prepared_task * m_next;
+
 	prepared_task();
 
 	void addref() throw();
 	void release() throw();
 
 	// Shadow task interface
-	void request_cancel(cancel_level cl) throw();
-	void shadow_prepare_wait(task_wait_preparation_context & prep_ctx);
-	void shadow_wait() throw();
-	void shadow_cancel_and_wait() throw();
+	void schedule_cancel(cancel_level cl) throw();
 
 	// Runner interface
+	virtual void start(runner_registry & rr, prepared_task_completion_sink & sink) throw() = 0;
+	virtual void cancel(runner_registry * rr, cancel_level cl) throw() = 0;
+
+	virtual prepared_task * update() = 0;
+
 	void attach_event_sink(prepared_task_event_sink & r) throw();
 	void detach_event_sink() throw();
-	virtual void prepare_wait(task_wait_preparation_context & prep_ctx) = 0;
-	virtual bool finish_wait(task_wait_finalization_context & fin_ctx) throw() = 0;
-	virtual void cancel_and_wait() throw() = 0;
 
 protected:
 	~prepared_task();
-
-	cancel_level requested_cancel_level() const throw();
-	void mark_finished() throw();
 
 private:
 	struct impl;
