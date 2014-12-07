@@ -18,6 +18,8 @@ public:
 	void addref() throw();
 	void release() throw();
 
+	void start(runner_registry & rr);
+
 	bool completed() const throw();
 
 protected:
@@ -26,13 +28,10 @@ protected:
 	prepared_task_base();
 	~prepared_task_base();
 
-	void schedule_work() throw();
-
 	cancel_level cl() const throw();
 
 	bool start_wait(runner_registry & rr);
 	void cancel_wait(cancel_level cl) throw();
-	void wait_wait() throw();
 
 	virtual bool start_task(runner_registry & rr) = 0;
 	virtual bool cancel_task(cancel_level cl) throw() = 0;
@@ -45,16 +44,13 @@ protected:
 private:
 	struct impl;
 	std::unique_ptr<impl> m_pimpl;
-
-	prepared_task_base(prepared_task_base const &);
-	prepared_task_base & operator=(prepared_task_base const &);
 };
 
 template <typename R>
 class prepared_task
 	: public prepared_task_base
+	, public task_base<R>
 	, private task_completion_sink<R>
-	, private task_base<R>
 {
 public:
 	explicit prepared_task(task<R> && t)
@@ -115,20 +111,17 @@ private:
 
 	bool start_task(runner_registry & rr) override
 	{
-		m_task.start(rr, *this);
-		return !m_task.has_task();
+		return m_task.start(rr, *this);
 	}
 
 	bool cancel_task(cancel_level cl) throw() override
 	{
-		m_task.cancel(cl);
-		return !m_task.has_task();
+		return m_task.cancel(cl);
 	}
 
 	void on_completion(runner_registry & rr, task<R> && r) override
 	{
-		m_task = std::move(r);
-		if (!m_task.has_task())
+		if (m_task.replace(rr, *this, std::move(r)))
 			this->complete();
 	}
 

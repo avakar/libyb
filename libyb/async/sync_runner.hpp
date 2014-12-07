@@ -16,8 +16,8 @@ public:
 	void associate_current_thread();
 
 protected:
-	void submit(detail::prepared_task_base * pt) override;
-	void run_until(detail::prepared_task_base * pt) override;
+	void submit(detail::prepared_task_base & pt) override;
+	void run_until(detail::prepared_task_base & pt) override;
 
 private:
 	struct impl;

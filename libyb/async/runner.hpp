@@ -26,8 +26,8 @@ public:
 	R operator%(task<R> && t);
 
 protected:
-	virtual void submit(detail::prepared_task_base * pt) = 0;
-	virtual void run_until(detail::prepared_task_base * pt) = 0;
+	virtual void submit(detail::prepared_task_base & pt) = 0;
+	virtual void run_until(detail::prepared_task_base & pt) = 0;
 };
 
 } // namespace yb

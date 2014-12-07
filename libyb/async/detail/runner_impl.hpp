@@ -8,15 +8,19 @@ namespace yb {
 template <typename R>
 task<R> runner::post(task<R> && t) throw()
 {
+	struct prepared_task_deleter
+	{
+		void operator()(detail::prepared_task_base * p) { p->release(); }
+	};
+
 	if (t.has_value() || t.has_exception())
 		return std::move(t);
 
 	try
 	{
-		prepared_task<R> * pt = new prepared_task<R>(std::move(t));
-		task<R> pt_wait = task<R>::from_task(pt);
-		this->submit(pt);
-		return std::move(pt_wait);
+		std::unique_ptr<detail::prepared_task<R>, prepared_task_deleter> pt(new detail::prepared_task<R>(std::move(t)));
+		this->submit(*pt);
+		return task<R>::from_task(pt.release());
 	}
 	catch (...)
 	{
@@ -32,8 +36,8 @@ task<R> runner::try_run(task<R> && t) throw()
 
 	try
 	{
-		prepared_task<R> pt(std::move(t));
-		this->run_until(&pt);
+		detail::prepared_task<R> pt(std::move(t));
+		this->run_until(pt);
 		return pt.get_result();
 	}
 	catch (...)

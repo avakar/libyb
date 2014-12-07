@@ -74,20 +74,16 @@ task<R> sequential_composition_task<R, S, F>::start(runner_registry & rr, task_c
 template <typename R, typename S, typename F>
 void sequential_composition_task<R, S, F>::on_completion(runner_registry & rr, task<S> && r)
 {
-	if (r.has_value() || r.has_exception())
+	if (m_task.replace(rr, *this, std::move(r)))
 	{
 		try
 		{
-			m_parent->on_completion(rr, m_next(std::move(r)));
+			m_parent->on_completion(rr, m_next(std::move(m_task)));
 		}
 		catch (...)
 		{
 			m_parent->on_completion(rr, async::raise<R>());
 		}
-	}
-	else
-	{
-		m_task = std::move(r);
 	}
 }
 

@@ -142,6 +142,7 @@ public:
 	bool cancel(runner_registry * rr, cancel_level cl);
 	bool cancel(cancel_level cl);
 
+	bool replace(runner_registry & rr, task_completion_sink<R> & sink, task<R> && t);
 	bool start(runner_registry & rr, task_completion_sink<R> & sink);
 
 	// task shall not be null; returns the result after a potential synchronous wait
@@ -171,12 +172,13 @@ public:
 private:
 	struct task_base_ptr
 	{
-		explicit task_base_ptr(task_base<R> * ptr)
-			: ptr(ptr)
+		task_base_ptr(task_base<R> * ptr, cancel_level cl)
+			: ptr(ptr), cl(cl)
 		{
 		}
 
 		task_base<R> * ptr;
+		cancel_level cl;
 	};
 
 	task_base_ptr & as_task() { return reinterpret_cast<task_base_ptr &>(m_storage); }

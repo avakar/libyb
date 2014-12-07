@@ -11,7 +11,6 @@ using namespace yb;
 struct sync_runner::impl
 	: public runner_registry
 {
-	detail::win32_mutex m_mutex;
 	HANDLE m_update_event;
 	runner_work * m_update_chain;
 
@@ -54,7 +53,7 @@ sync_runner::sync_runner(bool associate_thread_now)
 	: m_pimpl(new impl())
 {
 	m_pimpl->m_handles.reserve(64);
-	m_pimpl->m_update_event = CreateEvent(0, FALSE, FALSE, 0);
+	m_pimpl->m_update_event = CreateEvent(0, TRUE, FALSE, 0);
 	if (!m_pimpl->m_update_event)
 		throw std::runtime_error("Failed to create an event");
 
@@ -66,13 +65,8 @@ sync_runner::sync_runner(bool associate_thread_now)
 
 sync_runner::~sync_runner()
 {
-	CloseHandle(m_pimpl->m_update_event);
+	::CloseHandle(m_pimpl->m_update_event);
 }
-
-/*void sync_runner::schedule_work(runner_work & work) throw()
-{
-	m_pimpl->schedule_work(work);
-}*/
 
 void sync_runner::associate_current_thread()
 {
@@ -80,36 +74,38 @@ void sync_runner::associate_current_thread()
 	m_pimpl->m_associated_thread = ::GetCurrentThreadId();
 }
 
-void sync_runner::submit(detail::prepared_task_base * pt)
+void sync_runner::submit(detail::prepared_task_base & pt)
 {
+	pt.start(*m_pimpl);
 }
 
-void sync_runner::run_until(detail::prepared_task_base * focused_pt)
+void sync_runner::run_until(detail::prepared_task_base & focused_pt)
 {
 	assert(m_pimpl->m_associated_thread == GetCurrentThreadId());
 
-	if (focused_pt)
-		focused_pt->addref();
-
-	while (!focused_pt || !focused_pt->completed())
+	focused_pt.start(*m_pimpl);
+	while (!focused_pt.completed())
 	{
-		{
-			detail::scoped_win32_lock l(m_pimpl->m_mutex);
+		::ResetEvent(m_pimpl->m_update_event);
 
-			runner_work * next = m_pimpl->m_update_chain;
-			m_pimpl->m_update_chain = 0;
+		runner_work * next = m_pimpl->m_update_chain;
+		m_pimpl->m_update_chain = 0;
 
-			for (runner_work * cur = next; cur; cur = next)
-				next = cur->work(*m_pimpl);
-		}
+		for (runner_work * cur = next; cur; cur = next)
+			next = cur->work(*m_pimpl);
 
 		DWORD res = ::WaitForMultipleObjects(m_pimpl->m_handles.size(), m_pimpl->m_handles.data(), FALSE, INFINITE);
 		if (res == WAIT_OBJECT_0)
 			continue;
 
-		m_pimpl->m_handle_sinks[res - WAIT_OBJECT_0 - 1]->on_signaled(*m_pimpl, m_pimpl->m_handles[res - WAIT_OBJECT_0]);
-	}
+		handle_completion_sink * sink = m_pimpl->m_handle_sinks[res - WAIT_OBJECT_0 - 1];
+		HANDLE h = m_pimpl->m_handles[res - WAIT_OBJECT_0];
 
-	if (focused_pt)
-		focused_pt->release();
+		std::swap(m_pimpl->m_handle_sinks[res - WAIT_OBJECT_0 - 1], m_pimpl->m_handle_sinks.back());
+		std::swap(m_pimpl->m_handles[res - WAIT_OBJECT_0], m_pimpl->m_handles.back());
+		m_pimpl->m_handle_sinks.pop_back();
+		m_pimpl->m_handles.pop_back();
+
+		sink->on_signaled(*m_pimpl, h);
+	}
 }

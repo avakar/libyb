@@ -13,8 +13,6 @@ public:
 	async_runner();
 	~async_runner();
 
-	void schedule_work(runner_work & work) throw() override;
-
 private:
 	struct impl;
 	std::unique_ptr<impl> m_pimpl;

@@ -10,13 +10,14 @@ struct prepared_task_base::impl
 	: public handle_completion_sink
 {
 	prepared_task_base * m_self;
+	runner_registry * m_rr;
 	cancel_level m_cl;
 	refcount m_refcount;
 	task_state_t m_state;
 	HANDLE m_done_event;
 
 	impl(prepared_task_base * self)
-		: m_self(self), m_cl(cl_none), m_refcount(1), m_state(ts_stalled), m_done_event(0)
+		: m_self(self), m_rr(nullptr), m_cl(cl_none), m_refcount(1), m_state(ts_stalled), m_done_event(0)
 	{
 		m_done_event = ::CreateEvent(0, TRUE, FALSE, 0);
 		if (!m_done_event)
@@ -55,9 +56,13 @@ void prepared_task_base::release() throw()
 		delete this;
 }
 
-void prepared_task_base::schedule_work() throw()
+void prepared_task_base::start(runner_registry & rr)
 {
-	//m_pimpl->m_r.schedule_work(*this);
+	assert(m_pimpl->m_rr == nullptr);
+	m_pimpl->m_rr = &rr;
+
+	this->addref();
+	m_pimpl->m_rr->schedule_work(*this);
 }
 
 bool prepared_task_base::start_wait(runner_registry & rr)
@@ -72,13 +77,7 @@ bool prepared_task_base::start_wait(runner_registry & rr)
 void prepared_task_base::cancel_wait(cancel_level cl) throw()
 {
 	m_pimpl->m_cl = cl;
-	m_pimpl->m_r.schedule_work(*this);
-}
-
-void prepared_task_base::wait_wait() throw()
-{
-	// XXX
-	::WaitForSingleObject(m_pimpl->m_done_event, INFINITE);
+	m_pimpl->m_rr->schedule_work(*this);
 }
 
 cancel_level prepared_task_base::cl() const throw()
@@ -88,12 +87,14 @@ cancel_level prepared_task_base::cl() const throw()
 
 void prepared_task_base::complete() throw()
 {
-	// XXX
+	m_pimpl->m_state = ts_complete;
+	::SetEvent(m_pimpl->m_done_event);
+	this->release();
 }
 
 bool prepared_task_base::completed() const throw()
 {
-	return false;
+	return m_pimpl->m_state == ts_complete;
 }
 
 void prepared_task_base::do_work(runner_registry & rr) throw()
@@ -102,7 +103,6 @@ void prepared_task_base::do_work(runner_registry & rr) throw()
 	{
 		if (this->start_task(rr))
 		{
-			m_pimpl->m_state = ts_complete;
 			this->complete();
 			return;
 		}
@@ -112,7 +112,6 @@ void prepared_task_base::do_work(runner_registry & rr) throw()
 
 	if (this->cancel_task(m_pimpl->m_cl))
 	{
-		m_pimpl->m_state = ts_complete;
 		this->complete();
 		return;
 	}

@@ -289,9 +289,16 @@ bool task<R>::cancel(runner_registry * rr, cancel_level cl)
 	while (m_kind == k_task)
 	{
 		task_base_ptr & p = this->as_task();
+		if (p.cl >= cl)
+			return false;
+
 		task<R> t = p.ptr->cancel(rr, cl);
 		if (t.empty())
+		{
+			p.cl = cl;
 			return false;
+		}
+
 		*this = std::move(t);
 	}
 
@@ -309,6 +316,21 @@ task<R> task<R>::cancel_and_wait()
 {
 	this->cancel(cl_kill);
 	return std::move(*this);
+}
+
+template <typename R>
+bool task<R>::replace(runner_registry & rr, task_completion_sink<R> & sink, task<R> && t)
+{
+	assert(this->has_task());
+
+	cancel_level cl = this->as_task().cl;
+	this->as_task().ptr->release();
+	this->destroy<task_base_ptr>();
+	m_kind = k_empty;
+
+	*this = std::move(t);
+	this->cancel(&rr, cl);
+	return this->start(rr, sink);
 }
 
 template <typename R>

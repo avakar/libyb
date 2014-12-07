@@ -11,6 +11,7 @@ class parallel_compositor
 {
 public:
 	parallel_compositor();
+	~parallel_compositor();
 
 	bool empty() const;
 
@@ -22,24 +23,25 @@ public:
 	task<void> start(runner_registry & rr, task_completion_sink<void> & sink);
 	task<void> cancel(runner_registry * rr, cancel_level cl) throw();
 
-/*	template <typename F>
-	void cancel_and_wait(F f) throw();
-
-	void prepare_wait(task_wait_preparation_context & ctx);
-
-	template <typename F>
-	void finish_wait(task_wait_finalization_context & ctx, F f) throw();
-
-	cancel_level cancel(cancel_level cl) throw();*/
-
 private:
-	struct parallel_task
+	struct parallel_task_link
 	{
-		task<void> t;
-		task_wait_memento m;
+		parallel_task_link * next;
+		parallel_task_link * prev;
 	};
 
-	std::list<parallel_task> m_tasks;
+	struct parallel_task;
+
+	struct impl
+		: parallel_task_link
+	{
+		task_completion_sink<void> * sink;
+	};
+
+	impl m_tasks;
+
+	void append_task(parallel_task_link * pt);
+	parallel_task_link * erase_task(parallel_task_link * pt);
 };
 
 } // namespace detail
