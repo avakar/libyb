@@ -60,7 +60,19 @@ public:
 			m_pimpl->release();
 		}
 
-		task<void> cancel_and_wait() throw() override
+		task<void> start(runner_registry & rr, task_completion_sink<void> & sink) override
+		{
+			// XXX
+			return nulltask;
+		}
+
+		task<void> cancel(runner_registry * rr, cancel_level cl) throw() override
+		{
+			// XXX
+			return nulltask;
+		}
+
+		/*task<void> cancel_and_wait() throw() override
 		{
 			m_pimpl->m_active_tasks.cancel_and_wait([](task<void> const &){});
 			return yb::async::value();
@@ -106,7 +118,7 @@ public:
 				return yb::async::value();
 
 			return nulltask;
-		}
+		}*/
 
 	private:
 		impl * m_pimpl;

@@ -1,7 +1,7 @@
 #ifndef LIBYB_ASYNC_DETAIL_RUNNER_IMPL_HPP
 #define LIBYB_ASYNC_DETAIL_RUNNER_IMPL_HPP
 
-#include "prepared_task_impl.hpp"
+#include "prepared_task.hpp"
 
 namespace yb {
 
@@ -13,10 +13,10 @@ task<R> runner::post(task<R> && t) throw()
 
 	try
 	{
-		detail::prepared_task_guard<R> pt(new detail::prepared_task_impl<R>(std::move(t)));
-		task<R> res(task<R>::from_task(new detail::shadow_task<R>(pt.get())));
-		this->submit(pt.get());
-		return std::move(res);
+		prepared_task<R> * pt = new prepared_task<R>(std::move(t));
+		task<R> pt_wait = task<R>::from_task(pt);
+		this->submit(pt);
+		return std::move(pt_wait);
 	}
 	catch (...)
 	{
@@ -32,10 +32,9 @@ task<R> runner::try_run(task<R> && t) throw()
 
 	try
 	{
-		detail::prepared_task_guard<R> pt(new detail::prepared_task_impl<R>(std::move(t)));
-		this->submit(pt.get());
-		this->run_until(pt.get());
-		return pt->fetch_result();
+		prepared_task<R> pt(std::move(t));
+		this->run_until(&pt);
+		return pt.get_result();
 	}
 	catch (...)
 	{

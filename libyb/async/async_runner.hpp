@@ -13,8 +13,7 @@ public:
 	async_runner();
 	~async_runner();
 
-	void submit(detail::prepared_task * pt) override;
-	void run_until(detail::prepared_task * pt) override;
+	void schedule_work(runner_work & work) throw() override;
 
 private:
 	struct impl;

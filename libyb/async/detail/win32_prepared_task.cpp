@@ -1,114 +1,120 @@
 #include "prepared_task.hpp"
 #include "../runner.hpp"
-#include "../../utils/detail/win32_mutex.hpp"
-#include "win32_wait_context.hpp"
+#include "win32_runner_registry.hpp"
 #include <stdexcept>
 #include <windows.h>
 using namespace yb;
 using namespace yb::detail;
 
-struct prepared_task::impl
+struct prepared_task_base::impl
+	: public handle_completion_sink
 {
-	detail::win32_mutex m_mutex;
-	detail::prepared_task_event_sink * m_runner;
-	LONG m_cl;
-	LONG m_refcount;
+	prepared_task_base * m_self;
+	cancel_level m_cl;
+	refcount m_refcount;
+	task_state_t m_state;
 	HANDLE m_done_event;
+
+	impl(prepared_task_base * self)
+		: m_self(self), m_cl(cl_none), m_refcount(1), m_state(ts_stalled), m_done_event(0)
+	{
+		m_done_event = ::CreateEvent(0, TRUE, FALSE, 0);
+		if (!m_done_event)
+			throw "XXX";
+	}
+
+	~impl()
+	{
+		if (m_done_event)
+			::CloseHandle(m_done_event);
+	}
+
+	void on_signaled(runner_registry & rr, HANDLE h) throw() override
+	{
+		m_self->on_nested_complete(rr);
+	}
 };
 
-prepared_task::prepared_task()
-	: m_pimpl(new impl())
+prepared_task_base::prepared_task_base()
+	: m_pimpl(new impl(this))
 {
-	m_pimpl->m_done_event = ::CreateEvent(0, FALSE, FALSE, 0);
-	if (!m_pimpl->m_done_event)
-		throw std::runtime_error("Failed to create event"); // TODO: win32_error
-
-	m_pimpl->m_runner = 0;
-	m_pimpl->m_cl = cl_none;
-	m_pimpl->m_refcount = 1;
 }
 
-prepared_task::~prepared_task()
+prepared_task_base::~prepared_task_base()
 {
-	::CloseHandle(m_pimpl->m_done_event);
 }
 
-void prepared_task::addref() throw()
+void prepared_task_base::addref() throw()
 {
-	::InterlockedIncrement(&m_pimpl->m_refcount);
+	m_pimpl->m_refcount.addref();
 }
 
-void prepared_task::release() throw()
+void prepared_task_base::release() throw()
 {
-	if (::InterlockedDecrement(&m_pimpl->m_refcount) == 0)
+	if (m_pimpl->m_refcount.release() == 0)
 		delete this;
 }
 
-void prepared_task::request_cancel(cancel_level cl) throw()
+void prepared_task_base::schedule_work() throw()
 {
-	cancel_level guess_cl = cl_none;
-	while (guess_cl < cl)
-	{
-		cancel_level previous_cl = ::InterlockedCompareExchange(&m_pimpl->m_cl, cl, guess_cl);
-		if (previous_cl == guess_cl)
-		{
-			// We managed to increase the cancel level, signal the runner
-			// to apply it.
-			detail::scoped_win32_lock l(m_pimpl->m_mutex);
-			if (m_pimpl->m_runner)
-				m_pimpl->m_runner->cancel(this);
-			return;
-		}
-		guess_cl = previous_cl;
-	}
+	//m_pimpl->m_r.schedule_work(*this);
 }
 
-void prepared_task::shadow_prepare_wait(task_wait_preparation_context & prep_ctx)
+bool prepared_task_base::start_wait(runner_registry & rr)
 {
-//	this->request_cancel(cl);
+	if (m_pimpl->m_state == ts_complete)
+		return true;
 
-	task_wait_poll_item pi;
-	pi.handle = m_pimpl->m_done_event;
-	prep_ctx.add_poll_item(pi);
+	rr.add_handle(m_pimpl->m_done_event, *m_pimpl);
+	return false;
 }
 
-void prepared_task::shadow_wait() throw()
+void prepared_task_base::cancel_wait(cancel_level cl) throw()
 {
+	m_pimpl->m_cl = cl;
+	m_pimpl->m_r.schedule_work(*this);
+}
+
+void prepared_task_base::wait_wait() throw()
+{
+	// XXX
 	::WaitForSingleObject(m_pimpl->m_done_event, INFINITE);
 }
 
-void prepared_task::shadow_cancel_and_wait() throw()
+cancel_level prepared_task_base::cl() const throw()
 {
-	detail::scoped_win32_lock l(m_pimpl->m_mutex);
-	if (m_pimpl->m_runner)
-		m_pimpl->m_runner->cancel_and_wait(this);
+	return m_pimpl->m_cl;
 }
 
-void prepared_task::attach_event_sink(prepared_task_event_sink & r) throw()
+void prepared_task_base::complete() throw()
 {
-	this->addref();
-
-	detail::scoped_win32_lock l(m_pimpl->m_mutex);
-	m_pimpl->m_runner = &r;
+	// XXX
 }
 
-void prepared_task::detach_event_sink() throw()
+bool prepared_task_base::completed() const throw()
 {
+	return false;
+}
+
+void prepared_task_base::do_work(runner_registry & rr) throw()
+{
+	if (m_pimpl->m_state == ts_stalled)
 	{
-		detail::scoped_win32_lock l(m_pimpl->m_mutex);
-		m_pimpl->m_runner = 0;
+		if (this->start_task(rr))
+		{
+			m_pimpl->m_state = ts_complete;
+			this->complete();
+			return;
+		}
+
+		m_pimpl->m_state = ts_running;
 	}
 
-	this->release();
+	if (this->cancel_task(m_pimpl->m_cl))
+	{
+		m_pimpl->m_state = ts_complete;
+		this->complete();
+		return;
+	}
 }
 
-cancel_level prepared_task::requested_cancel_level() const throw()
-{
-	LONG const volatile & cl = m_pimpl->m_cl;
-	return cancel_level(cl);
-}
-
-void prepared_task::mark_finished() throw()
-{
-	::SetEvent(m_pimpl->m_done_event);
-}

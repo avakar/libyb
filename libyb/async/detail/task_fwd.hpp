@@ -139,10 +139,10 @@ public:
 
 	void rethrow();
 
-	void cancel(runner_registry * rr, cancel_level cl);
-	void cancel(cancel_level cl);
+	bool cancel(runner_registry * rr, cancel_level cl);
+	bool cancel(cancel_level cl);
 
-	void start(runner_registry & rr, task_completion_sink<R> & sink);
+	bool start(runner_registry & rr, task_completion_sink<R> & sink);
 
 	// task shall not be null; returns the result after a potential synchronous wait
 	task<result_type> cancel_and_wait();

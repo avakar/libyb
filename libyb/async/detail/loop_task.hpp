@@ -28,17 +28,19 @@ struct loop_state<void>
 
 template <typename S, typename F, typename T>
 class loop_task
-	: public task_base<void>, private loop_state<T>
+	: public task_base<void>
+	, private loop_state<T>
+	, private task_completion_sink<S>
 {
 public:
 	loop_task(task<S> && t, F f, loop_state<T> && state);
 
-	task<void> cancel_and_wait() throw();
-	void prepare_wait(task_wait_preparation_context & ctx);
-	task<void> finish_wait(task_wait_finalization_context & ctx) throw();
-	cancel_level cancel(cancel_level cl) throw() override;
+	task<void> start(runner_registry & rr, task_completion_sink<void> & sink) override;
+	task<void> cancel(runner_registry * rr, cancel_level cl) throw() override;
 
 private:
+	void on_completion(runner_registry & rr, task<S> && r) override;
+
 	task<S> m_task;
 	F m_f;
 	cancel_level m_cancel_level;
@@ -113,47 +115,45 @@ loop_task<S, F, T>::loop_task(task<S> && t, F f, loop_state<T> && state)
 }
 
 template <typename S, typename F, typename T>
-task<void> loop_task<S, F, T>::cancel_and_wait() throw()
+void loop_task<S, F, T>::on_completion(runner_registry & rr, task<S> && r)
 {
-	while (!m_task.empty())
-	{
-		task<S> r = m_task.cancel_and_wait();
-		if (r.has_exception())
-			return task<void>::from_exception(r.exception());
-		m_task = invoke_loop_body(m_f, std::move(r), *this, cl_kill);
-	}
-
-	return task<void>::from_value();
 }
 
 template <typename S, typename F, typename T>
-void loop_task<S, F, T>::prepare_wait(task_wait_preparation_context & ctx)
+task<void> loop_task<S, F, T>::start(runner_registry & rr, task_completion_sink<void> & sink)
 {
-	m_task.prepare_wait(ctx);
-}
-
-template <typename S, typename F, typename T>
-task<void> loop_task<S, F, T>::finish_wait(task_wait_finalization_context & ctx) throw()
-{
-	m_task.finish_wait(ctx);
-	while (m_task.has_value() || m_task.has_exception())
+	while (m_task.start(rr, *this))
 	{
-		if (m_task.has_exception())
-			return task<void>::from_exception(m_task.exception());
 		m_task = invoke_loop_body(m_f, std::move(m_task), *this, m_cancel_level);
 		if (m_task.empty())
 			return async::value();
 	}
 
-	return nulltask;
+	return yb::nulltask;
 }
 
 template <typename S, typename F, typename T>
-cancel_level loop_task<S, F, T>::cancel(cancel_level cl) throw()
+task<void> loop_task<S, F, T>::cancel(runner_registry * rr, cancel_level cl) throw()
 {
 	m_cancel_level = cl;
-	m_task.cancel(cl);
-	return cl;
+	if (!m_task.cancel(rr, m_cancel_level))
+		return yb::nulltask;
+
+	for (;;)
+	{
+		m_task = invoke_loop_body(m_f, std::move(m_task), *this, m_cancel_level);
+		if (m_task.empty())
+			return async::value();
+		if (m_task.cancel(rr, m_cancel_level))
+			continue;
+		if (rr)
+		{
+			if (m_task.start(*rr, *this))
+				continue;
+		}
+
+		return yb::nulltask;
+	}
 }
 
 template <typename S, typename T, typename F>

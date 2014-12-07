@@ -14,11 +14,11 @@
     <ClCompile Include="libyb\async\channel.cpp" />
     <ClCompile Include="libyb\async\descriptor_reader.cpp" />
     <ClCompile Include="libyb\async\detail\console_stream.cpp" />
-    <ClCompile Include="libyb\async\detail\exit_guard_task.cpp" />
     <ClCompile Include="libyb\async\detail\notification_event.cpp" />
     <ClCompile Include="libyb\async\detail\parallel_composition_task.cpp" />
     <ClCompile Include="libyb\async\detail\parallel_compositor.cpp" />
     <ClCompile Include="libyb\async\detail\runner.cpp" />
+    <ClCompile Include="libyb\async\detail\runner_registry.cpp" />
     <ClCompile Include="libyb\async\detail\semaphore.cpp" />
     <ClCompile Include="libyb\async\detail\task_impl.cpp" />
     <ClCompile Include="libyb\async\detail\win32_affinity_task.cpp" />
@@ -76,14 +76,12 @@
     <ClInclude Include="libyb\async\detail\channel_detail.hpp" />
     <ClInclude Include="libyb\async\detail\circular_buffer.hpp" />
     <ClInclude Include="libyb\async\detail\double_buffer_task.hpp" />
-    <ClInclude Include="libyb\async\detail\exit_guard_task.hpp" />
     <ClInclude Include="libyb\async\detail\loop_task.hpp" />
     <ClInclude Include="libyb\async\detail\notification_event.hpp" />
     <ClInclude Include="libyb\async\detail\parallel_composition_task.hpp" />
     <ClInclude Include="libyb\async\detail\parallel_compositor.hpp" />
     <ClInclude Include="libyb\async\detail\parallel_compositor_impl.hpp" />
     <ClInclude Include="libyb\async\detail\prepared_task.hpp" />
-    <ClInclude Include="libyb\async\detail\prepared_task_impl.hpp" />
     <ClInclude Include="libyb\async\detail\runner_impl.hpp" />
     <ClInclude Include="libyb\async\detail\semaphore.hpp" />
     <ClInclude Include="libyb\async\detail\sequential_composition_task.hpp" />

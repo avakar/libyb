@@ -2,6 +2,7 @@
 #define LIBYB_ASYNC_RUNNER_HPP
 
 #include "detail/prepared_task.hpp"
+#include "detail/runner_registry.hpp"
 #include "task.hpp"
 #include <memory>
 
@@ -25,8 +26,8 @@ public:
 	R operator%(task<R> && t);
 
 protected:
-	virtual void submit(detail::prepared_task * pt) = 0;
-	virtual void run_until(detail::prepared_task * pt) = 0;
+	virtual void submit(detail::prepared_task_base * pt) = 0;
+	virtual void run_until(detail::prepared_task_base * pt) = 0;
 };
 
 } // namespace yb

@@ -18,29 +18,20 @@ public:
 	{
 	}
 
-	task<R> cancel_and_wait() throw() override
+	task<R> start(runner_registry & rr, task_completion_sink<R> & sink) override
 	{
-		return m_nested.cancel_and_wait();
+		if (m_nested.start(rr, sink))
+			return std::move(m_nested);
+		return yb::nulltask;
 	}
 
-	void prepare_wait(task_wait_preparation_context & ctx) override
-	{
-		m_nested.prepare_wait(ctx);
-	}
-
-	task<R> finish_wait(task_wait_finalization_context & ctx) throw() override
-	{
-		m_nested.finish_wait(ctx);
-		if (m_nested.has_task())
-			return nulltask;
-		return std::move(m_nested);
-	}
-
-	cancel_level cancel(cancel_level cl) throw() override
+	task<R> cancel(runner_registry * rr, cancel_level cl) throw() override
 	{
 		if (cl >= m_from && cl < m_to)
 			cl = m_to;
-		return m_nested.cancel(cl);
+		if (m_nested.cancel(rr, cl))
+			return std::move(m_nested);
+		return yb::nulltask;
 	}
 
 private:

@@ -1,7 +1,6 @@
 #include "task_fwd.hpp"
 #include "task_impl.hpp"
 #include "parallel_composition_task.hpp"
-#include "exit_guard_task.hpp"
 
 yb::task<void> yb::operator|(task<void> && lhs, task<void> && rhs)
 {
@@ -25,18 +24,6 @@ yb::task<void> & yb::operator|=(task<void> & lhs, task<void> && rhs)
 {
 	lhs = std::move(lhs) | std::move(rhs);
 	return lhs;
-}
-
-yb::task<void> yb::async::exit_guard(cancel_level cancel_threshold)
-{
-	try
-	{
-		return task<void>::from_task(new detail::exit_guard_task(cancel_threshold));
-	}
-	catch (...)
-	{
-		return async::raise<void>();
-	}
 }
 
 yb::task<void> yb::detail::task_value_traits<void>::from_value()
@@ -93,36 +80,15 @@ class infinite_loop_task
 	: public yb::task_base<void>
 {
 public:
-	infinite_loop_task()
-		: m_cl(yb::cl_none)
+	yb::task<void> start(yb::runner_registry & rr, yb::task_completion_sink<void> & sink) override
 	{
+		return yb::nulltask;
 	}
 
-	yb::task<void> cancel_and_wait() throw() override
+	yb::task<void> cancel(yb::runner_registry * rr, yb::cancel_level cl) throw() override
 	{
-		return yb::async::value();
+		return cl >= yb::cl_quit? yb::async::value(): yb::nulltask;
 	}
-
-	void prepare_wait(yb::task_wait_preparation_context & ctx) override
-	{
-		(void)ctx;
-		if (m_cl >= yb::cl_quit)
-			ctx.set_finished();
-	}
-
-	yb::task<void> finish_wait(yb::task_wait_finalization_context & ctx) throw() override
-	{
-		return yb::async::value();
-	}
-
-	yb::cancel_level cancel(yb::cancel_level cl) throw() override
-	{
-		m_cl = cl;
-		return cl;
-	}
-
-private:
-	yb::cancel_level m_cl;
 };
 
 }

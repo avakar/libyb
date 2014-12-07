@@ -13,10 +13,8 @@ class parallel_composition_task
 public:
 	parallel_composition_task(task<void> && t, task<void> && u);
 
-	task<void> cancel_and_wait() throw() override;
-	void prepare_wait(task_wait_preparation_context & ctx) override;
-	task<void> finish_wait(task_wait_finalization_context & ctx) throw() override;
-	cancel_level cancel(cancel_level cl) throw() override;
+	task<void> start(runner_registry & rr, task_completion_sink<void> & sink) override;
+	task<void> cancel(runner_registry * rr, cancel_level cl) throw() override;
 
 private:
 	parallel_compositor m_compositor;

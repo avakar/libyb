@@ -1,7 +1,7 @@
 namespace yb {
 namespace detail {
 
-template <typename F>
+/*template <typename F>
 void parallel_compositor::cancel_and_wait(F f) throw()
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
@@ -27,7 +27,7 @@ void parallel_compositor::finish_wait(task_wait_finalization_context & ctx, F f)
 
 		++it;
 	}
-}
+}*/
 
 } // namespace detail
 } // namespace yb

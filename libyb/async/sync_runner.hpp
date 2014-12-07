@@ -8,7 +8,6 @@ namespace yb {
 
 class sync_runner
 	: public runner
-	, private detail::prepared_task_event_sink
 {
 public:
 	explicit sync_runner(bool associate_thread_now = true);
@@ -16,12 +15,11 @@ public:
 
 	void associate_current_thread();
 
-	void run_until(detail::prepared_task * pt) override;
-	void submit(detail::prepared_task * pt) override;
+protected:
+	void submit(detail::prepared_task_base * pt) override;
+	void run_until(detail::prepared_task_base * pt) override;
 
 private:
-	void cancel(detail::prepared_task * pt) throw() override;
-
 	struct impl;
 	std::unique_ptr<impl> m_pimpl;
 

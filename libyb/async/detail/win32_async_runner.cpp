@@ -42,13 +42,3 @@ async_runner::~async_runner()
 	::WaitForSingleObject(m_pimpl->m_thread_handle, INFINITE);
 	::CloseHandle(m_pimpl->m_thread_handle);
 }
-
-void async_runner::submit(detail::prepared_task * pt)
-{
-	m_pimpl->m_runner.submit(pt);
-}
-
-void async_runner::run_until(detail::prepared_task * pt)
-{
-	pt->shadow_wait();
-}

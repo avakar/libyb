@@ -51,9 +51,6 @@
     <ClCompile Include="libyb\async\detail\console_stream.cpp">
       <Filter>async\detail</Filter>
     </ClCompile>
-    <ClCompile Include="libyb\async\detail\exit_guard_task.cpp">
-      <Filter>async\detail</Filter>
-    </ClCompile>
     <ClCompile Include="libyb\async\detail\notification_event.cpp">
       <Filter>async\detail</Filter>
     </ClCompile>
@@ -175,6 +172,9 @@
     <ClCompile Include="libyb\utils\detail\refcount.cpp">
       <Filter>utils\details</Filter>
     </ClCompile>
+    <ClCompile Include="libyb\async\detail\runner_registry.cpp">
+      <Filter>async\detail</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libyb\async\async_runner.hpp">
@@ -252,9 +252,6 @@
     <ClInclude Include="libyb\async\detail\double_buffer_task.hpp">
       <Filter>async\detail</Filter>
     </ClInclude>
-    <ClInclude Include="libyb\async\detail\exit_guard_task.hpp">
-      <Filter>async\detail</Filter>
-    </ClInclude>
     <ClInclude Include="libyb\async\detail\loop_task.hpp">
       <Filter>async\detail</Filter>
     </ClInclude>
@@ -271,9 +268,6 @@
       <Filter>async\detail</Filter>
     </ClInclude>
     <ClInclude Include="libyb\async\detail\prepared_task.hpp">
-      <Filter>async\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="libyb\async\detail\prepared_task_impl.hpp">
       <Filter>async\detail</Filter>
     </ClInclude>
     <ClInclude Include="libyb\async\detail\runner_impl.hpp">

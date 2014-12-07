@@ -19,7 +19,10 @@ public:
 	void append(parallel_compositor && o);
 	task<void> pop();
 
-	template <typename F>
+	task<void> start(runner_registry & rr, task_completion_sink<void> & sink);
+	task<void> cancel(runner_registry * rr, cancel_level cl) throw();
+
+/*	template <typename F>
 	void cancel_and_wait(F f) throw();
 
 	void prepare_wait(task_wait_preparation_context & ctx);
@@ -27,7 +30,7 @@ public:
 	template <typename F>
 	void finish_wait(task_wait_finalization_context & ctx, F f) throw();
 
-	cancel_level cancel(cancel_level cl) throw();
+	cancel_level cancel(cancel_level cl) throw();*/
 
 private:
 	struct parallel_task

@@ -125,7 +125,7 @@ task<R>::task(task<R> && o)
 	case k_task:
 		new(&m_storage) task_base_ptr(o.as_task());
 		m_kind = o.m_kind;
-		this->destroy<task_base_ptr>();
+		o.destroy<task_base_ptr>();
 		o.m_kind = k_empty;
 		return;
 	case k_empty:
@@ -157,7 +157,7 @@ void task<R>::clear() throw()
 		{
 			task_base_ptr const & p = this->as_task();
 			p.ptr->cancel(0, cl_kill);
-			delete p.ptr;
+			p.ptr->release();
 		}
 		this->destroy<task_base_ptr>();
 		break;
@@ -284,26 +284,35 @@ bool task<R>::has_task() const throw()
 }
 
 template <typename R>
-void task<R>::cancel(runner_registry * rr, cancel_level cl)
+bool task<R>::cancel(runner_registry * rr, cancel_level cl)
 {
 	while (m_kind == k_task)
 	{
 		task_base_ptr & p = this->as_task();
 		task<R> t = p.ptr->cancel(rr, cl);
 		if (t.empty())
-			break;
+			return false;
 		*this = std::move(t);
 	}
+
+	return !this->has_task();
 }
 
 template <typename R>
-void task<R>::cancel(cancel_level cl)
+bool task<R>::cancel(cancel_level cl)
 {
-	this->cancel(0, cl);
+	return this->cancel(0, cl);
 }
 
 template <typename R>
-void task<R>::start(runner_registry & rr, task_completion_sink<R> & sink)
+task<R> task<R>::cancel_and_wait()
+{
+	this->cancel(cl_kill);
+	return std::move(*this);
+}
+
+template <typename R>
+bool task<R>::start(runner_registry & rr, task_completion_sink<R> & sink)
 {
 	while (m_kind == k_task)
 	{
@@ -313,26 +322,8 @@ void task<R>::start(runner_registry & rr, task_completion_sink<R> & sink)
 			break;
 		*this = std::move(t);
 	}
-}
 
-template <typename R>
-task<R> task<R>::cancel_and_wait()
-{
-	assert(!this->empty());
-
-	if (m_kind == k_task)
-	{
-		task_base_ptr const & p = this->as_task();
-		task<R> r = p.ptr->cancel_and_wait();
-		delete p.ptr;
-
-		this->destroy<task_base_ptr>();
-		m_kind = k_empty;
-		return std::move(r);
-	}
-
-	assert(m_kind == k_value || m_kind == k_exception);
-	return std::move(*this);
+	return !this->has_task();
 }
 
 template <typename R>

@@ -9,26 +9,14 @@ parallel_composition_task::parallel_composition_task(task<void> && t, task<void>
 	m_compositor.add_task(std::move(t), std::move(u));
 }
 
-task<void> parallel_composition_task::cancel_and_wait() throw()
+task<void> parallel_composition_task::start(runner_registry & rr, task_completion_sink<void> & sink)
 {
-	m_compositor.cancel_and_wait([](task<void> const &) {});
-	return async::value();
+	m_compositor.start(rr, sink);
+	return m_compositor.empty()? async::value(): yb::nulltask;
 }
 
-void parallel_composition_task::prepare_wait(task_wait_preparation_context & ctx)
+task<void> parallel_composition_task::cancel(runner_registry * rr, cancel_level cl) throw()
 {
-	m_compositor.prepare_wait(ctx);
-}
-
-task<void> parallel_composition_task::finish_wait(task_wait_finalization_context & ctx) throw()
-{
-	m_compositor.finish_wait(ctx, [](task<void> const &){});
-	if (m_compositor.empty())
-		return async::value();
-	return nulltask;
-}
-
-cancel_level parallel_composition_task::cancel(cancel_level cl) throw()
-{
-	return m_compositor.cancel(cl);
+	m_compositor.cancel(rr, cl);
+	return m_compositor.empty()? async::value(): yb::nulltask;
 }

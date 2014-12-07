@@ -42,7 +42,19 @@ task<void> parallel_compositor::pop()
 	return std::move(res);
 }
 
-void parallel_compositor::prepare_wait(task_wait_preparation_context & ctx)
+task<void> parallel_compositor::start(runner_registry & rr, task_completion_sink<void> & sink)
+{
+	// XXX
+	return yb::nulltask;
+}
+
+task<void> parallel_compositor::cancel(runner_registry * rr, cancel_level cl) throw()
+{
+	// XXX
+	return yb::nulltask;
+}
+
+/*void parallel_compositor::prepare_wait(task_wait_preparation_context & ctx)
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
 	{
@@ -50,11 +62,12 @@ void parallel_compositor::prepare_wait(task_wait_preparation_context & ctx)
 		it->t.prepare_wait(ctx);
 		it->m = mb.finish();
 	}
-}
+}*/
 
-cancel_level parallel_compositor::cancel(cancel_level cl) throw()
+/*cancel_level parallel_compositor::cancel(cancel_level cl) throw()
 {
 	for (std::list<parallel_task>::iterator it = m_tasks.begin(); it != m_tasks.end(); ++it)
 		it->t.cancel(cl);
 	return cl;
 }
+*/
