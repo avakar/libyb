@@ -53,6 +53,7 @@ sync_runner::sync_runner(bool associate_thread_now)
 	: m_pimpl(new impl())
 {
 	m_pimpl->m_handles.reserve(64);
+	m_pimpl->m_handle_sinks.reserve(64);
 	m_pimpl->m_update_event = CreateEvent(0, TRUE, FALSE, 0);
 	if (!m_pimpl->m_update_event)
 		throw std::runtime_error("Failed to create an event");

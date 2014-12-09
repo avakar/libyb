@@ -103,7 +103,7 @@ template <typename R>
 task<R> task<R>::from_task(task_base<result_type> * task_impl) throw()
 {
 	task<R> res;
-	new(&res.m_storage) task_base<result_type>*(task_impl);
+	new(&res.m_storage) task_base_ptr(task_impl, cl_none);
 	res.m_kind = k_task;
 	return std::move(res);
 }

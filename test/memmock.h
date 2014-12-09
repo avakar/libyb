@@ -55,28 +55,32 @@ class alloc_mocker
 {
 public:
 	alloc_mocker()
-		: m_active(false), m_total_count(0), m_current_iteration(0)
+		: m_state(st_prealloc), m_total_count(0), m_current_iteration(0)
 	{
 	}
 
 	bool next()
 	{
-		if (!m_active)
+		switch (m_state)
 		{
+		case st_prealloc:
 			failer.reset(0);
-			m_active = true;
+			m_state = st_measure;
+			return true;
+		case st_measure:
+			failer.reset(0);
+			m_state = st_mock;
+			return true;
+		case st_mock:
+			if (m_total_count == 0)
+				m_total_count = failer.alloc_count();
+
+			if (m_current_iteration == m_total_count)
+				return false;
+
+			failer.reset(++m_current_iteration);
 			return true;
 		}
-
-		assert(m_active);
-		if (m_total_count == 0)
-			m_total_count = failer.alloc_count();
-
-		if (m_current_iteration == m_total_count)
-			return false;
-
-		failer.reset(++m_current_iteration);
-		return true;
 	}
 
 	size_t alloc_count() const
@@ -90,7 +94,7 @@ public:
 	}
 
 private:
-	bool m_active;
+	enum state_t { st_prealloc, st_measure, st_mock } m_state;
 	size_t m_total_count;
 	size_t m_current_iteration;
 	alloc_failer failer;
