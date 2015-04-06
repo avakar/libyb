@@ -39,7 +39,7 @@ sources = [
     ]
 include_roots = ["."]
 
-[crate.target.win32]
+[crate.target.windows]
 sources = [
     "libyb/async/detail/win32_affinity_task.cpp",
     "libyb/async/detail/win32_async_runner.cpp",
