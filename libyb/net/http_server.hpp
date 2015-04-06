@@ -8,6 +8,7 @@
 namespace yb {
 
 task<void> run_http_server(stream & s, std::function<task<http_response>(http_request const &)> fn);
+task<void> run_http_server(uint16_t port, std::function<task<http_response>(http_request const &)> fn);
 
 } // namespace yb
 

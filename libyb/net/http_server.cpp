@@ -1,6 +1,8 @@
 #include "http_server.hpp"
+#include "net.hpp"
 #include "detail/http_request_parser.hpp"
 #include "../async/channel.hpp"
+#include "../async/group.hpp"
 #include "../utils/lexcast.hpp"
 #include <sstream>
 using namespace yb;
@@ -69,6 +71,19 @@ yb::task<void> yb::run_http_server(stream & s, std::function<task<http_response>
 {
 	std::shared_ptr<http_handler> ctx = std::make_shared<http_handler>(s);
 	return ctx->run(std::move(fn)).keep_alive(ctx);
+}
+
+task<void> yb::run_http_server(uint16_t port, std::function<task<http_response>(http_request const &)> fn)
+{
+	std::shared_ptr<yb::group> socket_group = std::make_shared<yb::group>();
+
+	yb::task<void> group_task = yb::group::create(*socket_group);
+	yb::task<void> listen_task = yb::tcp_listen(port, [socket_group, fn](yb::tcp_socket & s) {
+		std::shared_ptr<yb::tcp_socket> ss = std::make_shared<yb::tcp_socket>(std::move(s));
+		socket_group->post(yb::run_http_server(*ss, fn).keep_alive(ss));
+	});
+
+	return std::move(group_task) | std::move(listen_task);
 }
 
 struct http_handler::request_buffer_handler
