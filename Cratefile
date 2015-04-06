@@ -62,6 +62,7 @@ sources = [
     "libyb/utils/detail/win32_overlapped.cpp",
     "libyb/utils/detail/win32_singleton.cpp",
     ]
+link_libs = ["ws2_32.lib"]
 
 [crate.target.unix]
 sources = [
@@ -82,3 +83,4 @@ sources = [
     "libyb/utils/detail/pthread_mutex.cpp",
     "libyb/utils/detail/unix_refcount.cpp",
     ]
+link_libs = ["udev"]
