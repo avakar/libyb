@@ -27,7 +27,6 @@ private:
 	} m_state;
 
 	std::string get_token() const;
-	std::string get_lowered_token() const;
 
 	std::vector<uint8_t> m_buffer;
 	yb::buffer_ref m_token;

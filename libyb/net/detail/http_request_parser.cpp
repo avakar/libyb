@@ -162,7 +162,7 @@ yb::buffer_ref yb::http_request_parser::push_data(yb::buffer_ref buf)
 
 			if (!m_field_name.empty())
 			{
-				m_current_request.headers.insert(std::make_pair(m_field_name, m_field_value));
+				m_current_request.headers.add(m_field_name, m_field_value);
 				m_field_name.clear();
 				m_field_value.clear();
 			}
@@ -194,7 +194,8 @@ yb::buffer_ref yb::http_request_parser::push_data(yb::buffer_ref buf)
 					buf.pop_front();
 				if (ctx.stop(m_buffer, m_token, buf))
 				{
-					m_field_name = this->get_lowered_token();
+					m_field_name.resize(m_token.size());
+					std::copy(m_token.begin(), m_token.end(), m_field_name.begin());
 					m_state = m_token.empty()? st_error: st_header_colon;
 				}
 			}
@@ -266,17 +267,5 @@ std::string yb::http_request_parser::get_token() const
 	std::string res;
 	res.resize(m_token.size());
 	std::copy(m_token.begin(), m_token.end(), res.begin());
-	return res;
-}
-
-std::string yb::http_request_parser::get_lowered_token() const
-{
-	std::string res;
-	res.resize(m_token.size());
-	for (size_t i = 0; i < m_token.size(); ++i)
-	{
-		uint8_t ch = m_token[i];
-		res[i] = (ch >= 'A' && ch <= 'Z')? ch - 'A' + 'a': ch;
-	}
 	return res;
 }

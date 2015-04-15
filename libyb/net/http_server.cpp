@@ -118,7 +118,7 @@ public:
 		http_request req = m_self->m_parser.req();
 		m_self->m_parser.clear();
 
-		auto te = req.header_values("transfer-encoding");
+		auto te = req.headers.get_split("transfer-encoding");
 		if (!te.empty())
 		{
 			yb::string_ref te_value = te.front();
@@ -134,11 +134,7 @@ public:
 				return async::raise<buffer_view>(std::runtime_error("XXX unimplemented"));
 		}
 
-		size_t content_length = 0;
-
-		auto content_length_header = req.headers.find("content-length");
-		if (content_length_header != req.headers.end())
-			content_length = lexical_cast<size_t>(content_length_header->second);
+		size_t content_length = lexical_cast<size_t>(req.headers.get("content-length", "0"));
 
 		yb::task<http_response> resp;
 		if (content_length == 0)
@@ -172,6 +168,83 @@ http_handler::http_handler(stream & s)
 	: m_s(s), m_bp(4096, /*sharable=*/true), m_response_channel(yb::channel<yb::task<http_response>>::create_finite<3>()),
 	m_req_body_remaining(0), m_request_body_channel(yb::channel<yb::buffer_view>::create_finite<3>())
 {
+}
+
+namespace {
+
+class http_chunker
+	: public istream
+{
+public:
+	http_chunker(std::shared_ptr<istream> body, size_t buf_size = 4096)
+		: m_body(std::move(body)), m_offset(0)
+	{
+		m_buffer.reserve(buf_size);
+	}
+
+	task<buffer_view> read(buffer_policy policy, size_t max_size) override
+	{
+		struct cont_t
+		{
+			task<buffer_view> operator()(buffer_view bv)
+			{
+				uint8_t chunk_header[16];
+				uint8_t * chunk_header_end = chunk_header;
+				if (bv->size() == 0)
+				{
+					*chunk_header_end++ = '0';
+				}
+				else
+				{
+					size_t s = bv->size();
+					while (s)
+					{
+						static uint8_t const digits[] = "0123456789abcdef";
+						*chunk_header_end++ = digits[s & 0xf];
+						s >>= 4;
+					}
+					std::reverse(chunk_header, chunk_header_end);
+					*chunk_header_end++ = '\r';
+					*chunk_header_end++ = '\n';
+				}
+
+				self->m_buffer.assign(chunk_header, chunk_header_end);
+				self->m_buffer.insert(self->m_buffer.end(), bv->data(), bv->data() + bv->size());
+				self->m_buffer.push_back('\r');
+				self->m_buffer.push_back('\n');
+				self->m_offset = 0;
+				return self->process(policy, max_size);
+			}
+
+			http_chunker * self;
+			buffer_policy policy;
+			size_t max_size;
+		};
+
+		if (m_offset != m_buffer.size())
+			return this->process(policy, max_size);
+
+		cont_t cont = { this, std::move(policy), max_size };
+		return m_body->read(buffer_policy(4096), m_buffer.capacity() - 18).then(std::move(cont));
+	}
+
+private:
+	task<buffer_view> process(buffer_policy & policy, size_t max_size)
+	{
+		max_size = (std::min)(m_buffer.size() - m_offset, max_size);
+		return policy.fetch(1, max_size).then([this, max_size](buffer buf) {
+			size_t copy_size = (std::min)(buf.size(), max_size);
+			std::copy(m_buffer.data() + m_offset, m_buffer.data() + m_offset + copy_size, buf.data());
+			m_offset += copy_size;
+			return buffer_view(std::move(buf), copy_size);
+		});
+	}
+
+	std::shared_ptr<istream> m_body;
+	std::vector<uint8_t> m_buffer;
+	size_t m_offset;
+};
+
 }
 
 yb::task<void> http_handler::run(std::function<task<http_response>(http_request const &)> fn)
@@ -218,12 +291,24 @@ yb::task<void> http_handler::run(std::function<task<http_response>(http_request 
 			return resp_promise.then([this](http_response const & resp) {
 				std::ostringstream oss;
 				oss << "HTTP/1.1 " << resp.status_code << " " << resp.get_status_text() << "\r\n";
-				for (std::multimap<std::string, std::string>::const_iterator it = resp.headers.begin(); it != resp.headers.end(); ++it)
-					oss << it->first << ": " << it->second << "\r\n";
-				oss << "\r\n";
+				for (auto && kv: resp.headers.get_all())
+					oss << kv.first << ": " << kv.second << "\r\n";
+
+				std::string content_length;
+				std::shared_ptr<istream> body;
+				if (!resp.body || resp.headers.try_get("content-length", content_length))
+				{
+					oss << "\r\n";
+					body = resp.body;
+				}
+				else
+				{
+					oss << "transfer-encoding: chunked\r\n\r\n";
+					body = std::make_shared<http_chunker>(resp.body);
+				}
+
 				m_current_response = oss.str();
 
-				std::shared_ptr<stream> body = resp.body;
 				return write_all(m_s, yb::buffer_ref((uint8_t const *)m_current_response.data(), m_current_response.size())).then([this, body]() {
 					if (!body)
 						return async::value();
