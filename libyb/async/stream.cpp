@@ -2,17 +2,17 @@
 #include <vector>
 using namespace yb;
 
-task<buffer_view> yb::read(stream & s, buffer_policy policy, size_t max_size)
+task<buffer_view> yb::read(istream & s, buffer_policy policy, size_t max_size)
 {
 	return s.read(std::move(policy), max_size);
 }
 
-task<size_t> yb::read(stream & s, uint8_t * buffer, size_t size)
+task<size_t> yb::read(istream & s, uint8_t * buffer, size_t size)
 {
 	return s.read(buffer_policy(buffer, size), size).then([](yb::buffer_view buf) { return buf->size(); });
 }
 
-task<void> yb::read_all(stream & s, uint8_t * buffer, size_t size)
+task<void> yb::read_all(istream & s, uint8_t * buffer, size_t size)
 {
 	return loop_with_state<size_t, size_t>(async::value((size_t)0), 0, [&s, buffer, size](size_t r, size_t & st, cancel_level cl) -> task<size_t> {
 		st += r;
@@ -24,7 +24,7 @@ task<void> yb::read_all(stream & s, uint8_t * buffer, size_t size)
 	});
 }
 
-task<void> yb::read_all(stream & s, std::function<bool(buffer_ref const & chunk)> const & handler, size_t max_chunk_size)
+task<void> yb::read_all(istream & s, std::function<bool(buffer_ref const & chunk)> const & handler, size_t max_chunk_size)
 {
 	if (max_chunk_size == 0)
 		max_chunk_size = 16*1024;
@@ -66,14 +66,14 @@ task<void> yb::write_all(stream & s, uint8_t const * buffer, size_t size)
 	});
 }
 
-static task<size_t> copy_iter(std::shared_ptr<std::vector<uint8_t>> const & ctx, stream & sink, stream & source)
+static task<size_t> copy_iter(std::shared_ptr<std::vector<uint8_t>> const & ctx, stream & sink, istream & source)
 {
 	return read(source, ctx->data(), ctx->size()).abort_on(cl_quit).then([ctx, &sink](size_t r) {
 		return write_all(sink, ctx->data(), r).then([r]() { return r; });
 	});
 }
 
-task<void> yb::copy(stream & sink, stream & source, size_t buffer_size)
+task<void> yb::copy(stream & sink, istream & source, size_t buffer_size)
 {
 	try
 	{
@@ -90,7 +90,7 @@ task<void> yb::copy(stream & sink, stream & source, size_t buffer_size)
 	}
 }
 
-task<void> yb::discard(stream & source, size_t buffer_size)
+task<void> yb::discard(istream & source, size_t buffer_size)
 {
 	try
 	{
