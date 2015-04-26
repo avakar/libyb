@@ -12,8 +12,6 @@ class channel_base
 {
 public:
 	task<T> receive() const;
-	task<void> send(task<T> && r) const;
-	task<void> send(task<T> const & r) const;
 
 protected:
 	typedef std::shared_ptr<detail::channel_buffer_base<T>> buffer_type;
@@ -33,7 +31,6 @@ public:
 
 	task<void> send(T const & value) const;
 	task<void> send(T && value) const;
-	using channel_base<T>::send;
 
 	void send_sync(T const & value) const;
 	void send_sync(T && value) const;
@@ -52,8 +49,6 @@ public:
 	static channel create_infinite();
 
 	task<void> send() const;
-	using channel_base<void>::send;
-
 	void send_sync() const;
 
 	task<void> fire() const;
@@ -83,18 +78,6 @@ task<T> channel_base<T>::receive() const
 }
 
 template <typename T>
-task<void> channel_base<T>::send(task<T> && r) const
-{
-	return m_buffer->send(std::move(r));
-}
-
-template <typename T>
-task<void> channel_base<T>::send(task<T> const & r) const
-{
-	return this->send(task<T>::from_value(r));
-}
-
-template <typename T>
 template <size_t Capacity>
 channel<T> channel<T>::create_finite()
 {
@@ -116,13 +99,13 @@ channel<T>::channel(buffer_type buffer)
 template <typename T>
 task<void> channel<T>::send(T const & value) const
 {
-	return this->send(task<T>::from_value(value));
+	return m_buffer->send(task<T>::from_value(value));
 }
 
 template <typename T>
 task<void> channel<T>::send(T && value) const
 {
-	return this->send(task<T>::from_value(std::move(value)));
+	return m_buffer->send(task<T>::from_value(std::move(value)));
 }
 
 template <typename T>

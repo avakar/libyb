@@ -10,7 +10,7 @@ struct handler
 	: packet_handler, noncopyable
 {
 	explicit handler(device & d)
-		: m_dev(d), m_out(channel<device_descriptor>::create_finite()), m_registered(true)
+		: m_dev(d), m_out(channel<task<device_descriptor>>::create_finite()), m_registered(true)
 	{
 		m_reg = d.register_receiver(*this);
 	}
@@ -49,7 +49,7 @@ struct handler
 	device & m_dev;
 
 	std::vector<uint8_t> m_buffer;
-	channel<device_descriptor> m_out;
+	channel<task<device_descriptor>> m_out;
 
 	bool m_registered;
 	device::receiver_registration m_reg;
@@ -64,7 +64,7 @@ task<device_descriptor> read_device_descriptor(device & d)
 		std::shared_ptr<handler> h(new handler(d));
 		return d.write_packet(yb::make_packet(0) % 0).then([&d, h]() -> task<device_descriptor> {
 			std::shared_ptr<handler> h2(h);
-			return h->m_out.receive().follow_with([h2](device_descriptor const &) {});
+			return h->m_out.receive().then([h2](task<device_descriptor> t) { return std::move(t); });
 		});
 	}
 	catch (...)

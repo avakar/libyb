@@ -13,7 +13,7 @@ channel<void>::channel(buffer_type buffer)
 
 task<void> channel<void>::send() const
 {
-	return this->send(task<void>::from_value());
+	return m_buffer->send(task<void>::from_value());
 }
 
 void channel<void>::send_sync() const
