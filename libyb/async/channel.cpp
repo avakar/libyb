@@ -6,6 +6,11 @@ channel<void> channel<void>::create_infinite()
 	return channel<void>(std::make_shared<detail::channel_buffer<void, detail::unbounded_channel_buffer<task<void>> > >());
 }
 
+channel<void> channel<void>::create_null()
+{
+	return channel<void>(std::make_shared<detail::channel_buffer<void, detail::null_channel_buffer<task<void>> > >());
+}
+
 channel<void>::channel(buffer_type buffer)
 : channel_base<void>(buffer)
 {

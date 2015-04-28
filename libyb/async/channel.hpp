@@ -28,6 +28,7 @@ public:
 	template <size_t Capacity = 1>
 	static channel create_finite();
 	static channel create_infinite();
+	static channel create_null();
 
 	task<void> send(T const & value) const;
 	task<void> send(T && value) const;
@@ -47,6 +48,7 @@ public:
 	template <size_t Capacity = 1>
 	static channel create_finite();
 	static channel create_infinite();
+	static channel create_null();
 
 	task<void> send() const;
 	void send_sync() const;
@@ -88,6 +90,13 @@ template <typename T>
 channel<T> channel<T>::create_infinite()
 {
 	return channel<T>(std::make_shared<detail::channel_buffer<T, detail::unbounded_channel_buffer<task<T>> > >());
+}
+
+
+template <typename T>
+channel<T> channel<T>::create_null()
+{
+	return channel<T>(std::make_shared<detail::channel_buffer<T, detail::null_channel_buffer<task<T>> > >());
 }
 
 template <typename T>
