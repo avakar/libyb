@@ -149,11 +149,30 @@ public:
 			resp = m_fn(std::move(req));
 		}
 
-		return m_self->m_response_channel.send(std::move(resp)).then([this]() {
-			if (!m_buf->empty())
-				return async::value(std::move(m_buf));
-			return read(m_self->m_s, m_self->m_bp.ref(), 0);
-		});
+		struct cont_t
+		{
+			cont_t(buffer_view && buf, http_handler * self)
+				: m_buf(std::move(buf)), m_self(self)
+			{
+			}
+
+			cont_t(cont_t && o)
+				: m_buf(std::move(o.m_buf)), m_self(o.m_self)
+			{
+			}
+
+			task<buffer_view> operator()()
+			{
+				if (!m_buf->empty())
+					return async::value(std::move(m_buf));
+				return read(m_self->m_s, m_self->m_bp.ref(), 0);
+			}
+
+			buffer_view m_buf;
+			http_handler * m_self;
+		};
+
+		return m_self->m_response_channel.send(std::move(resp)).then(cont_t(std::move(m_buf), m_self));
 	}
 
 	buffer_view m_buf;
