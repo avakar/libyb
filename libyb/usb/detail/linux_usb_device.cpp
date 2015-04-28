@@ -202,11 +202,11 @@ static task<size_t> async_transfer(std::shared_ptr<detail::usb_device_core> cons
 			return async::raise<size_t>(std::runtime_error("cannot submit urb"));
 		}
 
-		return ctx->done.wait_for([core, ctx](cancel_level cl) -> bool {
+		return ctx->done.wait(/*[core, ctx](cancel_level cl) -> bool {
 			if (cl >= cl_abort)
 				ioctl(core->fd.get(), USBDEVFS_DISCARDURB, &ctx->urb);
 			return true;
-		}).then([ctx]() -> task<size_t> {
+		}*/).then([ctx]() -> task<size_t> {
 			if (ctx->urb.status < 0)
 				return async::raise<size_t>(std::runtime_error("transfer error"));
 			return async::value((size_t)ctx->urb.actual_length);

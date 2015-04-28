@@ -4,6 +4,7 @@
 #ifndef _MSC_VER
 #include <atomic>
 #endif
+#include <stdlib.h>
 
 namespace yb {
 

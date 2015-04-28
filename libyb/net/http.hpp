@@ -28,7 +28,7 @@ struct http_error
 
 struct http_header_comparator
 {
-	bool operator()(string_ref lhs, string_ref rhs)
+	bool operator()(string_ref lhs, string_ref rhs) const
 	{
 		auto tolower = [](char ch) { return 'A' <= ch && ch <= 'Z' ? ch + ('a' - 'A') : ch; };
 

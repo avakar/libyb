@@ -1,5 +1,4 @@
 #include "../refcount.hpp"
-#include <windows.h>
 
 yb::refcount::refcount(size_t initial)
 	: m_value(initial)

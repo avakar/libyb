@@ -8,10 +8,10 @@ refcount::refcount(size_t initial)
 
 size_t refcount::addref()
 {
-	return ++m_value;
+	return m_value.fetch_add(1);
 }
 
 size_t refcount::release()
 {
-	return --m_value;
+	return m_value.fetch_sub(1);
 }

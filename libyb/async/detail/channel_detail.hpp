@@ -1,11 +1,11 @@
 #ifndef LIBYB_ASYNC_DETAIL_CHANNEL_DETAIL_HPP
 #define LIBYB_ASYNC_DETAIL_CHANNEL_DETAIL_HPP
 
-#include "../../utils/detail/win32_mutex.hpp" // XXX
 #include "../promise.hpp"
 
 #include <list>
 #include <deque>
+#include <mutex>
 
 namespace yb {
 namespace detail {
@@ -72,7 +72,7 @@ public:
 
 	yb::task<T> receive() override
 	{
-		yb::detail::scoped_win32_lock l(m_buffer_lock);
+		std::lock_guard<std::mutex> l(m_buffer_lock);
 		if (!m_buffer.empty())
 		{
 			yb::task<T> res(std::move(m_buffer.front()));
@@ -86,7 +86,7 @@ public:
 			w->it = m_writers.end();
 			m_writers.pop_front();
 			yb::task<T> res(std::move(w->value));
-			w->promise.set();
+			w->p.set();
 			return std::move(res);
 		}
 		else
@@ -97,8 +97,8 @@ public:
 
 			reader * r = m_readers.back();
 			r->it = std::prev(m_readers.end());
-			return r->promise.wait().continue_with([this, r](task<task<T>> t) {
-				yb::detail::scoped_win32_lock l(m_buffer_lock);
+			return r->p.wait().continue_with([this, r](task<task<T>> t) {
+				std::lock_guard<std::mutex> l(m_buffer_lock);
 				if (r->it != m_readers.end())
 					m_readers.erase(r->it);
 				delete r;
@@ -109,14 +109,14 @@ public:
 
 	yb::task<void> send(yb::task<T> && t) override
 	{
-		yb::detail::scoped_win32_lock l(m_buffer_lock);
+		std::lock_guard<std::mutex> l(m_buffer_lock);
 		if (!m_readers.empty())
 		{
 			reader * r = m_readers.front();
 			r->it = m_readers.end();
 			m_readers.pop_front();
 
-			r->promise.set(std::move(t));
+			r->p.set(std::move(t));
 			return yb::async::value();
 		}
 		else if (!m_buffer.full())
@@ -134,8 +134,8 @@ public:
 			w->it = std::prev(m_writers.end());
 			w->value = std::move(t);
 
-			return w->promise.wait().continue_with([this, w](task<void> t) {
-				yb::detail::scoped_win32_lock l(m_buffer_lock);
+			return w->p.wait().continue_with([this, w](task<void> t) {
+				std::lock_guard<std::mutex> l(m_buffer_lock);
 				if (w->it != m_writers.end())
 					m_writers.erase(w->it);
 				delete w;
@@ -153,23 +153,23 @@ private:
 			m_buffer.push_back(std::move(w->value));
 			m_writers.erase(w->it);
 			w->it = m_writers.end();
-			w->promise.set();
+			w->p.set();
 		}
 	}
 
-	yb::detail::win32_mutex m_buffer_lock;
+	std::mutex m_buffer_lock;
 	Buffer m_buffer;
 
 	struct reader
 	{
-		promise<task<T>> promise;
+		promise<task<T>> p;
 		typename std::list<reader *>::iterator it;
 	};
 
 	struct writer
 	{
 		task<T> value;
-		promise<void> promise;
+		promise<void> p;
 		typename std::list<writer *>::iterator it;
 	};
 

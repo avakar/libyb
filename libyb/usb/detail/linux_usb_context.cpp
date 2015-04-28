@@ -22,7 +22,7 @@ static void kill_pending_urbs(usb_device_core & core)
 	{
 		urb_context * urb_ctx = *it;
 		urb_ctx->urb.status = -ENODEV;
-		urb_ctx->done.set_value();
+		urb_ctx->done.set();
 	}
 
 	core.pending_urbs.clear();
@@ -45,7 +45,7 @@ static task<void> dispatch_loop(std::shared_ptr<usb_device_core> const & core)
 			}
 
 			detail::urb_context * ctx = (detail::urb_context *)urb->usercontext;
-			ctx->done.set_value();
+			ctx->done.set();
 			core->pending_urbs.erase(ctx);
 			return async::value();
 		}

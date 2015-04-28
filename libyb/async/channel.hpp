@@ -37,6 +37,7 @@ public:
 	void send_sync(T && value) const;
 
 private:
+	typedef typename channel_base<T>::buffer_type buffer_type;
 	explicit channel(buffer_type buffer);
 };
 
@@ -108,13 +109,13 @@ channel<T>::channel(buffer_type buffer)
 template <typename T>
 task<void> channel<T>::send(T const & value) const
 {
-	return m_buffer->send(task<T>::from_value(value));
+	return this->m_buffer->send(task<T>::from_value(value));
 }
 
 template <typename T>
 task<void> channel<T>::send(T && value) const
 {
-	return m_buffer->send(task<T>::from_value(std::move(value)));
+	return this->m_buffer->send(task<T>::from_value(std::move(value)));
 }
 
 template <typename T>

@@ -8,6 +8,7 @@
 #include <exception>
 #include <utility>
 #include <poll.h>
+#include <cassert>
 
 namespace yb {
 namespace detail {
