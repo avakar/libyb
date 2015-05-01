@@ -9,6 +9,7 @@ namespace detail {
 
 task<buffer_view> read_linux_fd(int fd, buffer_policy policy, size_t max_size);
 task<size_t> write_linux_fd(int fd, buffer_ref buf);
+task<size_t> send_linux_fd(int fd, buffer_ref buf, int flags);
 
 }
 }

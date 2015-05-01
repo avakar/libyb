@@ -58,7 +58,7 @@ task<buffer_view> tcp_socket::read(buffer_policy policy, size_t max_size)
 
 task<size_t> tcp_socket::write(buffer_ref buf)
 {
-	return detail::write_linux_fd(m_pimpl->fd, buf);
+	return detail::send_linux_fd(m_pimpl->fd, buf, MSG_NOSIGNAL);
 }
 
 task<void> yb::tcp_listen(

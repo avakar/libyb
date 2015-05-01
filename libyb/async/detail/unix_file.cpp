@@ -4,50 +4,12 @@
 #include "unix_file.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
 using namespace yb;
 
 namespace {
-
-struct writer_t
-{
-public:
-	writer_t(int fd, buffer_ref buf)
-		: m_fd(fd), m_buf(buf)
-	{
-	}
-
-	task<size_t> operator()()
-	{
-		for (;;)
-		{
-			ssize_t r = ::write(m_fd, m_buf.data(), m_buf.size());
-			if (r == -1)
-			{
-				int e = errno;
-
-				if (e == EINTR)
-					continue;
-
-				if (e == EAGAIN || e == EWOULDBLOCK)
-				{
-					return make_linux_pollfd_task(m_fd, POLLOUT, [](cancel_level cl) {
-						return cl < cl_abort;
-					}).ignore_result().then(*this);
-				}
-
-				return async::raise<size_t>(detail::unix_system_error(e));
-			}
-
-			return async::value((size_t)r);
-		}
-	}
-
-private:
-	int m_fd;
-	buffer_ref m_buf;
-};
 
 struct reader_t
 {
@@ -147,7 +109,54 @@ task<buffer_view> yb::detail::read_linux_fd(int fd, buffer_policy policy, size_t
 
 task<size_t> yb::detail::write_linux_fd(int fd, buffer_ref buf)
 {
-	return writer_t(fd, buf)();
+	return yb::loop2<short>([fd, buf](task<short> & r, cancel_level cl) -> task<size_t> {
+		while (cl < cl_abort)
+		{
+			ssize_t rr = ::write(fd, buf.data(), buf.size());
+			if (rr >= 0)
+				return async::value((size_t)rr);
+
+			int e = errno;
+			if (e == EINTR)
+				continue;
+
+			if (e == EAGAIN || e == EWOULDBLOCK)
+			{
+				r = make_linux_pollfd_task(fd, POLLOUT, [](cancel_level cl) { return cl < cl_abort; });
+				return yb::nulltask;
+			}
+
+			return async::raise<size_t>(detail::unix_system_error(e));
+		}
+
+		return async::raise<size_t>(task_cancelled(cl));
+	});
+}
+
+task<size_t> yb::detail::send_linux_fd(int fd, buffer_ref buf, int flags)
+{
+	return yb::loop2<short>([fd, buf, flags](task<short> & r, cancel_level cl) -> task<size_t> {
+		while (cl < cl_abort)
+		{
+			ssize_t rr = ::send(fd, buf.data(), buf.size(), flags);
+			if (rr >= 0)
+				return async::value((size_t)rr);
+
+			int e = errno;
+			if (e == EINTR)
+				continue;
+
+			if (e == EAGAIN || e == EWOULDBLOCK)
+			{
+				r = make_linux_pollfd_task(fd, POLLOUT, [](cancel_level cl) { return cl < cl_abort; });
+				return yb::nulltask;
+			}
+
+			return async::raise<size_t>(detail::unix_system_error(e));
+		}
+
+		return async::raise<size_t>(task_cancelled(cl));
+	});
 }
 
 struct file::impl

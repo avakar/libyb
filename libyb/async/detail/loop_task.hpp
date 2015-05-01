@@ -178,6 +178,70 @@ task<void> loop(task<S> && t, loop_state<T> & state, F && f)
 	}
 }
 
+template <typename R, typename S, typename F>
+class loop2_task
+	: public task_base<R>
+{
+public:
+	loop2_task(task<S> && state, F f)
+		: m_state(std::move(state)), m_f(std::move(f)), m_cancel_level(cl_none)
+	{
+	}
+
+	task<R> cancel_and_wait() throw()
+	{
+		try
+		{
+			for (;;)
+			{
+				m_state = m_state.cancel_and_wait();
+				if (m_state.has_exception())
+					return task<R>::from_exception(m_state.exception());
+				task<R> r = m_f(m_state, cl_kill);
+				if (r.has_task())
+					return r.cancel_and_wait();
+			}
+		}
+		catch (...)
+		{
+			return async::raise<R>();
+		}
+	}
+
+	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl)
+	{
+		m_cancel_level = cl;
+		m_state.prepare_wait(ctx, cl);
+	}
+
+	task<R> finish_wait(task_wait_finalization_context & ctx) throw()
+	{
+		try
+		{
+			m_state.finish_wait(ctx);
+			while (m_state.has_value() || m_state.has_exception())
+			{
+				if (m_state.has_exception())
+					return task<R>::from_exception(m_state.exception());
+				task<R> r = m_f(m_state, m_cancel_level);
+				if (!r.empty())
+					return std::move(r);
+			}
+		}
+		catch (...)
+		{
+			return async::raise<R>();
+		}
+
+		return nulltask;
+	}
+
+private:
+	task<S> m_state;
+	F m_f;
+	cancel_level m_cancel_level;
+};
+
 } // namespace detail
 
 template <typename S, typename F>
@@ -205,6 +269,58 @@ template <typename F>
 task<void> loop(F && f)
 {
 	return loop(async::value(), std::move(f));
+}
+
+template <typename S, typename F>
+auto loop2(F f) -> decltype(f(*(task<S> *)0, cl_none))
+{
+	typedef typename detail::unwrap_task<decltype(f(*(task<S> *)0, cl_none))>::type R;
+
+	task<S> state;
+
+	try
+	{
+		task<R> r = f(state, cl_none);
+		while (r.empty() && !state.has_task())
+		{
+			if (state.has_exception())
+				return task<R>::from_exception(state.exception());
+			r = f(state, cl_none);
+		}
+
+		if (!r.empty())
+			return std::move(r);
+	}
+	catch (...)
+	{
+		return async::raise<R>();
+	}
+
+	try
+	{
+		return task<R>::from_task(new detail::loop2_task<R, S, F>(std::move(state), std::move(f)));
+	}
+	catch (...)
+	{
+		try
+		{
+			for (;;)
+			{
+				state = state.cancel_and_wait();
+				if (state.has_exception())
+					return task<R>::from_exception(state.exception());
+				task<R> r = f(state, cl_kill);
+				if (r.has_task())
+					return r.cancel_and_wait();
+			}
+		}
+		catch (...)
+		{
+			return async::raise<R>();
+		}
+
+		return async::raise<R>();
+	}
 }
 
 } // namespace yb
