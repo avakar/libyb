@@ -1,6 +1,7 @@
 #include "../sync_runner.hpp"
 #include "../../utils/detail/pthread_mutex.hpp"
 #include "../../utils/detail/linux_event.hpp"
+#include "../../utils/detail/unix_system_error.hpp"
 #include "linux_wait_context.hpp"
 #include <sys/eventfd.h>
 #include <sys/types.h>
@@ -105,9 +106,18 @@ void sync_runner::run_until(detail::prepared_task * focused_pt)
 		{
 			m_pimpl->m_update_event.reset();
 			m_pimpl->m_mutex.unlock();
-			int r = poll(prep_ctx_impl->m_pollfds.data(), prep_ctx_impl->m_pollfds.size(), -1);
-			if (r == -1)
-				throw std::runtime_error("poll failed"); // XXX
+
+			int r;
+			for (;;)
+			{
+				r = poll(prep_ctx_impl->m_pollfds.data(), prep_ctx_impl->m_pollfds.size(), -1);
+				if (r != -1)
+					break;
+				int e = errno;
+				if (e == EINTR)
+					continue;
+				throw detail::unix_system_error(e);
+			}
 			m_pimpl->m_mutex.lock();
 
 			assert(r != 0);
