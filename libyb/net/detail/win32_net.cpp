@@ -195,11 +195,11 @@ static int CALLBACK tcp_accept_cond(
 
 static task<void> tcp_listen_impl_loop(yb::cancel_level cl, std::shared_ptr<tcp_impl> const & impl)
 {
-	if (cl >= cl_quit)
+	if (cl >= cl_abort)
 		return yb::nulltask;
 
 	return yb::make_win32_handle_task(impl->ev.get(), [](cancel_level cl) -> bool {
-		return false;
+		return cl < cl_abort;
 	}).then([impl]() -> void {
 		sockaddr_in sa;
 		INT sa_len = sizeof sa;
