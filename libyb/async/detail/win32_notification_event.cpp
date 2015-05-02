@@ -41,5 +41,5 @@ void notification_event::reset()
 
 yb::task<void> notification_event::wait()
 {
-	return yb::make_win32_handle_task(m_win32_handle, [](yb::cancel_level cl) { return cl >= yb::cl_abort; });
+	return yb::make_win32_handle_task(m_win32_handle, [](yb::cancel_level cl) { return cl < yb::cl_abort; });
 }
