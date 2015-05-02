@@ -161,6 +161,7 @@ sources = [
     "libyb/async/detail/linux_notification_event.cpp",
     "libyb/async/detail/linux_prepared_task.cpp",
     "libyb/async/detail/linux_serial_port.cpp",
+    "libyb/async/detail/linux_sigint.cpp",
     "libyb/async/detail/linux_sync_runner.cpp",
     "libyb/async/detail/linux_timer.cpp",
     "libyb/async/detail/linux_wait_context.cpp",
