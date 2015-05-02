@@ -25,7 +25,7 @@ public:
 
 	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
-		if (cl >= m_from && cl < m_to)
+		if ((cl >= m_from && cl < m_to) || (cl <= m_from && cl > m_to))
 			cl = m_to;
 
 		m_nested.prepare_wait(ctx, cl);
@@ -62,7 +62,7 @@ public:
 
 	void prepare_wait(task_wait_preparation_context & ctx, cancel_level cl) override
 	{
-		if (cl >= m_from && cl < m_to)
+		if ((cl >= m_from && cl < m_to) || (cl <= m_from && cl > m_to))
 			cl = m_to;
 
 		m_nested.prepare_wait(ctx, cl);

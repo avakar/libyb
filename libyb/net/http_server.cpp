@@ -83,7 +83,7 @@ task<void> yb::run_http_server(uint16_t port, std::function<task<http_response>(
 		socket_group->post(yb::run_http_server(*ss, fn).keep_alive(ss));
 	});
 
-	return std::move(group_task) | std::move(listen_task);
+	return std::move(group_task).abort_on(cl_quit, cl_none) | std::move(listen_task).abort_on(cl_quit);
 }
 
 struct http_handler::request_buffer_handler
