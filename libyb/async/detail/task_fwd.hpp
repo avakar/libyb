@@ -210,7 +210,7 @@ task<R> raise(std::exception_ptr e)
 template <typename R, typename E>
 task<R> raise(E && e)
 {
-	return task<R>(std::copy_exception(std::forward<E>(e)));
+	return task<R>(std::make_exception_ptr(std::forward<E>(e)));
 }
 
 template <typename R>
