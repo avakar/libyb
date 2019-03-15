@@ -96,7 +96,7 @@ public:
 	{
 		this->cancel(cl_kill);
 		assert(!m_buffer);
-		return std::copy_exception(task_cancelled());
+		return std::make_exception_ptr(task_cancelled());
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)

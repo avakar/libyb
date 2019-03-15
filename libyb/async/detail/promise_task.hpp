@@ -37,7 +37,7 @@ public:
 		if (m_buffer)
 			return task_result<T>(m_buffer->front());
 		else
-			return task_result<T>(std::copy_exception(task_cancelled()));
+			return task_result<T>(std::make_exception_ptr(task_cancelled()));
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)
