@@ -134,7 +134,7 @@ public:
 				return task_result<void>(std::current_exception());
 			}
 		}
-		return std::move(r);
+		return r;
 	}
 
 	void prepare_wait(task_wait_preparation_context & ctx)

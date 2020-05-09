@@ -36,35 +36,37 @@ task<void> usb_device::control_write(usb_control_code_t const & code, uint16_t w
 	return this->control_write(code.bmRequestType, code.bRequest, wValue, wIndex, buffer, size);
 }
 
-bool yb::operator==(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core == rhs.m_core;
-}
+namespace yb {
+	bool operator==(usb_device const & lhs, usb_device const & rhs)
+	{
+		return lhs.m_core == rhs.m_core;
+	}
 
-bool yb::operator!=(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core != rhs.m_core;
-}
+	bool operator!=(usb_device const & lhs, usb_device const & rhs)
+	{
+		return lhs.m_core != rhs.m_core;
+	}
 
-bool yb::operator<(usb_device const & lhs, usb_device const & rhs)
-{
-	return lhs.m_core < rhs.m_core;
-}
+	bool operator<(usb_device const & lhs, usb_device const & rhs)
+	{
+		return lhs.m_core < rhs.m_core;
+	}
 
-bool yb::operator>(usb_device const & lhs, usb_device const & rhs)
-{
-	return rhs.m_core < lhs.m_core;
-}
+	bool operator>(usb_device const & lhs, usb_device const & rhs)
+	{
+		return rhs.m_core < lhs.m_core;
+	}
 
-bool yb::operator<=(usb_device const & lhs, usb_device const & rhs)
-{
-	return !(rhs.m_core < lhs.m_core);
-}
+	bool operator<=(usb_device const & lhs, usb_device const & rhs)
+	{
+		return !(rhs.m_core < lhs.m_core);
+	}
 
-bool yb::operator>=(usb_device const & lhs, usb_device const & rhs)
-{
-	return !(lhs.m_core < rhs.m_core);
-}
+	bool operator>=(usb_device const & lhs, usb_device const & rhs)
+	{
+		return !(lhs.m_core < rhs.m_core);
+	}
+};
 
 std::shared_ptr<detail::usb_device_core> const & usb_device::core() const
 {
@@ -85,34 +87,37 @@ usb_device_interface::usb_device_interface(std::shared_ptr<detail::usb_device_co
 {
 }
 
-bool yb::operator==(usb_device_interface const & lhs, usb_device_interface const & rhs)
+namespace yb
 {
-	return lhs.m_core == rhs.m_core && (!lhs.m_core || (lhs.m_config_index == rhs.m_config_index && lhs.m_interface_index == rhs.m_interface_index));
-}
+	bool operator==(usb_device_interface const & lhs, usb_device_interface const & rhs)
+	{
+		return lhs.m_core == rhs.m_core && (!lhs.m_core || (lhs.m_config_index == rhs.m_config_index && lhs.m_interface_index == rhs.m_interface_index));
+	}
 
-bool yb::operator!=(usb_device_interface const & lhs, usb_device_interface const & rhs)
-{
-	return !(lhs == rhs);
-}
+	bool operator!=(usb_device_interface const & lhs, usb_device_interface const & rhs)
+	{
+		return !(lhs == rhs);
+	}
 
-bool yb::operator<(usb_device_interface const & lhs, usb_device_interface const & rhs)
-{
-	if (!lhs.m_core && !rhs.m_core)
-		return false;
-	return tuple_less(lhs.m_core, rhs.m_core)(lhs.m_config_index, rhs.m_config_index)(lhs.m_interface_index, rhs.m_interface_index);
-}
+	bool operator<(usb_device_interface const & lhs, usb_device_interface const & rhs)
+	{
+		if (!lhs.m_core && !rhs.m_core)
+			return false;
+		return tuple_less(lhs.m_core, rhs.m_core)(lhs.m_config_index, rhs.m_config_index)(lhs.m_interface_index, rhs.m_interface_index);
+	}
 
-bool yb::operator>(usb_device_interface const & lhs, usb_device_interface const & rhs)
-{
-	return rhs < lhs;
-}
+	bool operator>(usb_device_interface const & lhs, usb_device_interface const & rhs)
+	{
+		return rhs < lhs;
+	}
 
-bool yb::operator<=(usb_device_interface const & lhs, usb_device_interface const & rhs)
-{
-	return !(rhs < lhs);
-}
+	bool operator<=(usb_device_interface const & lhs, usb_device_interface const & rhs)
+	{
+		return !(rhs < lhs);
+	}
 
-bool yb::operator>=(usb_device_interface const & lhs, usb_device_interface const & rhs)
-{
-	return !(lhs < rhs);
-}
+	bool operator>=(usb_device_interface const & lhs, usb_device_interface const & rhs)
+	{
+		return !(lhs < rhs);
+	}
+};

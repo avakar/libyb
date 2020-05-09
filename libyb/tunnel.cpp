@@ -157,7 +157,7 @@ task<void> tunnel_stream::fast_close()
 		m_th = 0;
 	}
 
-	return std::move(res);
+	return res;
 }
 
 task<size_t> tunnel_stream::read(uint8_t * buffer, size_t size)

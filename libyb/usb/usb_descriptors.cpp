@@ -9,7 +9,7 @@ usb_config_descriptor yb::parse_config_descriptor(yb::buffer_ref d)
 
 	usb_config_descriptor res;
 
-	memcpy(&res, d.data(), usb_raw_config_descriptor::size);
+	memcpy(&res.bLength, d.data(), usb_raw_config_descriptor::size);
 	// FIXME: endianity
 
 	d += usb_raw_config_descriptor::size;
@@ -29,7 +29,7 @@ usb_config_descriptor yb::parse_config_descriptor(yb::buffer_ref d)
 				throw std::runtime_error("invalid descriptor");
 
 			usb_interface_descriptor idesc;
-			memcpy(&idesc, d.data(), usb_raw_interface_descriptor::size);
+			memcpy(&idesc.bLength, d.data(), usb_raw_interface_descriptor::size);
 			// FIXME: endianity
 
 			if (idesc.bInterfaceNumber >= res.bNumInterfaces)

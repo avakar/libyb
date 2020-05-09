@@ -185,7 +185,7 @@ public:
 	{
 		T res(std::move(this->front()));
 		this->pop_front();
-		return std::move(res);
+		return res;
 	}
 
 	void push_back(value_type const & v)
