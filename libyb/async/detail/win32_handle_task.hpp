@@ -76,7 +76,7 @@ task_result<void> win32_handle_task<Canceller>::cancel_and_wait() throw()
 	}
 	else
 	{
-		return task_result<void>(std::copy_exception(task_cancelled()));
+		return task_result<void>(std::make_exception_ptr(task_cancelled()));
 	}
 }
 
