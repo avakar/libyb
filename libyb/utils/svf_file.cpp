@@ -92,7 +92,7 @@ static std::string upper(std::string s)
 {
 	for (size_t i = 0; i < s.size(); ++i)
 		s[i] = toupper((unsigned char)s[i]);
-	return std::move(s);
+	return s;
 }
 
 static bool try_parse_semicolon(parse_context & ctx)
@@ -220,6 +220,8 @@ static double parse_real(parse_context & ctx)
 		case exp_num:
 			if (!isdigit(ch))
 				state = done;
+			break;
+		case done:
 			break;
 		}
 
@@ -566,7 +568,7 @@ static svf_xxr prepare_shift(svf_xxr const & head, svf_xxr const & body, svf_xxr
 	join_xxr(res, body);
 	join_xxr(res, tail);
 
-	if (std::count(res.mask.begin(), res.mask.end(), 0) == res.mask.size())
+	if ((size_t)std::count(res.mask.begin(), res.mask.end(), 0) == res.mask.size())
 	{
 		res.tdo.clear();
 		res.mask.clear();
@@ -785,6 +787,8 @@ static void svf_lower_impl(svf_file & doc, F const & f)
 				if (tap_state != end_state)
 					tap_state = make_tms_path(tap_state, end_state, f);
 			}
+			break;
+		default:
 			break;
 		}
 	}

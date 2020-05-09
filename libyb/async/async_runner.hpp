@@ -166,13 +166,13 @@ public:
 			task_result<T> r(m_promise->get());
 			m_promise->release();
 			m_promise = 0;
-			return std::move(r);
+			return r;
 		}
 		else
 		{
 			task_result<T> r(m_exception);
 			m_exception = nullptr;
-			return std::move(r);
+			return r;
 		}
 	}
 

@@ -22,7 +22,7 @@ serial_port::~serial_port()
 {
 }
 
-task<void> serial_port::open(yb::string_ref const & name, settings const & s)
+task<void> serial_port::open(yb::string_ref const & name, settings const &)
 {
 	return protect([&]() -> task<void> {
 		int fd = ::open(std::string(name).c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);

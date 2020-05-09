@@ -39,7 +39,7 @@ struct yb_gcd<A, 0>
 template <size_t A, size_t B>
 struct yb_lcm
 {
-	static size_t const value = A * B * yb_gcd<A, B>::value;
+	static size_t const value = A * B / yb_gcd<A, B>::value;
 };
 
 } // namespace detail

@@ -218,7 +218,7 @@ task_result<R> task<R>::cancel_and_wait()
 
 		this->as_task().~task_base_ptr();
 		m_kind = k_empty;
-		return std::move(r);
+		return r;
 	}
 
 	assert(m_kind == k_result);
@@ -428,7 +428,7 @@ inline task<void> task<void>::finishable(cancellation_token & ct)
 
 	core->m_task = std::move(*this);
 	ct = new_ct;
-	return std::move(core_task);
+	return core_task;
 }
 
 template <typename F>
