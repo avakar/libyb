@@ -17,8 +17,8 @@ namespace detail {
 
 struct urb_context
 {
-	struct usbdevfs_urb urb;
 	promise<void> done;
+	struct usbdevfs_urb urb;
 };
 
 struct usb_device_core
